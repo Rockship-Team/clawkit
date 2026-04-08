@@ -1,250 +1,168 @@
 # clawkit
 
-CLI tool cai dat va quan ly OpenClaw skills. Phat trien boi [Rockship](https://rockship.co).
-
-clawkit xu ly toan bo quy trinh trien khai skill: tai skill template, xac thuc Zalo qua QR code, thu thap cau hinh khach hang, va cai dat skill vao dung thu muc OpenClaw — tat ca trong 1 lenh duy nhat.
-
-## Cai Dat
-
-**Mot dong lenh (khuyen dung):**
+CLI chính thức để cài đặt và quản lý [OpenClaw](https://docs.openclaw.ai) skills.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Rockship-Team/clawkit/main/install.sh | bash
+npm install -g @rockship/clawkit
 ```
 
-**Hoac build tu source:**
+Phát triển bởi [Rockship](https://rockship.co) · [English](./README.md)
+
+---
+
+## Yêu cầu
+
+**Node.js 16 trở lên** là bắt buộc. Nếu chưa cài:
+
+- **Tải về:** [nodejs.org](https://nodejs.org) — chọn phiên bản LTS
+- **macOS (Homebrew):** `brew install node`
+- **Windows (winget):** `winget install OpenJS.NodeJS.LTS`
+- **Linux:** `sudo apt install nodejs npm` hoặc dùng [nvm](https://github.com/nvm-sh/nvm)
+
+Kiểm tra sau khi cài:
 
 ```bash
-git clone git@github.com:Rockship-Team/clawkit.git
-cd clawkit
-make build
+node --version   # phải là v16 trở lên
+npm --version
 ```
 
-## Bat Dau Nhanh
+**OpenClaw** cũng phải được cài đặt và đang chạy trên máy. Xem [hướng dẫn cài OpenClaw](https://docs.openclaw.ai/installation).
+
+---
+
+## Cài đặt
 
 ```bash
-# Xem danh sach skills
+npm install -g @rockship/clawkit
+```
+
+Hỗ trợ macOS (Apple Silicon & Intel), Linux và Windows.
+
+Kiểm tra:
+
+```bash
+clawkit version
+```
+
+---
+
+## Bắt đầu nhanh
+
+```bash
+# Xem danh sách skills có sẵn
 clawkit list
 
-# Cai dat skill (bao gom Zalo QR login + cau hinh)
+# Cài đặt một skill
 clawkit install shop-hoa-zalo
+
+# Kiểm tra các skill đã cài
+clawkit status
 ```
 
-## Yeu Cau
+---
 
-- **OpenClaw** da cai tren may khach hang ([huong dan cai dat](https://docs.openclaw.ai/installation))
-- **Go 1.22+** chi can khi build tu source
+## Danh sách Skills
 
-clawkit tu dong detect OpenClaw va cai skill vao `~/.openclaw/workspace/skills/`.
+| Skill | Mô tả |
+|-------|-------|
+| `shop-hoa-zalo` | Bot bán hoa qua Zalo cá nhân — tự động trả lời, báo giá, gửi ảnh, chốt đơn |
+| `carehub-baby` | Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo |
+| `gog` | Trợ lý Google Workspace — Gmail, Calendar, Drive, Contacts |
 
-## Cac Lenh
+---
 
-| Lenh | Mo ta |
+## Các lệnh
+
+| Lệnh | Mô tả |
 |------|-------|
-| `clawkit list` | Xem danh sach skills va trang thai cai dat |
-| `clawkit install <skill>` | Cai skill voi Zalo QR login va cau hinh |
-| `clawkit update <skill>` | Cap nhat skill, giu nguyen token va config cu |
-| `clawkit status` | Xem tat ca skills da cai |
-| `clawkit package <skill>` | Dong goi skill thanh .tar.gz de phan phoi (dev) |
-| `clawkit version` | In phien ban |
+| `clawkit list` | Liệt kê skills có sẵn và trạng thái cài đặt |
+| `clawkit install <skill>` | Cài đặt skill (chạy OAuth + cấu hình) |
+| `clawkit update <skill>` | Cập nhật skill, giữ nguyên token và config |
+| `clawkit status` | Hiển thị các skill đã cài |
+| `clawkit version` | In phiên bản hiện tại |
 
-### Flag khi install
+---
 
-```bash
-# Bo qua OAuth de test (chi danh cho dev)
-clawkit install shop-hoa-zalo --skip-oauth
-```
+## Cách hoạt động
 
-## Cach Hoat Dong
+Khi chạy `clawkit install`, công cụ sẽ:
 
-```
-clawkit install shop-hoa-zalo
-  |
-  |-- 1. Detect OpenClaw tren may
-  |-- 2. Tai skill (remote) hoac copy tu local skills/
-  |-- 3. Check/cai Zalo plugin, hien QR code de KH scan
-  |-- 4. Thu thap cau hinh KH (ten shop, email, bang gia, v.v.)
-  |-- 5. Xu ly SKILL.md — thay placeholder bang gia tri cua KH
-  |-- 6. Khoi tao database (neu co init_db.py)
-  '-- 7. Luu config.json
-```
+1. Phát hiện vị trí cài đặt OpenClaw trên máy
+2. Tải về gói skill
+3. Chạy OAuth (ví dụ: quét QR Zalo, đăng nhập Gmail)
+4. Áp dụng cấu hình của bạn vào template skill
+5. Khởi tạo cơ sở dữ liệu nếu cần
+6. Đăng ký skill vào OpenClaw workspace
 
-### Xac Thuc Zalo Personal
+### Xác thực Zalo
 
-clawkit dung `zca-js` tich hop san trong OpenClaw. KH khong can biet App ID hay App Secret — chi can scan QR code:
+Không cần App ID hay App Secret. clawkit sử dụng tích hợp Zalo có sẵn của OpenClaw. Bạn chỉ cần quét mã QR một lần từ ứng dụng Zalo trên điện thoại:
 
 ```
-✓ Zalo plugin found
-Opening QR code — scan it with your Zalo app.
-QR code saved at: /tmp/openclaw/qr.png
-Waiting for you to scan... (press Enter after scanning)
+[1/3] Kiểm tra OpenClaw...         ✓
+[2/3] Tải Zalo plugin...           ✓
+[3/3] Quét mã QR bằng Zalo
+
+██████████████████████████
+█ ▄▄▄▄▄ █▀█▄▄▀▄█ ▄▄▄▄▄ █
+█ █   █ █ ▀▄▄▄█ █   █ █
+...
+
+Đang chờ quét... (tối đa 3 phút)
+✓ Đã kết nối Zalo
 ```
 
-### He Thong Template
+---
 
-SKILL.md chua cac placeholder ma clawkit thay the khi install:
+## Phát triển
 
-| Placeholder | Nguon |
-|-------------|-------|
-| `{shopName}` | KH nhap khi install |
-| `{notifyEmailFrom}` | KH nhap |
-| `{notifyEmailTo}` | KH nhap |
-| `{notifyEmailAppPassword}` | KH nhap |
-| `{catalogSection}` | Tu dong sinh tu `catalog.json` |
-| `{baseDir}` | OpenClaw tu xu ly (clawkit khong thay the) |
+### Thêm Skill mới
 
-### He Thong Catalog
-
-Moi skill co the co `catalog.json` dinh nghia danh muc san pham va gia:
-
-```json
-{
-  "categories": [
-    {"folder": "hoa-hong", "label": "anh hoa hong"},
-    {"folder": "hoa-huong-duong", "label": "anh hoa huong duong"}
-  ],
-  "price_tiers": [280000, 300000, 350000, 450000],
-  "best_seller": true
-}
-```
-
-Sau khi install, KH tu chinh bang gia truc tiep trong SKILL.md.
-
-## Build
-
-```bash
-make build          # Build cho platform hien tai
-make test           # Chay tests voi race detector
-make fmt            # Format va vet code
-make lint           # Chay golangci-lint
-make coverage       # Bao cao test coverage
-make dist           # Cross-compile cho macOS, Linux, Windows
-make package SKILL=shop-hoa-zalo   # Dong goi skill thanh .tar.gz
-make help           # Xem tat ca commands
-```
-
-## Cau Truc Du An
-
-```
-clawkit/
-|-- cmd/clawkit/           # CLI entry point
-|   '-- main.go
-|-- internal/
-|   |-- archive/           # Tao/giai nen tar.gz
-|   |-- config/            # Detect OpenClaw, skill config
-|   |-- installer/         # Cac lenh install, update, list, status, package
-|   |-- template/          # Xu ly placeholder SKILL.md + catalog
-|   '-- ui/                # Hien thi terminal (mau sac, prompt)
-|-- oauth/                 # OAuth providers (tu dang ky)
-|   |-- oauth.go           # Provider interface + registry
-|   |-- zalo_personal.go   # Zalo QR code login (qua OpenClaw)
-|   |-- zalo_oa.go         # Zalo Official Account OAuth
-|   |-- google.go          # Google OAuth (Gmail, Sheets, Calendar)
-|   '-- facebook.go        # Facebook OAuth (Pages, Messenger)
-|-- skills/                # Skill templates
-|   '-- shop-hoa-zalo/
-|       |-- SKILL.md       # Skill voi placeholder
-|       |-- catalog.json   # Danh muc san pham va gia
-|       |-- init_db.py     # Khoi tao database
-|       '-- flowers/       # Anh san pham mau
-|-- registry.json          # Danh sach skills
-|-- install.sh             # Installer qua curl
-|-- Makefile               # Build, test, lint, dist
-|-- .github/workflows/     # CI pipeline
-|-- .golangci.yml          # Cau hinh linter
-|-- .editorconfig          # Quy tac format code
-'-- LICENSE                # MIT
-```
-
-## Dong Gop (Contributing)
-
-### Them Skill Moi
-
-1. Tao thu muc trong `skills/`:
+1. Tạo thư mục trong `skills/`:
 
 ```
 skills/ten-skill/
-|-- SKILL.md           # Dung {placeholder} cho gia tri rieng moi KH
-|-- catalog.json       # Tuy chon: catalog san pham
-|-- init_db.py         # Tuy chon: khoi tao database
-'-- [cac file khac]
+├── SKILL.md        # Bắt buộc: YAML frontmatter + OpenClaw prompt
+├── catalog.json    # Tùy chọn: danh mục sản phẩm/dịch vụ
+├── init_db.py      # Tùy chọn: khởi tạo cơ sở dữ liệu
+└── [tài nguyên khác]
 ```
 
-2. Them skill vao `registry.json`:
+2. Thêm YAML frontmatter vào `SKILL.md`:
 
-```json
-{
-  "skills": {
-    "ten-skill": {
-      "version": "1.0.0",
-      "description": "Skill nay lam gi",
-      "requires_oauth": ["zalo_personal"],
-      "setup_prompts": [
-        {"key": "shop_name", "label": "Ten shop"},
-        {"key": "phone", "label": "So dien thoai"}
-      ]
-    }
-  }
-}
+```yaml
+---
+version: "1.0.0"
+description: "Mô tả ngắn về skill"
+requires_oauth:
+  - zalo_personal
+setup_prompts: []
+---
 ```
 
-3. Test:
+3. Tạo lại registry và kiểm thử:
 
 ```bash
+make generate
 make build
 ./clawkit install ten-skill --skip-oauth
-cat ~/.openclaw/workspace/skills/ten-skill/SKILL.md
 ```
 
-### Them OAuth Provider Moi
+> `registry.json` được tự động tạo từ frontmatter của SKILL.md. Không chỉnh sửa trực tiếp.
 
-Tao file moi trong `oauth/` — tu dang ky qua `init()`:
+### Phát hành phiên bản mới
 
-```go
-// oauth/provider_moi.go
-package oauth
-
-func init() { Register(&ProviderMoi{}) }
-
-type ProviderMoi struct{}
-
-func (p *ProviderMoi) Name() string    { return "provider_moi" }
-func (p *ProviderMoi) Display() string { return "Provider Moi" }
-func (p *ProviderMoi) Authenticate() (map[string]string, error) {
-    // Implement OAuth flow
-}
-```
-
-Khong can sua bat ky file nao khac.
-
-### Quy Trinh Dev
+Chỉ cần đẩy một version tag — GitHub Actions sẽ tự động xử lý toàn bộ:
 
 ```bash
-git clone git@github.com:Rockship-Team/clawkit.git
-cd clawkit
-make build
-make test
-./clawkit install shop-hoa-zalo --skip-oauth
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
-### Tao Release
+CI sẽ tự build binary cho tất cả nền tảng, tạo GitHub Release và publish `@rockship/clawkit` lên npm.
 
-```bash
-make dist
-gh release create v0.1.0 dist/* --title "v0.1.0" --notes "Initial release"
-```
+---
 
-### Quy Uoc Commit
-
-Theo [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: them OAuth cho Gmail
-fix: xu ly catalog.json rong
-refactor: don gian hoa xu ly template
-docs: cap nhat README
-```
-
-## Giay Phep
+## Giấy phép
 
 MIT

@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Update version in Makefile
+        run: sed -i "s/^VERSION := .*/VERSION := ${{ steps.version.outputs.VERSION }}/" Makefile
+
+      - name: Verify registry.json is up to date
+        run: make check-generate
+
+      - name: Run tests
+        run: make test
+
+      - name: Build all platform binaries
+        run: make dist
+
+      - name: Package skills
+        run: |
+          ./dist/clawkit-linux-amd64 package shop-hoa-zalo
+          ./dist/clawkit-linux-amd64 package carehub-baby
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          make_latest: true
+
+      - name: Publish to npm
+        run: |
+          cp dist/clawkit-darwin-arm64      npm/binaries/clawkit-darwin-arm64
+          cp dist/clawkit-darwin-amd64      npm/binaries/clawkit-darwin-amd64
+          cp dist/clawkit-linux-amd64       npm/binaries/clawkit-linux-amd64
+          cp dist/clawkit-windows-amd64.exe npm/binaries/clawkit-windows-amd64.exe
+          cd npm
+          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version --allow-same-version
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

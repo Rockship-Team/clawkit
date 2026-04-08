@@ -51,7 +51,10 @@ func (r *Registry) GetSkill(name string) (*SkillInfo, bool) {
 }
 
 // loadRegistry fetches the registry from remote, falling back to local.
+// Local entries are merged in so skills added locally (not yet pushed) are available.
 func loadRegistry() (*Registry, error) {
+	var reg Registry
+
 	data, err := fetchRemoteRegistry()
 	if err != nil {
 		data, err = loadLocalRegistry()
@@ -61,10 +64,23 @@ func loadRegistry() (*Registry, error) {
 		ui.Info("Using local registry (offline mode)")
 	}
 
-	var reg Registry
 	if err := json.Unmarshal(data, &reg); err != nil {
 		return nil, fmt.Errorf("invalid registry.json: %w", err)
 	}
+
+	// Merge local registry entries (dev mode: skills not yet pushed to remote).
+	localData, err := loadLocalRegistry()
+	if err == nil {
+		var localReg Registry
+		if json.Unmarshal(localData, &localReg) == nil {
+			for name, skill := range localReg.Skills {
+				if _, exists := reg.Skills[name]; !exists {
+					reg.Skills[name] = skill
+				}
+			}
+		}
+	}
+
 	return &reg, nil
 }
 

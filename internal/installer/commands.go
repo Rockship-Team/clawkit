@@ -8,6 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"encoding/json"
+	"io"
+	"net/http"
+	"runtime"
+
 	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
 	"github.com/rockship-co/clawkit/internal/template"
@@ -93,6 +98,14 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 				ui.Fatal("OAuth setup failed for %s: %v", providerName, err)
 			}
 			ui.Ok("Connected to %s", providerName)
+
+			// Post-OAuth: write credentials and configure gog for gmail provider.
+			if providerName == "gmail" {
+				cfg, _ := config.LoadSkillConfig(targetDir)
+				if cfg != nil && cfg.Tokens != nil {
+					postOAuthGmail(targetDir, cfg.Tokens)
+				}
+			}
 		}
 	}
 
@@ -251,6 +264,226 @@ func collectUserInputs(prompts []Prompt) map[string]string {
 		inputs[prompt.Key] = answer
 	}
 	return inputs
+}
+
+// postOAuthGmail writes credential files into the skill dir and configures gog CLI.
+// Flow:
+//  1. Write credential.json (Google client creds format) → gog auth credentials set
+//  2. Write token.json (refresh token) → gog auth tokens import
+//  3. Set GOG_ACCOUNT in SKILL.md
+func postOAuthGmail(skillDir string, tokens map[string]string) {
+	clientID := tokens["google_client_id"]
+	clientSecret := tokens["google_client_secret"]
+	email := tokens["gmail_account"]
+	refreshToken := tokens["refresh_token"]
+	if clientID == "" || clientSecret == "" {
+		return
+	}
+
+	// 1. Write credential.json — Google OAuth client credentials format.
+	credData, _ := json.MarshalIndent(map[string]any{
+		"installed": map[string]any{
+			"client_id":     clientID,
+			"client_secret": clientSecret,
+			"auth_uri":      "https://accounts.google.com/o/oauth2/auth",
+			"token_uri":     "https://oauth2.googleapis.com/token",
+			"redirect_uris": []string{"http://localhost:9876/callback"},
+		},
+	}, "", "  ")
+	credPath := filepath.Join(skillDir, "credential.json")
+	if err := os.WriteFile(credPath, credData, 0600); err != nil {
+		ui.Warn("Could not write credential.json: %v", err)
+		return
+	}
+	ui.Ok("Saved credential.json")
+
+	// 2. Write token.json — refresh token for gog import.
+	if email != "" && refreshToken != "" {
+		tokData, _ := json.MarshalIndent(map[string]string{
+			"email":         email,
+			"refresh_token": refreshToken,
+		}, "", "  ")
+		tokPath := filepath.Join(skillDir, "token.json")
+		if err := os.WriteFile(tokPath, tokData, 0600); err != nil {
+			ui.Warn("Could not write token.json: %v", err)
+		} else {
+			ui.Ok("Saved token.json")
+		}
+	}
+
+	// 3. Install gog CLI if missing.
+	gogBin, err := installGogCLI()
+	if err != nil {
+		ui.Warn("%v", err)
+		ui.Info("Install manually: https://github.com/steipete/gogcli")
+		return
+	}
+
+	// 4. gog auth credentials set — import client_id/secret into gog keyring.
+	cmd := exec.Command(gogBin, "auth", "credentials", "set", credPath, "--force", "--no-input")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		ui.Warn("gog auth credentials set failed: %v", err)
+	} else {
+		ui.Ok("Client credentials imported into gog")
+	}
+
+	// 5. gog auth tokens import — import refresh_token into gog keyring.
+	// Use --force --no-input and pass Stdin to avoid hanging on keychain prompts.
+	tokPath := filepath.Join(skillDir, "token.json")
+	if _, err := os.Stat(tokPath); err == nil {
+		cmd = exec.Command(gogBin, "auth", "tokens", "import", tokPath, "--force", "--no-input")
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			ui.Warn("gog auth tokens import failed: %v", err)
+			ui.Info("Run manually: gog auth tokens import %s --force", tokPath)
+		} else {
+			ui.Ok("Refresh token imported into gog for %s", email)
+		}
+	}
+}
+
+// fetchGogLatestVersion gets the latest release tag from GitHub.
+func fetchGogLatestVersion() (string, error) {
+	// GitHub redirects /releases/latest to /releases/tag/vX.Y.Z
+	req, err := http.NewRequest(http.MethodHead, "https://github.com/steipete/gogcli/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	resp.Body.Close()
+
+	loc := resp.Header.Get("Location")
+	if loc == "" {
+		return "", fmt.Errorf("no redirect from GitHub releases/latest")
+	}
+	// Location: https://github.com/steipete/gogcli/releases/tag/v0.12.0
+	parts := strings.Split(loc, "/")
+	tag := parts[len(parts)-1]
+	if tag == "" || tag[0] != 'v' {
+		return "", fmt.Errorf("unexpected tag format: %s", tag)
+	}
+	return tag, nil
+}
+
+// installGogCLI installs the gog CLI binary from GitHub Releases.
+// Supports macOS (arm64/amd64), Linux (arm64/amd64), and Windows (arm64/amd64).
+func installGogCLI() (string, error) {
+	if path, err := exec.LookPath("gog"); err == nil {
+		return path, nil
+	}
+
+	ui.Info("gog CLI not found. Installing from GitHub Releases...")
+
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+
+	// Fetch latest version tag from GitHub API.
+	version, err := fetchGogLatestVersion()
+	if err != nil {
+		return "", fmt.Errorf("could not determine latest gog version: %w", err)
+	}
+
+	// Determine download URL.
+	ext := "tar.gz"
+	if goos == "windows" {
+		ext = "zip"
+	}
+	dlURL := fmt.Sprintf(
+		"https://github.com/steipete/gogcli/releases/download/%s/gogcli_%s_%s_%s.%s",
+		version, strings.TrimPrefix(version, "v"), goos, goarch, ext,
+	)
+	ui.Info("Downloading gog %s for %s/%s...", version, goos, goarch)
+
+	// Download to temp file.
+	resp, err := http.Get(dlURL)
+	if err != nil {
+		return "", fmt.Errorf("download gog failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download gog failed: HTTP %d from %s", resp.StatusCode, dlURL)
+	}
+
+	tmpFile, err := os.CreateTemp("", "gogcli-*."+ext)
+	if err != nil {
+		return "", fmt.Errorf("create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+		tmpFile.Close()
+		return "", fmt.Errorf("download incomplete: %w", err)
+	}
+	tmpFile.Close()
+
+	// Extract to temp dir.
+	tmpDir, err := os.MkdirTemp("", "gogcli-extract-*")
+	if err != nil {
+		return "", fmt.Errorf("create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := archive.ExtractTarGz(tmpFile.Name(), tmpDir); err != nil {
+		return "", fmt.Errorf("extract gog archive: %w", err)
+	}
+
+	// Find the gog binary in extracted files.
+	binName := "gog"
+	if goos == "windows" {
+		binName = "gog.exe"
+	}
+	extractedBin := filepath.Join(tmpDir, binName)
+	if _, err := os.Stat(extractedBin); os.IsNotExist(err) {
+		return "", fmt.Errorf("gog binary not found in archive")
+	}
+
+	// Install to /usr/local/bin (or current dir on Windows).
+	installDir := "/usr/local/bin"
+	if goos == "windows" {
+		installDir, _ = os.UserHomeDir()
+		installDir = filepath.Join(installDir, ".local", "bin")
+		os.MkdirAll(installDir, 0755)
+	}
+
+	destPath := filepath.Join(installDir, binName)
+	data, err := os.ReadFile(extractedBin)
+	if err != nil {
+		return "", fmt.Errorf("read extracted binary: %w", err)
+	}
+
+	// Try direct write first, fall back to sudo on permission error.
+	if err := os.WriteFile(destPath, data, 0755); err != nil {
+		if goos != "windows" {
+			ui.Info("Need sudo to install to %s", installDir)
+			cmd := exec.Command("sudo", "cp", extractedBin, destPath)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				return "", fmt.Errorf("install gog to %s failed: %w", destPath, err)
+			}
+			exec.Command("sudo", "chmod", "+x", destPath).Run()
+		} else {
+			return "", fmt.Errorf("install gog failed: %w", err)
+		}
+	}
+
+	path, err := exec.LookPath("gog")
+	if err != nil {
+		return destPath, nil // not in PATH but we know where it is
+	}
+	ui.Ok("Installed gog CLI to %s", path)
+	return path, nil
 }
 
 // runOAuth runs the OAuth flow for a provider and saves tokens.

@@ -76,8 +76,15 @@ func GetSkillsDir() string {
 	return filepath.Join(home, ".openclaw", "workspace", "skills")
 }
 
-// GetConfigDir returns the clawkit config directory (~/.clawkit).
+// GetConfigDir returns the clawkit config directory.
+// On macOS: ~/Library/Application Support/clawkit
+// On Linux: ~/.config/clawkit
+// On Windows: %APPDATA%\clawkit
+// Falls back to ~/.clawkit if os.UserConfigDir fails.
 func GetConfigDir() string {
+	if cfgDir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(cfgDir, "clawkit")
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".clawkit")
 }

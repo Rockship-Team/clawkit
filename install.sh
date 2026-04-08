@@ -22,7 +22,8 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 case "$OS" in
     linux)  OS="linux" ;;
     darwin) OS="darwin" ;;
-    *)      fail "Unsupported OS: $OS" ;;
+    mingw*|msys*|cygwin*) OS="windows" ;;
+    *)      fail "Unsupported OS: $OS. On Windows, use: irm https://raw.githubusercontent.com/Rockship-Team/clawkit/main/install.ps1 | iex" ;;
 esac
 
 # Detect architecture

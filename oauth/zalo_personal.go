@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -104,7 +105,7 @@ func watchAndPrintQR(done chan struct{}) {
 		default:
 		}
 		// Simple poll delay.
-		exec.Command("sleep", "1").Run()
+		time.Sleep(1 * time.Second)
 	}
 }
 

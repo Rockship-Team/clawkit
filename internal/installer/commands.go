@@ -115,13 +115,18 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	// Initialize database if init_db.py exists.
 	initDB := filepath.Join(targetDir, "init_db.py")
 	if _, err := os.Stat(initDB); err == nil {
-		cmd := exec.Command("python3", initDB)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			ui.Warn("Database init failed: %v (you can run manually: python3 %s)", err, initDB)
+		pythonBin := findPython()
+		if pythonBin == "" {
+			ui.Warn("Python not found. Run manually: python3 %s", initDB)
 		} else {
-			ui.Ok("Database initialized")
+			cmd := exec.Command(pythonBin, initDB)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				ui.Warn("Database init failed: %v (you can run manually: %s %s)", err, pythonBin, initDB)
+			} else {
+				ui.Ok("Database initialized")
+			}
 		}
 	}
 
@@ -448,13 +453,9 @@ func installGogCLI() (string, error) {
 		return "", fmt.Errorf("gog binary not found in archive")
 	}
 
-	// Install to /usr/local/bin (or current dir on Windows).
-	installDir := "/usr/local/bin"
-	if goos == "windows" {
-		installDir, _ = os.UserHomeDir()
-		installDir = filepath.Join(installDir, ".local", "bin")
-		os.MkdirAll(installDir, 0755)
-	}
+	// Determine install directory per platform.
+	installDir := installBinDir()
+	os.MkdirAll(installDir, 0755)
 
 	destPath := filepath.Join(installDir, binName)
 	data, err := os.ReadFile(extractedBin)
@@ -462,7 +463,7 @@ func installGogCLI() (string, error) {
 		return "", fmt.Errorf("read extracted binary: %w", err)
 	}
 
-	// Try direct write first, fall back to sudo on permission error.
+	// Try direct write first, fall back to sudo on Unix.
 	if err := os.WriteFile(destPath, data, 0755); err != nil {
 		if goos != "windows" {
 			ui.Info("Need sudo to install to %s", installDir)
@@ -484,6 +485,38 @@ func installGogCLI() (string, error) {
 	}
 	ui.Ok("Installed gog CLI to %s", path)
 	return path, nil
+}
+
+// installBinDir returns the appropriate directory for installing CLI binaries.
+// macOS/Linux: /usr/local/bin (standard), falls back to ~/.local/bin
+// Windows: %LOCALAPPDATA%\clawkit\bin
+func installBinDir() string {
+	if runtime.GOOS == "windows" {
+		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+			return filepath.Join(localAppData, "clawkit", "bin")
+		}
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, "AppData", "Local", "clawkit", "bin")
+	}
+	// Unix: prefer /usr/local/bin if writable, else ~/.local/bin
+	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		f.Close()
+		os.Remove("/usr/local/bin/.clawkit-test")
+		return "/usr/local/bin"
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "bin")
+}
+
+// findPython returns the path to a Python 3 interpreter.
+// Tries "python3" first (macOS/Linux), falls back to "python" (Windows).
+func findPython() string {
+	for _, name := range []string{"python3", "python"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return path
+		}
+	}
+	return ""
 }
 
 // runOAuth runs the OAuth flow for a provider and saves tokens.

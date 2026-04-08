@@ -6,19 +6,27 @@ clawkit handles the entire skill deployment lifecycle: downloading skill templat
 
 ## Installation
 
-**One-liner (recommended):**
+### macOS / Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Rockship-Team/clawkit/main/install.sh | bash
 ```
 
-**Or build from source:**
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Rockship-Team/clawkit/main/install.ps1 | iex
+```
+
+### Build from source (all platforms)
 
 ```bash
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
 make build
 ```
+
+> Requires Go 1.22+. On Windows, use `CGO_ENABLED=0 go build -o clawkit.exe ./cmd/clawkit`.
 
 ## Quick Start
 
@@ -35,7 +43,15 @@ clawkit install shop-hoa-zalo
 - **OpenClaw** installed on the target machine ([install guide](https://docs.openclaw.ai/installation))
 - **Go 1.22+** only if building from source
 
-clawkit auto-detects your OpenClaw installation and installs skills to `~/.openclaw/workspace/skills/`.
+clawkit auto-detects your OpenClaw installation and installs skills to the appropriate directory.
+
+## Platform Support
+
+| Platform | Install method | Config directory | Binary install path |
+|----------|---------------|------------------|---------------------|
+| macOS | `install.sh` / Homebrew | `~/Library/Application Support/clawkit` | `/usr/local/bin` |
+| Linux | `install.sh` | `~/.config/clawkit` | `/usr/local/bin` or `~/.local/bin` |
+| Windows | `install.ps1` | `%APPDATA%\clawkit` | `%LOCALAPPDATA%\clawkit\bin` |
 
 ## Commands
 
@@ -114,7 +130,7 @@ After installation, clients can customize the price list directly in SKILL.md.
 
 ```bash
 make build          # Build for current platform
-make test           # Run tests with race detector
+make test           # Run tests
 make fmt            # Format and vet code
 make lint           # Run golangci-lint
 make coverage       # Test coverage report
@@ -139,16 +155,20 @@ clawkit/
 │   ├── oauth.go           # Provider interface + registry
 │   ├── zalo_personal.go   # Zalo QR code login (via OpenClaw)
 │   ├── zalo_oa.go         # Zalo Official Account OAuth
-│   ├── google.go          # Google OAuth (Gmail, Sheets, Calendar)
+│   ├── gmail.go           # Gmail OAuth (+ gog CLI integration)
+│   ├── google.go          # Google OAuth (generic)
 │   └── facebook.go        # Facebook OAuth (Pages, Messenger)
 ├── skills/                # Skill templates
-│   └── shop-hoa-zalo/
+│   ├── shop-hoa-zalo/
+│   ├── carehub-baby/
+│   └── gog/
 │       ├── SKILL.md       # Skill with placeholders
 │       ├── catalog.json   # Product categories and prices
 │       ├── init_db.py     # Database initialization
 │       └── flowers/       # Sample product images
 ├── registry.json          # Available skills manifest
-├── install.sh             # curl-based installer
+├── install.sh             # Installer for macOS/Linux
+├── install.ps1            # Installer for Windows (PowerShell)
 ├── Makefile               # Build, test, lint, dist
 ├── .github/workflows/     # CI pipeline
 ├── .golangci.yml          # Linter config

@@ -41,7 +41,7 @@ func TestProcess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			os.WriteFile(filepath.Join(dir, "SKILL.md.tmpl"), []byte(tt.tmpl), 0644)
+			os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(tt.tmpl), 0644)
 			os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(tt.catalog), 0644)
 
 			if err := Process(dir, tt.inputs); err != nil {
@@ -63,11 +63,6 @@ func TestProcess(t *testing.T) {
 				if strings.Contains(content, notWant) {
 					t.Errorf("unexpected %q in output", notWant)
 				}
-			}
-
-			// Template file should be removed.
-			if _, err := os.Stat(filepath.Join(dir, "SKILL.md.tmpl")); !os.IsNotExist(err) {
-				t.Error("SKILL.md.tmpl should have been removed")
 			}
 		})
 	}

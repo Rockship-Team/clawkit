@@ -79,18 +79,17 @@ func EnsureFlowerDirs(skillDir string) error {
 	return nil
 }
 
-// Process reads SKILL.md.tmpl, replaces placeholders with userInputs
-// and the generated catalog section, writes SKILL.md, and removes the template.
+// Process reads SKILL.md, replaces placeholders with userInputs
+// and the generated catalog section, and writes back in place.
 func Process(skillDir string, userInputs map[string]string) error {
-	tmplPath := filepath.Join(skillDir, "SKILL.md.tmpl")
-	outPath := filepath.Join(skillDir, "SKILL.md")
+	skillPath := filepath.Join(skillDir, "SKILL.md")
 
-	data, err := os.ReadFile(tmplPath)
+	data, err := os.ReadFile(skillPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil // no template = no processing needed
+			return nil // no SKILL.md = no processing needed
 		}
-		return fmt.Errorf("read template: %w", err)
+		return fmt.Errorf("read SKILL.md: %w", err)
 	}
 
 	content := string(data)
@@ -115,10 +114,9 @@ func Process(skillDir string, userInputs map[string]string) error {
 		content = strings.ReplaceAll(content, "{catalogSection}", catalogSection)
 	}
 
-	if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(skillPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("write SKILL.md: %w", err)
 	}
 
-	os.Remove(tmplPath)
 	return nil
 }

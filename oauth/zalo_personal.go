@@ -41,7 +41,15 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 		fmt.Println("  ✓ Zalo plugin found")
 	}
 
-	// Step 2: Run login — OpenClaw generates a QR PNG in /tmp/openclaw/.
+	// Step 2: Ensure zalouser is enabled in config before login.
+	fmt.Println()
+	fmt.Println("  Enabling zalouser channel in OpenClaw config...")
+	enableCmd := exec.Command("openclaw", "config", "set", "channels.zalouser.enabled", "true")
+	enableCmd.Stdout = os.Stdout
+	enableCmd.Stderr = os.Stderr
+	enableCmd.Run() // best-effort, may not be supported in all versions
+
+	// Step 3: Run login — OpenClaw generates a QR PNG in /tmp/openclaw/.
 	fmt.Println()
 	fmt.Println("  Starting Zalo login...")
 
@@ -50,11 +58,39 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("zalo login failed: %w", err)
+	loginErr := cmd.Run()
+
+	if loginErr != nil {
+		// Login command failed — show manual steps instead of crashing.
+		fmt.Println()
+		fmt.Println("  ⚠ Automatic login failed. This can happen if:")
+		fmt.Println("    - The zalouser channel is not enabled in config yet")
+		fmt.Println("    - An old plugin extension is overriding the bundled one")
+		fmt.Println()
+		fmt.Println("  To fix, run these steps manually:")
+		fmt.Println()
+		fmt.Println("    1. Remove old plugin (if exists):")
+		fmt.Println("       rm -rf ~/.openclaw/extensions/zalouser/")
+		fmt.Println()
+		fmt.Println("    2. Add to your OpenClaw config (config.json5 or config.yaml):")
+		fmt.Println("       channels:")
+		fmt.Println("         zalouser:")
+		fmt.Println("           enabled: true")
+		fmt.Println("           dmPolicy: \"open\"")
+		fmt.Println()
+		fmt.Println("    3. Restart OpenClaw and run:")
+		fmt.Println("       openclaw channels login --channel zalouser")
+		fmt.Println()
+
+		answer := PromptInput("  Continue anyway? [y/N]")
+		if answer != "y" && answer != "Y" && answer != "yes" {
+			return nil, fmt.Errorf("zalo login skipped — complete manually using the steps above")
+		}
+
+		return map[string]string{"zalo_personal_connected": "pending"}, nil
 	}
 
-	// Step 3: Find and open the QR code image for the user to scan.
+	// Step 4: Find and open the QR code image for the user to scan.
 	qrPath := findQRImage()
 	if qrPath != "" {
 		fmt.Println()
@@ -66,11 +102,6 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 		fmt.Println()
 		fmt.Println("  Waiting for you to scan... (press Enter after scanning)")
 		PromptInput("")
-	} else {
-		fmt.Println()
-		fmt.Println("  QR code image not found in /tmp/openclaw/.")
-		fmt.Println("  Check the OpenClaw logs or run manually:")
-		fmt.Println("    openclaw channels login --channel zalouser")
 	}
 
 	fmt.Println()

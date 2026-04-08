@@ -1,11 +1,13 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -61,7 +63,8 @@ func (g *Google) Authenticate() (map[string]string, error) {
 }
 
 func exchangeGoogleCode(code, clientID, clientSecret, redirectURI string) (map[string]string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	data := url.Values{
 		"code":          {code},
@@ -71,7 +74,13 @@ func exchangeGoogleCode(code, clientID, clientSecret, redirectURI string) (map[s
 		"grant_type":    {"authorization_code"},
 	}
 
-	resp, err := client.PostForm("https://oauth2.googleapis.com/token", data)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth2.googleapis.com/token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}

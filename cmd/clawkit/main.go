@@ -1,11 +1,21 @@
+// Package main is the entry point for the clawkit CLI.
 package main
 
 import (
 	"fmt"
 	"os"
+
+	"github.com/rockship-co/clawkit/internal/installer"
+	"github.com/rockship-co/clawkit/internal/ui"
+	"github.com/rockship-co/clawkit/oauth"
 )
 
 var version = "0.1.0"
+
+func init() {
+	// Wire the promptInput function into the oauth package.
+	oauth.PromptInput = ui.PromptInput
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -15,7 +25,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "list":
-		cmdList()
+		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit install <skill-name> [--skip-oauth]")
@@ -27,22 +37,22 @@ func main() {
 				skipOAuth = true
 			}
 		}
-		cmdInstall(os.Args[2], skipOAuth)
+		installer.CmdInstall(os.Args[2], skipOAuth)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")
 			os.Exit(1)
 		}
-		cmdUpdate(os.Args[2])
+		installer.CmdUpdate(os.Args[2])
 	case "status":
-		cmdStatus()
+		installer.CmdStatus()
 	case "package":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit package <skill-name>")
 			fmt.Println("  Packages a skill from skills/ into a .tar.gz for distribution")
 			os.Exit(1)
 		}
-		cmdPackage(os.Args[2])
+		installer.CmdPackage(os.Args[2])
 	case "version":
 		fmt.Printf("clawkit v%s\n", version)
 	default:

@@ -1,0 +1,28 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - gofmt
+    - errorlint
+    - bodyclose
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  errorlint:
+    errorf: true
+    asserts: true
+    comparison: true
+
+issues:
+  exclude-dirs:
+    - dist
+    - .claude

@@ -1,4 +1,5 @@
-package main
+// Package ui provides terminal output helpers with colors and prompts.
+package ui
 
 import (
 	"bufio"
@@ -15,28 +16,33 @@ const (
 	colorReset  = "\033[0m"
 )
 
-func info(format string, args ...interface{}) {
+// Info prints an informational message with a cyan bullet.
+func Info(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Printf("%s▸%s %s\n", colorCyan, colorReset, msg)
 }
 
-func ok(format string, args ...interface{}) {
+// Ok prints a success message with a green checkmark.
+func Ok(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Printf("%s✓%s %s\n", colorGreen, colorReset, msg)
 }
 
-func warn(format string, args ...interface{}) {
+// Warn prints a warning message with a yellow triangle.
+func Warn(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Printf("%s⚠%s %s\n", colorYellow, colorReset, msg)
 }
 
-func fatal(format string, args ...interface{}) {
+// Fatal prints an error message and exits with code 1.
+func Fatal(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Printf("%s✗%s %s\n", colorRed, colorReset, msg)
 	os.Exit(1)
 }
 
-func promptInput(label string) string {
+// PromptInput reads a line of input from the user with the given label.
+func PromptInput(label string) string {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s: ", label)
 	input, _ := reader.ReadString('\n')

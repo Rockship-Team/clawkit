@@ -1,4 +1,5 @@
-package main
+// Package template handles SKILL.md.tmpl processing and catalog generation.
+package template
 
 import (
 	"encoding/json"
@@ -8,26 +9,36 @@ import (
 	"strings"
 )
 
+// Catalog defines product categories, price tiers, and best-seller flag
+// for generating the catalog section in SKILL.md.
 type Catalog struct {
-	Categories []struct {
-		Folder string `json:"folder"`
-		Label  string `json:"label"`
-	} `json:"categories"`
-	PriceTiers []int `json:"price_tiers"`
-	BestSeller bool  `json:"best_seller"`
+	Categories []Category `json:"categories"`
+	PriceTiers []int      `json:"price_tiers"`
+	BestSeller bool       `json:"best_seller"`
 }
 
-func loadCatalog(skillDir string) (*Catalog, error) {
+// Category represents a product category with a folder name and label.
+type Category struct {
+	Folder string `json:"folder"`
+	Label  string `json:"label"`
+}
+
+// LoadCatalog reads catalog.json from the skill directory.
+func LoadCatalog(skillDir string) (*Catalog, error) {
 	data, err := os.ReadFile(filepath.Join(skillDir, "catalog.json"))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read catalog: %w", err)
 	}
 	var cat Catalog
-	return &cat, json.Unmarshal(data, &cat)
+	if err := json.Unmarshal(data, &cat); err != nil {
+		return nil, fmt.Errorf("parse catalog: %w", err)
+	}
+	return &cat, nil
 }
 
-func generateCatalogSection(skillDir string) (string, error) {
-	cat, err := loadCatalog(skillDir)
+// GenerateCatalogSection builds the catalog listing text from catalog.json.
+func GenerateCatalogSection(skillDir string) (string, error) {
+	cat, err := LoadCatalog(skillDir)
 	if err != nil {
 		return "", err
 	}
@@ -49,8 +60,9 @@ func generateCatalogSection(skillDir string) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-func ensureFlowerDirs(skillDir string) error {
-	cat, err := loadCatalog(skillDir)
+// EnsureFlowerDirs creates directories under flowers/ matching catalog.json.
+func EnsureFlowerDirs(skillDir string) error {
+	cat, err := LoadCatalog(skillDir)
 	if err != nil {
 		return nil // no catalog = nothing to do
 	}
@@ -67,7 +79,9 @@ func ensureFlowerDirs(skillDir string) error {
 	return nil
 }
 
-func processTemplate(skillDir string, userInputs map[string]string) error {
+// Process reads SKILL.md.tmpl, replaces placeholders with userInputs
+// and the generated catalog section, writes SKILL.md, and removes the template.
+func Process(skillDir string, userInputs map[string]string) error {
 	tmplPath := filepath.Join(skillDir, "SKILL.md.tmpl")
 	outPath := filepath.Join(skillDir, "SKILL.md")
 
@@ -76,16 +90,16 @@ func processTemplate(skillDir string, userInputs map[string]string) error {
 		if os.IsNotExist(err) {
 			return nil // no template = no processing needed
 		}
-		return err
+		return fmt.Errorf("read template: %w", err)
 	}
 
 	content := string(data)
 
-	// Replace user input placeholders
+	// Replace user input placeholders.
 	replacements := map[string]string{
 		"{shopName}":               userInputs["shop_name"],
-		"{notifyEmailFrom}":       userInputs["notify_email_from"],
-		"{notifyEmailTo}":         userInputs["notify_email_to"],
+		"{notifyEmailFrom}":        userInputs["notify_email_from"],
+		"{notifyEmailTo}":          userInputs["notify_email_to"],
 		"{notifyEmailAppPassword}": userInputs["notify_email_app_password"],
 	}
 
@@ -95,19 +109,16 @@ func processTemplate(skillDir string, userInputs map[string]string) error {
 		}
 	}
 
-	// Generate and replace catalog section
-	catalogSection, err := generateCatalogSection(skillDir)
+	// Generate and replace catalog section.
+	catalogSection, err := GenerateCatalogSection(skillDir)
 	if err == nil && catalogSection != "" {
 		content = strings.ReplaceAll(content, "{catalogSection}", catalogSection)
 	}
 
-	// Write final SKILL.md
-	err = os.WriteFile(outPath, []byte(content), 0644)
-	if err != nil {
-		return err
+	if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write SKILL.md: %w", err)
 	}
 
-	// Remove template file
 	os.Remove(tmplPath)
 	return nil
 }

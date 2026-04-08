@@ -1,4 +1,5 @@
-package main
+// Package archive provides tar.gz creation and extraction utilities.
+package archive
 
 import (
 	"archive/tar"
@@ -10,10 +11,15 @@ import (
 	"strings"
 )
 
-func extractTarGz(archivePath, destDir string) error {
+// maxFileSize is the maximum size per file during extraction (100MB).
+const maxFileSize = 100 * 1024 * 1024
+
+// ExtractTarGz extracts a .tar.gz archive into destDir.
+// The top-level directory in the archive is stripped.
+func ExtractTarGz(archivePath, destDir string) error {
 	f, err := os.Open(archivePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("open archive: %w", err)
 	}
 	defer f.Close()
 
@@ -31,49 +37,52 @@ func extractTarGz(archivePath, destDir string) error {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("read tar: %w", err)
 		}
 
-		// Strip the top-level directory from the path
-		// e.g., "shop-hoa-zalo/SKILL.md.tmpl" → "SKILL.md.tmpl"
+		// Strip the top-level directory from the path.
 		name := header.Name
 		parts := strings.SplitN(name, "/", 2)
 		if len(parts) < 2 || parts[1] == "" {
-			continue // skip the top-level directory itself
+			continue
 		}
 		relPath := parts[1]
 
 		target := filepath.Join(destDir, relPath)
 
-		// Security: prevent path traversal
+		// Security: prevent path traversal.
 		if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(destDir)) {
 			return fmt.Errorf("invalid path in archive: %s", name)
 		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			os.MkdirAll(target, 0755)
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return fmt.Errorf("create dir %s: %w", target, err)
+			}
 		case tar.TypeReg:
-			os.MkdirAll(filepath.Dir(target), 0755)
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return fmt.Errorf("create parent dir: %w", err)
+			}
 			outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
 			if err != nil {
-				return err
+				return fmt.Errorf("create file %s: %w", target, err)
 			}
-			// Limit copy size to prevent decompression bombs
-			_, err = io.Copy(outFile, io.LimitReader(tr, 100*1024*1024)) // 100MB max per file
+			_, err = io.Copy(outFile, io.LimitReader(tr, maxFileSize))
 			outFile.Close()
 			if err != nil {
-				return err
+				return fmt.Errorf("write file %s: %w", target, err)
 			}
 		}
 	}
 	return nil
 }
 
-func createTarGz(sourceDir, outputPath string) error {
+// CreateTarGz creates a .tar.gz archive from sourceDir.
+func CreateTarGz(sourceDir, outputPath string) error {
 	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("create output: %w", err)
 	}
 	defer outFile.Close()
 
@@ -92,14 +101,14 @@ func createTarGz(sourceDir, outputPath string) error {
 
 		header, err := tar.FileInfoHeader(fi, "")
 		if err != nil {
-			return err
+			return fmt.Errorf("file info header: %w", err)
 		}
 
 		relPath, _ := filepath.Rel(sourceDir, path)
 		header.Name = filepath.Join(baseName, relPath)
 
 		if err := tw.WriteHeader(header); err != nil {
-			return err
+			return fmt.Errorf("write header: %w", err)
 		}
 
 		if fi.IsDir() {
@@ -108,7 +117,7 @@ func createTarGz(sourceDir, outputPath string) error {
 
 		f, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("open %s: %w", path, err)
 		}
 		defer f.Close()
 

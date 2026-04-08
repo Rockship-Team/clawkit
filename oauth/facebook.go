@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,14 +66,20 @@ func (f *Facebook) Authenticate() (map[string]string, error) {
 }
 
 func exchangeFacebookCode(code, appID, appSecret, redirectURI string) (map[string]string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	tokenURL := fmt.Sprintf(
 		"https://graph.facebook.com/v19.0/oauth/access_token?client_id=%s&client_secret=%s&redirect_uri=%s&code=%s",
 		appID, appSecret, url.QueryEscape(redirectURI), code,
 	)
 
-	resp, err := client.Get(tokenURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tokenURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}

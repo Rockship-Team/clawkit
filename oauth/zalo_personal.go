@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,7 +61,8 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 // exchangeZaloCode exchanges an authorization code for access/refresh tokens.
 // Shared between Zalo Personal and Zalo OA.
 func exchangeZaloCode(code, appID, appSecret string) (map[string]string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	data := url.Values{
 		"code":       {code},
@@ -68,14 +70,14 @@ func exchangeZaloCode(code, appID, appSecret string) (map[string]string, error) 
 		"grant_type": {"authorization_code"},
 	}
 
-	req, err := http.NewRequest("POST", "https://oauth.zaloapp.com/v4/access_token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth.zaloapp.com/v4/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("secret_key", appSecret)
 
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}

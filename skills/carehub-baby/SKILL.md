@@ -1,6 +1,10 @@
 ---
 name: carehub-baby
-description: Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo. Tư vấn theo độ tuổi bé, báo giá, gửi ảnh, lên đơn, tra cứu đơn hàng, chăm sóc khách hàng. MUST use khi session là Zalo (key chứa "zalouser") hoặc khi user nói "đơn hàng", "order", "xem đơn", "sữa", "blackmores".
+description: Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo
+version: "1.0.0"
+requires_oauth:
+  - zalo_personal
+setup_prompts: []
 metadata: {"openclaw":{"emoji":"🍼"}}
 ---
 

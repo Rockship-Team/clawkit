@@ -1,4 +1,6 @@
 // Package main is the entry point for the clawkit CLI.
+//
+//go:generate go run ../gen-registry
 package main
 
 import (

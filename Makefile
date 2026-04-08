@@ -3,7 +3,7 @@ BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test lint fmt clean dist package coverage help
+.PHONY: build test lint fmt clean dist package coverage generate check-generate help
 
 ## build: Build for current platform
 build:
@@ -19,6 +19,14 @@ coverage:
 	go tool cover -func=coverage.out
 	@echo ""
 	@echo "HTML report: go tool cover -html=coverage.out"
+
+## generate: Generate registry.json from skills/*/SKILL.md frontmatter
+generate:
+	go run ./cmd/gen-registry
+
+## check-generate: Verify registry.json is up to date (fails if outdated)
+check-generate:
+	go run ./cmd/gen-registry -check
 
 ## lint: Run golangci-lint
 lint:

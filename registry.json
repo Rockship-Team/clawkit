@@ -2,12 +2,14 @@
   "skills": {
     "shop-hoa-zalo": {
       "version": "1.0.0",
-      "description": "Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo giá, chốt đơn",
+      "description": "Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo giá, gửi ảnh, chốt đơn, tra cứu đơn hàng",
       "requires_oauth": ["zalo_personal"],
       "setup_prompts": [
         {"key": "shop_name", "label": "Tên shop"},
         {"key": "phone", "label": "SĐT liên hệ"},
-        {"key": "greeting", "label": "Lời chào khách", "default": "Xin chào! Shop Hoa xin được phục vụ bạn"}
+        {"key": "notify_email_from", "label": "Email gửi thông báo đơn (Gmail)"},
+        {"key": "notify_email_app_password", "label": "App Password của Gmail trên"},
+        {"key": "notify_email_to", "label": "Email nhận thông báo đơn hàng"}
       ]
     }
   }

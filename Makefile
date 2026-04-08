@@ -3,7 +3,7 @@ BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test lint fmt clean dist package coverage generate check-generate help
+.PHONY: build test lint fmt clean dist package coverage generate check-generate npm-pack npm-publish help
 
 ## build: Build for current platform
 build:
@@ -51,6 +51,28 @@ dist: clean
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/$(BINARY)-windows-amd64.exe $(CMD)
 	@echo "Done. Binaries in dist/"
 	@ls -lh dist/
+
+## npm-pack: Build all platform binaries, copy into npm package, and pack
+npm-pack: dist
+	@echo "Copying binaries into npm/binaries/..."
+	cp dist/$(BINARY)-darwin-arm64      npm/binaries/$(BINARY)-darwin-arm64
+	cp dist/$(BINARY)-darwin-amd64      npm/binaries/$(BINARY)-darwin-amd64
+	cp dist/$(BINARY)-linux-amd64       npm/binaries/$(BINARY)-linux-amd64
+	cp dist/$(BINARY)-windows-amd64.exe npm/binaries/$(BINARY)-windows-amd64.exe
+	@echo "Updating npm package version to $(VERSION)..."
+	cd npm && npm version $(VERSION) --no-git-tag-version --allow-same-version
+	cd npm && npm pack
+	@echo "Package ready: npm/rockship-clawkit-$(VERSION).tgz"
+
+## npm-publish: Build, pack and publish to npm registry
+npm-publish: dist
+	@echo "Copying binaries into npm/binaries/..."
+	cp dist/$(BINARY)-darwin-arm64      npm/binaries/$(BINARY)-darwin-arm64
+	cp dist/$(BINARY)-darwin-amd64      npm/binaries/$(BINARY)-darwin-amd64
+	cp dist/$(BINARY)-linux-amd64       npm/binaries/$(BINARY)-linux-amd64
+	cp dist/$(BINARY)-windows-amd64.exe npm/binaries/$(BINARY)-windows-amd64.exe
+	cd npm && npm version $(VERSION) --no-git-tag-version --allow-same-version
+	cd npm && npm publish --access public
 
 ## package: Package a skill for distribution
 package:

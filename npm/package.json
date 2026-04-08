@@ -1,0 +1,31 @@
+{
+  "name": "@rockship/clawkit",
+  "version": "0.2.0",
+  "description": "CLI tool for installing and managing OpenClaw skills",
+  "keywords": [
+    "openclaw",
+    "clawkit",
+    "skills",
+    "zalo",
+    "ai"
+  ],
+  "homepage": "https://github.com/Rockship-Team/clawkit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rockship-Team/clawkit.git"
+  },
+  "license": "MIT",
+  "bin": {
+    "clawkit": "./bin/clawkit.js"
+  },
+  "files": [
+    "bin/",
+    "binaries/"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "postinstall": "node bin/clawkit.js --version || true"
+  }
+}

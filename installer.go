@@ -64,14 +64,11 @@ func cmdInstall(skillName string, skipOAuth ...bool) {
 		os.RemoveAll(targetDir)
 	}
 
-	// Copy skill from local skills/ directory
-	sourceDir := filepath.Join("skills", skillName)
-	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-		fatal("Skill source not found at %s", sourceDir)
-	}
-
-	err = copyDir(sourceDir, targetDir)
+	// Download skill (remote) or copy (local dev)
+	os.MkdirAll(targetDir, 0755)
+	err = downloadSkill(skillName, targetDir)
 	if err != nil {
+		os.RemoveAll(targetDir)
 		fatal("Failed to install: %v", err)
 	}
 	ok("Skill files installed to %s", targetDir)
@@ -165,12 +162,6 @@ func cmdUpdate(skillName string) {
 		return
 	}
 
-	// Copy new skill files (preserve config.json)
-	sourceDir := filepath.Join("skills", skillName)
-	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-		fatal("Skill source not found at %s", sourceDir)
-	}
-
 	// Remove old files except config.json
 	entries, _ := os.ReadDir(targetDir)
 	for _, e := range entries {
@@ -179,7 +170,8 @@ func cmdUpdate(skillName string) {
 		}
 	}
 
-	err = copyDir(sourceDir, targetDir)
+	// Download new skill files
+	err = downloadSkill(skillName, targetDir)
 	if err != nil {
 		fatal("Failed to update: %v", err)
 	}
@@ -225,6 +217,31 @@ func cmdStatus() {
 		}
 		fmt.Printf("  %-25s v%s%s\n", cfg.SkillName, cfg.Version, oauthStatus)
 	}
+}
+
+func cmdPackage(skillName string) {
+	sourceDir := filepath.Join("skills", skillName)
+	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
+		fatal("Skill '%s' not found in skills/ directory", skillName)
+	}
+
+	os.MkdirAll("dist", 0755)
+	outputPath := filepath.Join("dist", skillName+".tar.gz")
+
+	info("Packaging %s...", skillName)
+	err := createTarGz(sourceDir, outputPath)
+	if err != nil {
+		fatal("Failed to package: %v", err)
+	}
+
+	// Show file size
+	fi, _ := os.Stat(outputPath)
+	sizeMB := float64(fi.Size()) / 1024 / 1024
+
+	ok("Packaged: %s (%.1f MB)", outputPath, sizeMB)
+	fmt.Println()
+	fmt.Println("  Upload this file to GitHub Releases:")
+	fmt.Printf("  gh release upload latest %s\n", outputPath)
 }
 
 // copyDir recursively copies a directory

@@ -36,6 +36,13 @@ func main() {
 		cmdUpdate(os.Args[2])
 	case "status":
 		cmdStatus()
+	case "package":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit package <skill-name>")
+			fmt.Println("  Packages a skill from skills/ into a .tar.gz for distribution")
+			os.Exit(1)
+		}
+		cmdPackage(os.Args[2])
 	case "version":
 		fmt.Printf("clawkit v%s\n", version)
 	default:
@@ -56,6 +63,7 @@ Commands:
   install <skill>       Install a skill + run OAuth setup
   update  <skill>       Update an installed skill
   status                Show installed skills
+  package <skill>       Package a skill for distribution (dev)
   version               Print version
 
 Examples:

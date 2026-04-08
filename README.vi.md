@@ -2,26 +2,38 @@
 
 CLI tool cai dat va quan ly OpenClaw skills. Phat trien boi [Rockship](https://rockship.co).
 
-clawkit xu ly toan bo quy trinh trien khai skill: tai skill template, chay OAuth authorization, thu thap cau hinh cua khach hang, va cai dat skill vao dung thu muc OpenClaw — tat ca trong 1 lenh duy nhat.
+clawkit xu ly toan bo quy trinh trien khai skill: tai skill template, xac thuc Zalo qua QR code, thu thap cau hinh khach hang, va cai dat skill vao dung thu muc OpenClaw — tat ca trong 1 lenh duy nhat.
 
-## Bat Dau Nhanh
+## Cai Dat
+
+**Mot dong lenh (khuyen dung):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Rockship-Team/clawkit/main/install.sh | bash
+```
+
+**Hoac build tu source:**
 
 ```bash
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
 make build
+```
 
+## Bat Dau Nhanh
+
+```bash
 # Xem danh sach skills
-./clawkit list
+clawkit list
 
-# Cai dat skill
-./clawkit install shop-hoa-zalo
+# Cai dat skill (bao gom Zalo QR login + cau hinh)
+clawkit install shop-hoa-zalo
 ```
 
 ## Yeu Cau
 
-- **Go 1.22+** (de build tu source)
 - **OpenClaw** da cai tren may khach hang ([huong dan cai dat](https://docs.openclaw.ai/installation))
+- **Go 1.22+** chi can khi build tu source
 
 clawkit tu dong detect OpenClaw va cai skill vao `~/.openclaw/workspace/skills/`.
 
@@ -30,7 +42,7 @@ clawkit tu dong detect OpenClaw va cai skill vao `~/.openclaw/workspace/skills/`
 | Lenh | Mo ta |
 |------|-------|
 | `clawkit list` | Xem danh sach skills va trang thai cai dat |
-| `clawkit install <skill>` | Cai skill kem OAuth va cau hinh |
+| `clawkit install <skill>` | Cai skill voi Zalo QR login va cau hinh |
 | `clawkit update <skill>` | Cap nhat skill, giu nguyen token va config cu |
 | `clawkit status` | Xem tat ca skills da cai |
 | `clawkit package <skill>` | Dong goi skill thanh .tar.gz de phan phoi (dev) |
@@ -50,15 +62,27 @@ clawkit install shop-hoa-zalo
   |
   |-- 1. Detect OpenClaw tren may
   |-- 2. Tai skill (remote) hoac copy tu local skills/
-  |-- 3. Chay OAuth (mo browser de KH xac thuc Zalo/Google)
-  |-- 4. Thu thap thong tin KH (ten shop, email, v.v.)
-  |-- 5. Xu ly SKILL.md.tmpl -> thay placeholder -> tao SKILL.md
-  '-- 6. Luu config.json
+  |-- 3. Check/cai Zalo plugin, hien QR code de KH scan
+  |-- 4. Thu thap cau hinh KH (ten shop, email, bang gia, v.v.)
+  |-- 5. Xu ly SKILL.md — thay placeholder bang gia tri cua KH
+  |-- 6. Khoi tao database (neu co init_db.py)
+  '-- 7. Luu config.json
+```
+
+### Xac Thuc Zalo Personal
+
+clawkit dung `zca-js` tich hop san trong OpenClaw. KH khong can biet App ID hay App Secret — chi can scan QR code:
+
+```
+✓ Zalo plugin found
+Opening QR code — scan it with your Zalo app.
+QR code saved at: /tmp/openclaw/qr.png
+Waiting for you to scan... (press Enter after scanning)
 ```
 
 ### He Thong Template
 
-Skills dung template de tai su dung. File `SKILL.md.tmpl` chua cac placeholder ma clawkit thay the khi install:
+SKILL.md chua cac placeholder ma clawkit thay the khi install:
 
 | Placeholder | Nguon |
 |-------------|-------|
@@ -71,7 +95,7 @@ Skills dung template de tai su dung. File `SKILL.md.tmpl` chua cac placeholder m
 
 ### He Thong Catalog
 
-Moi skill co the co `catalog.json` dinh nghia danh muc san pham va gia. clawkit sinh phan listing trong SKILL.md tu file nay:
+Moi skill co the co `catalog.json` dinh nghia danh muc san pham va gia:
 
 ```json
 {
@@ -84,46 +108,52 @@ Moi skill co the co `catalog.json` dinh nghia danh muc san pham va gia. clawkit 
 }
 ```
 
+Sau khi install, KH tu chinh bang gia truc tiep trong SKILL.md.
+
 ## Build
 
 ```bash
 make build          # Build cho platform hien tai
-make test           # Chay tests
+make test           # Chay tests voi race detector
+make fmt            # Format va vet code
+make lint           # Chay golangci-lint
+make coverage       # Bao cao test coverage
 make dist           # Cross-compile cho macOS, Linux, Windows
 make package SKILL=shop-hoa-zalo   # Dong goi skill thanh .tar.gz
 make help           # Xem tat ca commands
 ```
 
-Cross-compile targets:
-- macOS ARM64 (Apple Silicon)
-- macOS AMD64 (Intel)
-- Linux AMD64
-- Windows AMD64
-
 ## Cau Truc Du An
 
 ```
 clawkit/
-|-- main.go            # Entry point va routing lenh
-|-- installer.go       # Lenh install, update, list, status, package
-|-- oauth.go           # OAuth flow cho Zalo Personal/OA
-|-- template.go        # Xu ly template SKILL.md + sinh catalog
-|-- config.go          # Detect OpenClaw, doc/ghi skill config
-|-- registry.go        # Load registry (remote + local fallback)
-|-- archive.go         # Tao/giai nen tar.gz
-|-- ui.go              # Hien thi terminal (mau sac, prompt)
-|-- *_test.go          # Unit tests
-|-- registry.json      # Danh sach skills
-|-- Makefile           # Build, test, dist, package
-|-- .github/workflows/ # CI pipeline
-|-- .editorconfig      # Quy tac format code
-|-- LICENSE            # MIT
-'-- skills/            # Cac skill template
-    '-- shop-hoa-zalo/
-        |-- SKILL.md.tmpl    # Template voi placeholder
-        |-- catalog.json     # Danh muc san pham va gia
-        |-- init_db.py       # Script khoi tao database
-        '-- flowers/         # Anh san pham mau
+|-- cmd/clawkit/           # CLI entry point
+|   '-- main.go
+|-- internal/
+|   |-- archive/           # Tao/giai nen tar.gz
+|   |-- config/            # Detect OpenClaw, skill config
+|   |-- installer/         # Cac lenh install, update, list, status, package
+|   |-- template/          # Xu ly placeholder SKILL.md + catalog
+|   '-- ui/                # Hien thi terminal (mau sac, prompt)
+|-- oauth/                 # OAuth providers (tu dang ky)
+|   |-- oauth.go           # Provider interface + registry
+|   |-- zalo_personal.go   # Zalo QR code login (qua OpenClaw)
+|   |-- zalo_oa.go         # Zalo Official Account OAuth
+|   |-- google.go          # Google OAuth (Gmail, Sheets, Calendar)
+|   '-- facebook.go        # Facebook OAuth (Pages, Messenger)
+|-- skills/                # Skill templates
+|   '-- shop-hoa-zalo/
+|       |-- SKILL.md       # Skill voi placeholder
+|       |-- catalog.json   # Danh muc san pham va gia
+|       |-- init_db.py     # Khoi tao database
+|       '-- flowers/       # Anh san pham mau
+|-- registry.json          # Danh sach skills
+|-- install.sh             # Installer qua curl
+|-- Makefile               # Build, test, lint, dist
+|-- .github/workflows/     # CI pipeline
+|-- .golangci.yml          # Cau hinh linter
+|-- .editorconfig          # Quy tac format code
+'-- LICENSE                # MIT
 ```
 
 ## Dong Gop (Contributing)
@@ -134,9 +164,10 @@ clawkit/
 
 ```
 skills/ten-skill/
-|-- SKILL.md.tmpl      # Template (dung placeholder cho gia tri rieng moi KH)
-|-- catalog.json       # Tuy chon: catalog san pham/dich vu
-'-- [cac file khac]    # Script, tai nguyen, v.v.
+|-- SKILL.md           # Dung {placeholder} cho gia tri rieng moi KH
+|-- catalog.json       # Tuy chon: catalog san pham
+|-- init_db.py         # Tuy chon: khoi tao database
+'-- [cac file khac]
 ```
 
 2. Them skill vao `registry.json`:
@@ -157,51 +188,51 @@ skills/ten-skill/
 }
 ```
 
-3. Neu skill can OAuth provider moi, them flow trong `oauth.go`:
-
-```go
-func oauthProviderMoi(skillDir string) error {
-    // Implement OAuth flow
-}
-```
-
-Va dang ky trong `runOAuthFlow()`.
-
-4. Test:
+3. Test:
 
 ```bash
 make build
 ./clawkit install ten-skill --skip-oauth
-
-# Kiem tra SKILL.md da sinh
 cat ~/.openclaw/workspace/skills/ten-skill/SKILL.md
-```
-
-### Quy Trinh Dev
-
-```bash
-# Clone va build
-git clone git@github.com:Rockship-Team/clawkit.git
-cd clawkit
-make build
-
-# Chay tests
-make test
-
-# Test install (skip OAuth)
-./clawkit install shop-hoa-zalo --skip-oauth
-
-# Kiem tra ket qua
-cat ~/.openclaw/workspace/skills/shop-hoa-zalo/SKILL.md
-cat ~/.openclaw/workspace/skills/shop-hoa-zalo/config.json
 ```
 
 ### Them OAuth Provider Moi
 
-1. Them function OAuth trong `oauth.go`
-2. Dang ky ten provider trong switch cua `runOAuthFlow()`
-3. Dung `waitForOAuthCallback()` cho local callback server (dung chung)
-4. Luu token vao `SkillConfig.Tokens` map
+Tao file moi trong `oauth/` — tu dang ky qua `init()`:
+
+```go
+// oauth/provider_moi.go
+package oauth
+
+func init() { Register(&ProviderMoi{}) }
+
+type ProviderMoi struct{}
+
+func (p *ProviderMoi) Name() string    { return "provider_moi" }
+func (p *ProviderMoi) Display() string { return "Provider Moi" }
+func (p *ProviderMoi) Authenticate() (map[string]string, error) {
+    // Implement OAuth flow
+}
+```
+
+Khong can sua bat ky file nao khac.
+
+### Quy Trinh Dev
+
+```bash
+git clone git@github.com:Rockship-Team/clawkit.git
+cd clawkit
+make build
+make test
+./clawkit install shop-hoa-zalo --skip-oauth
+```
+
+### Tao Release
+
+```bash
+make dist
+gh release create v0.1.0 dist/* --title "v0.1.0" --notes "Initial release"
+```
 
 ### Quy Uoc Commit
 

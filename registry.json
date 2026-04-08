@@ -6,6 +6,12 @@
       "requires_oauth": ["gmail"],
       "setup_prompts": []
     },
+    "carehub-baby": {
+      "version": "1.0.0",
+      "description": "Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo",
+      "requires_oauth": ["zalo_personal"],
+      "setup_prompts": []
+    },
     "shop-hoa-zalo": {
       "version": "1.1.0",
       "description": "Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo giá, gửi ảnh, chốt đơn, tra cứu đơn hàng",

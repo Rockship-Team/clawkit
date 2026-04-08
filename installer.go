@@ -31,6 +31,11 @@ func cmdList() {
 
 func cmdInstall(skillName string, skipOAuth ...bool) {
 	shouldSkipOAuth := len(skipOAuth) > 0 && skipOAuth[0]
+
+	// Check platform is installed and get skills directory
+	skillsDir := preflight()
+	fmt.Println()
+
 	reg, err := loadRegistry()
 	if err != nil {
 		fatal("%v", err)
@@ -45,7 +50,7 @@ func cmdInstall(skillName string, skipOAuth ...bool) {
 	fmt.Printf("  %s\n\n", skill.Description)
 
 	// Check if already installed
-	targetDir := filepath.Join(getSkillsDir(), skillName)
+	targetDir := filepath.Join(skillsDir, skillName)
 	if _, err := os.Stat(targetDir); err == nil {
 		fmt.Printf("  Skill already installed at %s\n", targetDir)
 		fmt.Print("  Overwrite? [y/N]: ")

@@ -2,16 +2,15 @@ package oauth
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"net"
-	"net/http"
+	"image"
+	"image/color"
+	_ "image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 )
 
 func init() {
@@ -26,8 +25,9 @@ func (z *ZaloPersonal) Name() string    { return "zalo_personal" }
 func (z *ZaloPersonal) Display() string { return "Zalo Personal Account" }
 
 // Authenticate runs OpenClaw's interactive configure flow.
-// While configure runs, a mini HTTP server serves the QR image
-// so users on headless servers can open it from their phone/laptop.
+// After OpenClaw generates the QR PNG, clawkit renders it as
+// Unicode text in the terminal so users can scan from their phone —
+// works everywhere: laptop, VPS, Docker, SSH.
 func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	fmt.Println()
 	fmt.Println("  ╔══════════════════════════════════════╗")
@@ -41,34 +41,27 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 		return map[string]string{"zalo_personal_connected": "true"}, nil
 	}
 
-	// Start QR server in background — serves /tmp/openclaw/*.png via HTTP
-	// so users on headless servers can view QR from their phone/laptop.
-	qrServer, qrURL := startQRServer()
-	if qrServer != nil {
-		defer qrServer.Shutdown(context.Background())
-	}
-
-	// Run interactive configure.
 	fmt.Println("  Opening OpenClaw setup wizard...")
-	fmt.Println("  Select 'Zalo (Personal Account)' and scan the QR code.")
-	if qrURL != "" {
-		fmt.Println()
-		fmt.Printf("  ┌─────────────────────────────────────────────┐\n")
-		fmt.Printf("  │ QR code will be available at:               │\n")
-		fmt.Printf("  │ %s  │\n", qrURL)
-		fmt.Printf("  │ Open this URL on your phone to scan.       │\n")
-		fmt.Printf("  └─────────────────────────────────────────────┘\n")
-	}
+	fmt.Println("  Select 'Zalo (Personal Account)' and follow the prompts.")
+	fmt.Println()
+	fmt.Println("  When the QR code is generated, it will be displayed here")
+	fmt.Println("  in the terminal. Scan it with your Zalo app.")
 	fmt.Println()
 
+	// Watch for QR file in background and print it when it appears.
+	qrDone := make(chan struct{})
+	go watchAndPrintQR(qrDone)
+
+	// Run interactive configure (blocking).
 	cmd := exec.Command("openclaw", "configure")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	cmd.Run()
 
-	// Verify connection after configure.
+	close(qrDone)
+
+	// Verify connection.
 	fmt.Println()
 	if isZaloConnected() {
 		fmt.Println("  ✓ Zalo Personal connected")
@@ -87,79 +80,141 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	return map[string]string{"zalo_personal_connected": "pending"}, nil
 }
 
-// startQRServer starts a temporary HTTP server that serves PNG files
-// from /tmp/openclaw/. Returns the server and the URL to access it.
-func startQRServer() (*http.Server, string) {
-	qrDir := filepath.Join(os.TempDir(), "openclaw")
-	if _, err := os.Stat(qrDir); os.IsNotExist(err) {
-		os.MkdirAll(qrDir, 0755)
-	}
+// watchAndPrintQR polls for the QR PNG file and prints it to terminal once found.
+func watchAndPrintQR(done chan struct{}) {
+	// Wait a bit for openclaw configure to start and generate QR.
+	for i := 0; i < 60; i++ { // poll for up to 60 seconds
+		select {
+		case <-done:
+			return
+		default:
+		}
 
-	// Get machine's LAN IP for the URL.
-	ip := getLANIP()
-	port := "9877"
-
-	mux := http.NewServeMux()
-
-	// Serve all PNGs in the directory.
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Find the newest QR PNG.
 		qrPath := findQRImage()
-		if qrPath == "" {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(200)
-			fmt.Fprint(w, `<html><body style="font-family:sans-serif;text-align:center;padding:40px">
-				<h2>Waiting for QR code...</h2>
-				<p>QR code will appear here after you select Zalo Personal in the setup wizard.</p>
-				<script>setTimeout(()=>location.reload(), 3000)</script>
-			</body></html>`)
+		if qrPath != "" {
+			printQRToTerminal(qrPath)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<html><body style="font-family:sans-serif;text-align:center;padding:20px">
-			<h2>Scan QR with Zalo app</h2>
-			<img src="/qr.png" style="max-width:400px">
-			<p style="color:#666">After scanning, go back to the terminal and confirm.</p>
-		</body></html>`)
-	})
-
-	mux.HandleFunc("/qr.png", func(w http.ResponseWriter, r *http.Request) {
-		qrPath := findQRImage()
-		if qrPath == "" {
-			http.NotFound(w, r)
+		// Sleep 1 second between polls.
+		select {
+		case <-done:
 			return
+		case <-make(chan struct{}):
+		default:
 		}
-		http.ServeFile(w, r, qrPath)
-	})
-
-	server := &http.Server{
-		Addr:    ":" + port,
-		Handler: mux,
+		// Simple poll delay.
+		exec.Command("sleep", "1").Run()
 	}
-
-	// Try to start — if port is busy, skip silently.
-	listener, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		return nil, ""
-	}
-
-	go server.Serve(listener)
-
-	url := fmt.Sprintf("http://%s:%s", ip, port)
-	return server, url
 }
 
-// getLANIP returns the machine's LAN IP address.
-func getLANIP() string {
-	conn, err := net.DialTimeout("udp", "8.8.8.8:80", 2*time.Second)
+// printQRToTerminal reads a QR PNG and renders it as Unicode text in terminal.
+// Uses █ (black) and spaces (white), with ▀▄ half-blocks to fit 2 rows per line.
+func printQRToTerminal(pngPath string) {
+	f, err := os.Open(pngPath)
 	if err != nil {
-		return "localhost"
+		return
 	}
-	defer conn.Close()
+	defer f.Close()
 
-	addr := conn.LocalAddr().(*net.UDPAddr)
-	return addr.IP.String()
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return
+	}
+
+	bounds := img.Bounds()
+	w, h := bounds.Max.X-bounds.Min.X, bounds.Max.Y-bounds.Min.Y
+
+	// Sample the image — QR codes are typically small, but the PNG might be scaled up.
+	// Find the module size by checking the first black pixel run.
+	moduleSize := detectModuleSize(img)
+	if moduleSize < 1 {
+		moduleSize = 1
+	}
+
+	// Number of QR modules.
+	cols := w / moduleSize
+	rows := h / moduleSize
+
+	// Build a grid of black/white.
+	grid := make([][]bool, rows)
+	for r := 0; r < rows; r++ {
+		grid[r] = make([]bool, cols)
+		for c := 0; c < cols; c++ {
+			// Sample center of each module.
+			px := bounds.Min.X + c*moduleSize + moduleSize/2
+			py := bounds.Min.Y + r*moduleSize + moduleSize/2
+			grid[r][c] = isDark(img.At(px, py))
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("  ┌" + strings.Repeat("──", cols+2) + "┐")
+
+	// Print 2 rows at a time using half-block characters.
+	for r := 0; r < rows; r += 2 {
+		line := "  │ "
+		for c := 0; c < cols; c++ {
+			top := grid[r][c]
+			bot := false
+			if r+1 < rows {
+				bot = grid[r+1][c]
+			}
+
+			if top && bot {
+				line += "█"
+			} else if top && !bot {
+				line += "▀"
+			} else if !top && bot {
+				line += "▄"
+			} else {
+				line += " "
+			}
+		}
+		line += " │"
+		fmt.Println(line)
+	}
+
+	fmt.Println("  └" + strings.Repeat("──", cols+2) + "┘")
+	fmt.Println()
+	fmt.Println("  Scan the QR code above with your Zalo app.")
+	fmt.Println()
+}
+
+// detectModuleSize finds the size of one QR module (in pixels) by scanning
+// the top-left finder pattern.
+func detectModuleSize(img image.Image) int {
+	bounds := img.Bounds()
+	// Scan from top-left, find first dark pixel, then count consecutive dark pixels.
+	inDark := false
+	darkStart := 0
+
+	for x := bounds.Min.X; x < bounds.Max.X; x++ {
+		if isDark(img.At(x, bounds.Min.Y+bounds.Dy()/4)) {
+			if !inDark {
+				inDark = true
+				darkStart = x
+			}
+		} else {
+			if inDark {
+				// First dark run found.
+				runLen := x - darkStart
+				if runLen > 2 {
+					return runLen
+				}
+				inDark = false
+			}
+		}
+	}
+	return 1
+}
+
+// isDark returns true if a pixel is dark (closer to black than white).
+func isDark(c color.Color) bool {
+	r, g, b, _ := c.RGBA()
+	// Convert to 8-bit and check luminance.
+	lum := (r>>8)*299 + (g>>8)*587 + (b>>8)*114
+	return lum < 128000 // ~50% threshold
 }
 
 // isZaloConnected checks if zalouser has an authenticated session.

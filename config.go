@@ -13,52 +13,35 @@ const (
 	configFileName     = "config.json"
 )
 
-type AppConfig struct {
-	RegistryURL string `json:"registry_url"`
-	SkillsDir   string `json:"skills_dir"`
-}
-
-// Platform represents a detected AI agent runtime
-type Platform struct {
-	Name      string // "PicoClaw" or "OpenClaw"
-	Binary    string // full path to binary, empty if not in PATH
-	SkillsDir string // path to skills directory
-}
-
-// detectPlatforms finds all installed AI agent runtimes.
-// PicoClaw and OpenClaw are separate products that share the same SKILL.md format.
-func detectPlatforms() []Platform {
+// detectOpenClaw checks if OpenClaw is installed.
+// Returns binary path and skills directory.
+func detectOpenClaw() (binary string, skillsDir string) {
 	home, _ := os.UserHomeDir()
+	skillsDir = filepath.Join(home, ".openclaw", "workspace", "skills")
 
-	candidates := []struct {
-		name      string
-		bin       string
-		skillsDir string
-	}{
-		{"PicoClaw", "picoclaw", filepath.Join(home, ".picoclaw", "workspace", "skills")},
-		{"OpenClaw", "openclaw", filepath.Join(home, ".openclaw", "workspace", "skills")},
+	if path, err := exec.LookPath("openclaw"); err == nil {
+		binary = path
 	}
 
-	var found []Platform
-	for _, c := range candidates {
-		p := Platform{Name: c.name}
-
-		if path, err := exec.LookPath(c.bin); err == nil {
-			p.Binary = path
-		}
-
-		if _, err := os.Stat(c.skillsDir); err == nil {
-			p.SkillsDir = c.skillsDir
-		} else if p.Binary != "" {
-			// Binary exists but no skills dir — can create it
-			p.SkillsDir = c.skillsDir
-		}
-
-		if p.Binary != "" || p.SkillsDir != "" {
-			found = append(found, p)
-		}
+	if _, err := os.Stat(skillsDir); err == nil {
+		return binary, skillsDir
 	}
-	return found
+
+	// Binary found but no skills dir yet — still valid
+	if binary != "" {
+		return binary, skillsDir
+	}
+
+	return "", ""
+}
+
+func getSkillsDir() string {
+	_, skillsDir := detectOpenClaw()
+	if skillsDir != "" {
+		return skillsDir
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".openclaw", "workspace", "skills")
 }
 
 func getConfigDir() string {
@@ -66,68 +49,31 @@ func getConfigDir() string {
 	return filepath.Join(home, ".clawkit")
 }
 
-// getSkillsDir returns the skills directory of the first detected platform (non-interactive).
-func getSkillsDir() string {
-	platforms := detectPlatforms()
-	if len(platforms) > 0 {
-		return platforms[0].SkillsDir
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".clawkit", "skills")
-}
-
-// preflight checks for installed platforms and lets user choose if multiple found.
-// Returns the selected platform's skills directory.
+// preflight checks that OpenClaw is installed before proceeding.
+// Returns the skills directory.
 func preflight() string {
-	platforms := detectPlatforms()
+	binary, skillsDir := detectOpenClaw()
 
-	if len(platforms) == 0 {
+	if binary == "" && skillsDir == "" {
 		fmt.Println()
-		fatal(`No AI agent runtime found on this machine.
+		fatal(`OpenClaw not found on this machine.
 
-  clawkit requires one of the following to be installed:
+  clawkit requires OpenClaw to be installed.
+  Skills will not work without the OpenClaw runtime.
 
-  PicoClaw:
-    curl -fsSL https://get.picoclaw.com | bash
-    https://github.com/sipeed/picoclaw
-
-  OpenClaw:
+  Install OpenClaw:
     curl -fsSL https://get.openclaw.ai | bash
-    https://docs.openclaw.ai/installation`)
+
+  Documentation: https://docs.openclaw.ai/installation`)
 	}
 
-	// If only one platform, use it
-	if len(platforms) == 1 {
-		p := platforms[0]
-		if p.Binary != "" {
-			ok("Detected %s (%s)", p.Name, p.Binary)
-		} else {
-			ok("Detected %s", p.Name)
-		}
-		info("Skills directory: %s", p.SkillsDir)
-		return p.SkillsDir
+	if binary != "" {
+		ok("Detected OpenClaw (%s)", binary)
+	} else {
+		warn("OpenClaw skills directory found but binary not in PATH")
 	}
-
-	// Multiple platforms found — let user choose
-	fmt.Println("Multiple platforms detected:")
-	for i, p := range platforms {
-		status := p.SkillsDir
-		if p.Binary != "" {
-			status = p.Binary
-		}
-		fmt.Printf("  %d. %s (%s)\n", i+1, p.Name, status)
-	}
-	fmt.Print("Choose platform [1]: ")
-	choice := promptInput("")
-	idx := 0
-	if choice == "2" && len(platforms) > 1 {
-		idx = 1
-	}
-
-	p := platforms[idx]
-	ok("Using %s", p.Name)
-	info("Skills directory: %s", p.SkillsDir)
-	return p.SkillsDir
+	info("Skills directory: %s", skillsDir)
+	return skillsDir
 }
 
 // SkillConfig is the per-skill config saved after installation

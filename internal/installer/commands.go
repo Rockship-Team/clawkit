@@ -145,7 +145,7 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	fmt.Printf("  Location: %s\n", targetDir)
 	fmt.Println()
 	fmt.Println("  Next steps:")
-	fmt.Printf("  1. Edit config:  %s/SKILL.md\n", targetDir)
+	fmt.Printf("  1. Edit config:  %s\n", filepath.Join(targetDir, "SKILL.md"))
 	fmt.Println("     (Update shop name, price list, email settings)")
 	fmt.Println("  2. Restart gateway:  openclaw gateway restart")
 }

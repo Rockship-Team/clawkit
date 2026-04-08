@@ -102,6 +102,28 @@ func cmdInstall(skillName string) {
 		}
 	}
 
+	// Handle custom flowers directory if provided
+	if flowersSource := userInputs["flowers_dir"]; flowersSource != "" {
+		defaultFlowers := filepath.Join(targetDir, "flowers")
+		os.RemoveAll(defaultFlowers)
+		err = copyDir(flowersSource, defaultFlowers)
+		if err != nil {
+			warn("Could not copy custom images: %v", err)
+			info("You can manually copy images to %s later", defaultFlowers)
+		} else {
+			ok("Custom product images installed")
+		}
+	}
+
+	// Ensure flower directories match catalog
+	ensureFlowerDirs(targetDir)
+
+	// Process SKILL.md template
+	err = processTemplate(targetDir, userInputs)
+	if err != nil {
+		fatal("Failed to process skill template: %v", err)
+	}
+
 	// Save config
 	cfg := &SkillConfig{
 		SkillName:  skillName,
@@ -122,7 +144,7 @@ func cmdInstall(skillName string) {
 func cmdUpdate(skillName string) {
 	targetDir := filepath.Join(getSkillsDir(), skillName)
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-		fatal("Skill '%s' is not installed. Run 'rockship install %s' first.", skillName, skillName)
+		fatal("Skill '%s' is not installed. Run 'clawkit install %s' first.", skillName, skillName)
 	}
 
 	// Load existing config to preserve tokens
@@ -154,6 +176,15 @@ func cmdUpdate(skillName string) {
 
 	// Restore config
 	saveSkillConfig(targetDir, existingCfg)
+
+	// Re-process template with existing config values
+	if existingCfg.UserInputs != nil {
+		ensureFlowerDirs(targetDir)
+		err = processTemplate(targetDir, existingCfg.UserInputs)
+		if err != nil {
+			warn("Template processing failed: %v", err)
+		}
+	}
 
 	ok("'%s' updated to latest version", skillName)
 }

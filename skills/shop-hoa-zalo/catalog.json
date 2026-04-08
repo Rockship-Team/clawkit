@@ -1,0 +1,8 @@
+{
+  "categories": [
+    {"folder": "hoa-hong", "label": "ảnh hoa hồng"},
+    {"folder": "hoa-huong-duong", "label": "ảnh hoa hướng dương"}
+  ],
+  "price_tiers": [280000, 300000, 320000, 350000, 400000, 450000, 800000],
+  "best_seller": true
+}

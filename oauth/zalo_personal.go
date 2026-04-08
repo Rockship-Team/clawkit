@@ -122,37 +122,53 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	fmt.Print("\033[F\033[2K") // Erase "Generating QR code..." line
 	printQRToTerminal(qrPath)
 
-	// Step 6: Wait for user to scan (poll connection status, up to 2 min).
+	// Step 6: Wait for login command to complete (user scans QR).
 	fmt.Println("  ▸ Waiting for you to scan...")
 	fmt.Println("    Open Zalo app → Scan QR → Confirm login")
 	fmt.Println()
 
-	connected := waitForConnection(2 * time.Minute)
-
-	// Clean up background login process.
-	if loginCmd.Process != nil {
-		loginCmd.Process.Kill()
+	// Wait for the background login command to finish (means scan completed or timed out).
+	var loginErr error
+	select {
+	case loginErr = <-loginDone:
+	case <-time.After(3 * time.Minute):
+		if loginCmd.Process != nil {
+			loginCmd.Process.Kill()
+		}
+		loginErr = fmt.Errorf("timeout")
 	}
 
-	if connected {
-		fmt.Print("\033[F\033[2K\033[F\033[2K\033[F\033[2K") // Erase waiting lines
-		fmt.Println("  ✓ Zalo Personal connected!")
+	if loginErr != nil {
+		fmt.Println("  ⚠ Zalo login did not complete.")
+		fmt.Println("  The QR code may have expired.")
 		fmt.Println()
-		return map[string]string{"zalo_personal_connected": "true"}, nil
-	}
+		fmt.Println("  To retry:")
+		fmt.Println("    openclaw channels login --channel zalouser")
+		fmt.Println()
 
-	fmt.Println("  ⚠ Could not verify connection within 2 minutes.")
-	fmt.Println("  The QR code may have expired.")
-	fmt.Println()
-	fmt.Println("  To retry:")
-	fmt.Println("    openclaw channels login --channel zalouser")
-	fmt.Println()
-
-	answer := PromptInput("  Continue installing skill anyway? [y/N]")
-	if answer != "y" && answer != "Y" && answer != "yes" {
+		answer := PromptInput("  Continue installing skill anyway? [y/N]")
+		if answer == "y" || answer == "Y" || answer == "yes" {
+			return map[string]string{"zalo_personal_connected": "pending"}, nil
+		}
 		return nil, fmt.Errorf("zalo setup skipped — run 'openclaw channels login --channel zalouser' to complete later")
 	}
-	return map[string]string{"zalo_personal_connected": "pending"}, nil
+
+	// Step 7: Enable zalouser channel in OpenClaw config.
+	fmt.Println("  ▸ Enabling Zalo channel...")
+	enableCmds := [][]string{
+		{"openclaw", "config", "set", "channels.zalouser.enabled", "true"},
+		{"openclaw", "config", "set", "channels.zalouser.dmPolicy", "pairing"},
+	}
+	for _, args := range enableCmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		cmd.Run()
+	}
+
+	fmt.Println("  ✓ Zalo Personal connected and enabled!")
+	fmt.Println()
+	return map[string]string{"zalo_personal_connected": "true"}, nil
 }
 
 // cleanOldQRFiles removes previous QR PNGs so we only detect the fresh one.
@@ -181,17 +197,6 @@ func waitForQRFile(timeout time.Duration) string {
 	return ""
 }
 
-// waitForConnection polls `openclaw channels status --probe` until connected or timeout.
-func waitForConnection(timeout time.Duration) bool {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if isZaloConnected() {
-			return true
-		}
-		time.Sleep(2 * time.Second)
-	}
-	return false
-}
 
 // printQRToTerminal displays a QR PNG in the terminal.
 // Tries iTerm2/Kitty inline image protocol first (shows actual PNG),
@@ -356,25 +361,18 @@ func isZaloPluginInstalled() bool {
 	return strings.Contains(output, "zalouser") || strings.Contains(output, "zalo-personal")
 }
 
-// isZaloConnected checks if zalouser has an authenticated session.
+// isZaloConnected checks if zalouser channel is configured and enabled.
 func isZaloConnected() bool {
 	var out bytes.Buffer
-	cmd := exec.Command("openclaw", "channels", "status", "--probe")
+	cmd := exec.Command("openclaw", "config", "get", "channels.zalouser.enabled")
 	cmd.Stdout = &out
-	cmd.Stderr = &out
+	cmd.Stderr = nil
 
 	if err := cmd.Run(); err != nil {
 		return false
 	}
 
-	output := out.String()
-	if !strings.Contains(strings.ToLower(output), "zalo") {
-		return false
-	}
-	if strings.Contains(output, "Not authenticated") || strings.Contains(output, "not configured") {
-		return false
-	}
-	return true
+	return strings.TrimSpace(out.String()) == "true"
 }
 
 // findQRImage looks for the most recent QR PNG in $TMPDIR/openclaw/.

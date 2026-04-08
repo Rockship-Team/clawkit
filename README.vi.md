@@ -7,10 +7,9 @@ clawkit xu ly toan bo quy trinh trien khai skill: tai skill template, chay OAuth
 ## Bat Dau Nhanh
 
 ```bash
-# Build tu source
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
-CGO_ENABLED=0 go build -o clawkit .
+make build
 
 # Xem danh sach skills
 ./clawkit list
@@ -34,6 +33,7 @@ clawkit tu dong detect OpenClaw va cai skill vao `~/.openclaw/workspace/skills/`
 | `clawkit install <skill>` | Cai skill kem OAuth va cau hinh |
 | `clawkit update <skill>` | Cap nhat skill, giu nguyen token va config cu |
 | `clawkit status` | Xem tat ca skills da cai |
+| `clawkit package <skill>` | Dong goi skill thanh .tar.gz de phan phoi (dev) |
 | `clawkit version` | In phien ban |
 
 ### Flag khi install
@@ -49,7 +49,7 @@ clawkit install shop-hoa-zalo --skip-oauth
 clawkit install shop-hoa-zalo
   |
   |-- 1. Detect OpenClaw tren may
-  |-- 2. Copy skill template vao ~/.openclaw/workspace/skills/
+  |-- 2. Tai skill (remote) hoac copy tu local skills/
   |-- 3. Chay OAuth (mo browser de KH xac thuc Zalo/Google)
   |-- 4. Thu thap thong tin KH (ten shop, email, v.v.)
   |-- 5. Xu ly SKILL.md.tmpl -> thay placeholder -> tao SKILL.md
@@ -84,14 +84,17 @@ Moi skill co the co `catalog.json` dinh nghia danh muc san pham va gia. clawkit 
 }
 ```
 
-## Build Da Nen Tang
+## Build
 
 ```bash
-chmod +x build.sh
-./build.sh
+make build          # Build cho platform hien tai
+make test           # Chay tests
+make dist           # Cross-compile cho macOS, Linux, Windows
+make package SKILL=shop-hoa-zalo   # Dong goi skill thanh .tar.gz
+make help           # Xem tat ca commands
 ```
 
-Tao binary trong `dist/` cho:
+Cross-compile targets:
 - macOS ARM64 (Apple Silicon)
 - macOS AMD64 (Intel)
 - Linux AMD64
@@ -101,21 +104,26 @@ Tao binary trong `dist/` cho:
 
 ```
 clawkit/
-|-- main.go          # Entry point va routing lenh
-|-- installer.go     # Lenh install, update, list, status
-|-- oauth.go         # OAuth flow cho Zalo Personal/OA
-|-- template.go      # Xu ly template SKILL.md + sinh catalog
-|-- config.go        # Detect OpenClaw, doc/ghi skill config
-|-- registry.go      # Load registry.json
-|-- ui.go            # Hien thi terminal (mau sac, prompt)
-|-- registry.json    # Danh sach skills
-|-- build.sh         # Script build da nen tang
-'-- skills/          # Cac skill template
+|-- main.go            # Entry point va routing lenh
+|-- installer.go       # Lenh install, update, list, status, package
+|-- oauth.go           # OAuth flow cho Zalo Personal/OA
+|-- template.go        # Xu ly template SKILL.md + sinh catalog
+|-- config.go          # Detect OpenClaw, doc/ghi skill config
+|-- registry.go        # Load registry (remote + local fallback)
+|-- archive.go         # Tao/giai nen tar.gz
+|-- ui.go              # Hien thi terminal (mau sac, prompt)
+|-- *_test.go          # Unit tests
+|-- registry.json      # Danh sach skills
+|-- Makefile           # Build, test, dist, package
+|-- .github/workflows/ # CI pipeline
+|-- .editorconfig      # Quy tac format code
+|-- LICENSE            # MIT
+'-- skills/            # Cac skill template
     '-- shop-hoa-zalo/
         |-- SKILL.md.tmpl    # Template voi placeholder
         |-- catalog.json     # Danh muc san pham va gia
         |-- init_db.py       # Script khoi tao database
-        '-- flowers/         # Anh san pham (theo danh muc/gia)
+        '-- flowers/         # Anh san pham mau
 ```
 
 ## Dong Gop (Contributing)
@@ -162,29 +170,38 @@ Va dang ky trong `runOAuthFlow()`.
 4. Test:
 
 ```bash
-CGO_ENABLED=0 go build -o clawkit .
+make build
 ./clawkit install ten-skill --skip-oauth
+
+# Kiem tra SKILL.md da sinh
+cat ~/.openclaw/workspace/skills/ten-skill/SKILL.md
 ```
 
 ### Quy Trinh Dev
 
 ```bash
-# Clone
+# Clone va build
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
+make build
 
-# Build
-CGO_ENABLED=0 go build -o clawkit .
+# Chay tests
+make test
 
-# Test voi skip-oauth
+# Test install (skip OAuth)
 ./clawkit install shop-hoa-zalo --skip-oauth
 
-# Kiem tra SKILL.md da sinh
+# Kiem tra ket qua
 cat ~/.openclaw/workspace/skills/shop-hoa-zalo/SKILL.md
-
-# Chay test
-CGO_ENABLED=0 go test ./...
+cat ~/.openclaw/workspace/skills/shop-hoa-zalo/config.json
 ```
+
+### Them OAuth Provider Moi
+
+1. Them function OAuth trong `oauth.go`
+2. Dang ky ten provider trong switch cua `runOAuthFlow()`
+3. Dung `waitForOAuthCallback()` cho local callback server (dung chung)
+4. Luu token vao `SkillConfig.Tokens` map
 
 ### Quy Uoc Commit
 
@@ -196,13 +213,6 @@ fix: xu ly catalog.json rong
 refactor: don gian hoa xu ly template
 docs: cap nhat README
 ```
-
-### Them OAuth Provider Moi
-
-1. Them function OAuth trong `oauth.go`
-2. Dang ky ten provider trong switch cua `runOAuthFlow()`
-3. Dung `waitForOAuthCallback()` cho local callback server (dung chung)
-4. Luu token vao `SkillConfig.Tokens` map
 
 ## Giay Phep
 

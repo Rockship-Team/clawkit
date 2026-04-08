@@ -7,10 +7,9 @@ clawkit handles the entire skill deployment lifecycle: downloading skill templat
 ## Quick Start
 
 ```bash
-# Build from source
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
-CGO_ENABLED=0 go build -o clawkit .
+make build
 
 # List available skills
 ./clawkit list
@@ -34,6 +33,7 @@ clawkit auto-detects your OpenClaw installation and installs skills to `~/.openc
 | `clawkit install <skill>` | Install a skill with OAuth setup and configuration |
 | `clawkit update <skill>` | Update a skill while preserving OAuth tokens and config |
 | `clawkit status` | Show all installed skills |
+| `clawkit package <skill>` | Package a skill into .tar.gz for distribution (dev) |
 | `clawkit version` | Print version |
 
 ### Install flags
@@ -49,11 +49,11 @@ clawkit install shop-hoa-zalo --skip-oauth
 clawkit install shop-hoa-zalo
   │
   ├─ 1. Detect OpenClaw installation
-  ├─ 2. Copy skill template to ~/.openclaw/workspace/skills/
+  ├─ 2. Download skill (remote) or copy from local skills/ directory
   ├─ 3. Run OAuth flow (opens browser for Zalo/Google authorization)
   ├─ 4. Collect client config (shop name, email, etc.)
   ├─ 5. Process SKILL.md.tmpl → replace placeholders → generate SKILL.md
-  └─ 6. Validate and save config.json
+  └─ 6. Save config.json
 ```
 
 ### Template System
@@ -84,14 +84,17 @@ Each skill can include a `catalog.json` that defines product categories and pric
 }
 ```
 
-## Cross-Platform Build
+## Build
 
 ```bash
-chmod +x build.sh
-./build.sh
+make build          # Build for current platform
+make test           # Run tests
+make dist           # Cross-compile for macOS, Linux, Windows
+make package SKILL=shop-hoa-zalo   # Package a skill as .tar.gz
+make help           # Show all commands
 ```
 
-Produces binaries in `dist/` for:
+Cross-compile targets:
 - macOS ARM64 (Apple Silicon)
 - macOS AMD64 (Intel)
 - Linux AMD64
@@ -101,21 +104,26 @@ Produces binaries in `dist/` for:
 
 ```
 clawkit/
-├── main.go          # CLI entry point and command routing
-├── installer.go     # install, update, list, status commands
-├── oauth.go         # Zalo Personal/OA OAuth flows
-├── template.go      # SKILL.md template processing + catalog generation
-├── config.go        # OpenClaw detection, skill config read/write
-├── registry.go      # Skill registry (registry.json) loader
-├── ui.go            # Terminal output helpers (colors, prompts)
-├── registry.json    # Available skills manifest
-├── build.sh         # Cross-compilation script
-└── skills/          # Skill templates
+├── main.go            # CLI entry point and command routing
+├── installer.go       # install, update, list, status, package commands
+├── oauth.go           # Zalo Personal/OA OAuth flows
+├── template.go        # SKILL.md template processing + catalog generation
+├── config.go          # OpenClaw detection, skill config read/write
+├── registry.go        # Skill registry loader (remote + local fallback)
+├── archive.go         # tar.gz create/extract utilities
+├── ui.go              # Terminal output helpers (colors, prompts)
+├── *_test.go          # Unit tests
+├── registry.json      # Available skills manifest
+├── Makefile           # Build, test, dist, package commands
+├── .github/workflows/ # CI pipeline
+├── .editorconfig      # Code formatting rules
+├── LICENSE            # MIT
+└── skills/            # Skill templates
     └── shop-hoa-zalo/
         ├── SKILL.md.tmpl    # Template with placeholders
         ├── catalog.json     # Product categories and prices
         ├── init_db.py       # Database initialization script
-        └── flowers/         # Product images (organized by category/price)
+        └── flowers/         # Sample product images
 ```
 
 ## Contributing
@@ -162,39 +170,30 @@ And register it in `runOAuthFlow()`.
 4. Test:
 
 ```bash
-CGO_ENABLED=0 go build -o clawkit .
+make build
 ./clawkit install your-skill-name --skip-oauth
+
+# Verify generated SKILL.md
+cat ~/.openclaw/workspace/skills/your-skill-name/SKILL.md
 ```
 
 ### Development Workflow
 
 ```bash
-# Clone
+# Clone and build
 git clone git@github.com:Rockship-Team/clawkit.git
 cd clawkit
-
-# Build
-CGO_ENABLED=0 go build -o clawkit .
-
-# Test with skip-oauth
-./clawkit install shop-hoa-zalo --skip-oauth
-
-# Verify generated SKILL.md
-cat ~/.openclaw/workspace/skills/shop-hoa-zalo/SKILL.md
+make build
 
 # Run tests
-CGO_ENABLED=0 go test ./...
-```
+make test
 
-### Commit Convention
+# Test install (skip OAuth)
+./clawkit install shop-hoa-zalo --skip-oauth
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: add Gmail OAuth support
-fix: handle empty catalog.json gracefully
-refactor: simplify template processing
-docs: update README with new skill guide
+# Verify result
+cat ~/.openclaw/workspace/skills/shop-hoa-zalo/SKILL.md
+cat ~/.openclaw/workspace/skills/shop-hoa-zalo/config.json
 ```
 
 ### Adding a New OAuth Provider
@@ -203,6 +202,17 @@ docs: update README with new skill guide
 2. Register the provider name in `runOAuthFlow()` switch
 3. Use `waitForOAuthCallback()` for the local callback server (shared across all providers)
 4. Save tokens to `SkillConfig.Tokens` map
+
+### Commit Convention
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add Gmail OAuth support
+fix: handle empty catalog.json gracefully
+refactor: simplify template processing
+docs: update README with new skill guide
+```
 
 ## License
 

@@ -18,10 +18,16 @@ func main() {
 		cmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name>")
+			fmt.Println("Usage: clawkit install <skill-name> [--skip-oauth]")
 			os.Exit(1)
 		}
-		cmdInstall(os.Args[2])
+		skipOAuth := false
+		for _, arg := range os.Args[3:] {
+			if arg == "--skip-oauth" {
+				skipOAuth = true
+			}
+		}
+		cmdInstall(os.Args[2], skipOAuth)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")

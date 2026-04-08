@@ -29,7 +29,8 @@ func cmdList() {
 	}
 }
 
-func cmdInstall(skillName string) {
+func cmdInstall(skillName string, skipOAuth ...bool) {
+	shouldSkipOAuth := len(skipOAuth) > 0 && skipOAuth[0]
 	reg, err := loadRegistry()
 	if err != nil {
 		fatal("%v", err)
@@ -37,7 +38,7 @@ func cmdInstall(skillName string) {
 
 	skill, exists := reg.GetSkill(skillName)
 	if !exists {
-		fatal("Skill '%s' not found. Run 'rockship list' to see available skills.", skillName)
+		fatal("Skill '%s' not found. Run 'clawkit list' to see available skills.", skillName)
 	}
 
 	fmt.Printf("▸ Installing %s v%s\n", skillName, skill.Version)
@@ -71,14 +72,18 @@ func cmdInstall(skillName string) {
 	ok("Skill files installed to %s", targetDir)
 
 	// Run OAuth for each required provider
-	for _, provider := range skill.RequiresOAuth {
-		fmt.Println()
-		info("Setting up %s authorization...", provider)
-		err = runOAuthFlow(provider, targetDir)
-		if err != nil {
-			fatal("OAuth setup failed for %s: %v", provider, err)
+	if shouldSkipOAuth {
+		warn("Skipping OAuth setup (--skip-oauth)")
+	} else {
+		for _, provider := range skill.RequiresOAuth {
+			fmt.Println()
+			info("Setting up %s authorization...", provider)
+			err = runOAuthFlow(provider, targetDir)
+			if err != nil {
+				fatal("OAuth setup failed for %s: %v", provider, err)
+			}
+			ok("Connected to %s", provider)
 		}
-		ok("Connected to %s", provider)
 	}
 
 	// Run setup prompts (tên shop, SĐT, etc.)

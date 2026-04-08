@@ -96,29 +96,8 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 		}
 	}
 
-	// Run setup prompts (shop name, phone, etc.).
-	userInputs := collectUserInputs(skill.SetupPrompts)
-
-	// Handle custom flowers directory if provided.
-	if flowersSource := userInputs["flowers_dir"]; flowersSource != "" {
-		defaultFlowers := filepath.Join(targetDir, "flowers")
-		os.RemoveAll(defaultFlowers)
-		err = copyDir(flowersSource, defaultFlowers)
-		if err != nil {
-			ui.Warn("Could not copy custom images: %v", err)
-			ui.Info("You can manually copy images to %s later", defaultFlowers)
-		} else {
-			ui.Ok("Custom product images installed")
-		}
-	}
-
 	// Ensure flower directories match catalog.
 	template.EnsureFlowerDirs(targetDir)
-
-	// Process SKILL.md template.
-	if err := template.Process(targetDir, userInputs); err != nil {
-		ui.Fatal("Failed to process skill template: %v", err)
-	}
 
 	// Initialize database if init_db.py exists.
 	initDB := filepath.Join(targetDir, "init_db.py")
@@ -135,18 +114,22 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 
 	// Save config.
 	cfg := &config.SkillConfig{
-		SkillName:  skillName,
-		Version:    skill.Version,
-		OAuthDone:  len(skill.RequiresOAuth) > 0,
-		UserInputs: userInputs,
+		SkillName: skillName,
+		Version:   skill.Version,
+		OAuthDone: len(skill.RequiresOAuth) > 0,
 	}
 	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
 		ui.Fatal("Failed to save config: %v", err)
 	}
 
 	fmt.Println()
-	ui.Ok("'%s' is ready!", skillName)
+	ui.Ok("'%s' installed!", skillName)
 	fmt.Printf("  Location: %s\n", targetDir)
+	fmt.Println()
+	fmt.Println("  Next steps:")
+	fmt.Printf("  1. Edit config:  %s/SKILL.md\n", targetDir)
+	fmt.Println("     (Update shop name, price list, email settings)")
+	fmt.Println("  2. Restart gateway:  openclaw gateway restart")
 }
 
 // CmdUpdate updates an installed skill while preserving tokens and config.

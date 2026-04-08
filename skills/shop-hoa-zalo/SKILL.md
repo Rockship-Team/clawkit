@@ -4,21 +4,7 @@ description: Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo gi
 version: "1.1.0"
 requires_oauth:
   - zalo_personal
-setup_prompts:
-  - key: shop_name
-    label: Tên shop
-    default: Shop Hoa tươi Sài Gòn
-  - key: phone
-    label: SĐT liên hệ
-  - key: notify_email_from
-    label: Email gửi thông báo đơn (Gmail)
-  - key: notify_email_app_password
-    label: App Password của Gmail trên
-  - key: notify_email_to
-    label: Email nhận thông báo đơn hàng
-  - key: flowers_dir
-    label: Thư mục ảnh sản phẩm (Enter để dùng mặc định)
-    default: ""
+setup_prompts: []
 metadata: {"openclaw":{"emoji":"🌸"}}
 ---
 

@@ -1,0 +1,14 @@
+{
+  "skills": {
+    "shop-hoa-zalo": {
+      "version": "1.0.0",
+      "description": "Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo giá, chốt đơn",
+      "requires_oauth": ["zalo_personal"],
+      "setup_prompts": [
+        {"key": "shop_name", "label": "Tên shop"},
+        {"key": "phone", "label": "SĐT liên hệ"},
+        {"key": "greeting", "label": "Lời chào khách", "default": "Xin chào! Shop Hoa xin được phục vụ bạn"}
+      ]
+    }
+  }
+}

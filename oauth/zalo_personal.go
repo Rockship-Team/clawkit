@@ -41,13 +41,31 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	fmt.Println("  └──────────────────────────────────────┘")
 	fmt.Println()
 
-	// Step 1: Check if already connected.
+	// Step 1: Check if OpenClaw is available.
+	if _, err := exec.LookPath("openclaw"); err != nil {
+		fmt.Println("  ✗ OpenClaw CLI not found in PATH.")
+		fmt.Println()
+		fmt.Println("  Zalo Personal login requires OpenClaw. Install it first:")
+		fmt.Println("    npm install -g openclaw")
+		fmt.Println()
+		fmt.Println("  After installing, run:")
+		fmt.Println("    openclaw channels login --channel zalouser")
+		fmt.Println()
+
+		answer := PromptInput("  Skip Zalo setup and continue installing? [y/N]")
+		if answer == "y" || answer == "Y" || answer == "yes" {
+			return map[string]string{"zalo_personal_connected": "pending"}, nil
+		}
+		return nil, fmt.Errorf("openclaw not installed — run 'npm install -g openclaw'")
+	}
+
+	// Step 2: Check if already connected.
 	if isZaloConnected() {
 		fmt.Println("  ✓ Zalo Personal already connected")
 		return map[string]string{"zalo_personal_connected": "true"}, nil
 	}
 
-	// Step 2: Ensure zalouser plugin is available.
+	// Step 3: Ensure zalouser plugin is available.
 	if !isZaloPluginInstalled() {
 		fmt.Println("  ▸ Zalo Personal plugin not found. Installing...")
 		installCmd := exec.Command("openclaw", "plugins", "install", "@openclaw/zalouser")
@@ -55,20 +73,25 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 		installCmd.Stderr = os.Stderr
 		if err := installCmd.Run(); err != nil {
 			fmt.Println()
-			fmt.Println("  ✗ Failed to install Zalo plugin.")
+			fmt.Println("  ⚠ Could not auto-install Zalo plugin.")
 			fmt.Println("  Install manually:")
 			fmt.Println("    openclaw plugins install @openclaw/zalouser")
 			fmt.Println()
+
+			answer := PromptInput("  Skip Zalo setup and continue installing? [y/N]")
+			if answer == "y" || answer == "Y" || answer == "yes" {
+				return map[string]string{"zalo_personal_connected": "pending"}, nil
+			}
 			return nil, fmt.Errorf("zalo plugin installation failed: %w", err)
 		}
 		fmt.Println("  ✓ Zalo Personal plugin installed")
 		fmt.Println()
 	}
 
-	// Step 3: Clean old QR files to avoid showing a stale code.
+	// Step 4: Clean old QR files to avoid showing a stale code.
 	cleanOldQRFiles()
 
-	// Step 4: Start login command in background (non-blocking).
+	// Step 5: Start login command in background (non-blocking).
 	fmt.Println("  ▸ Generating QR code...")
 	loginCmd := exec.Command("openclaw", "channels", "login", "--channel", "zalouser")
 	loginCmd.Stdin = nil

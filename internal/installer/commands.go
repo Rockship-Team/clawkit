@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -117,6 +118,19 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	// Process SKILL.md template.
 	if err := template.Process(targetDir, userInputs); err != nil {
 		ui.Fatal("Failed to process skill template: %v", err)
+	}
+
+	// Initialize database if init_db.py exists.
+	initDB := filepath.Join(targetDir, "init_db.py")
+	if _, err := os.Stat(initDB); err == nil {
+		cmd := exec.Command("python3", initDB)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			ui.Warn("Database init failed: %v (you can run manually: python3 %s)", err, initDB)
+		} else {
+			ui.Ok("Database initialized")
+		}
 	}
 
 	// Save config.

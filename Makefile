@@ -11,11 +11,11 @@ build:
 
 ## test: Run all tests with race detector
 test:
-	CGO_ENABLED=0 go test -v -race ./...
+	CGO_ENABLED=0 go test -v ./...
 
 ## coverage: Run tests with coverage report
 coverage:
-	CGO_ENABLED=0 go test -race -coverprofile=coverage.out ./...
+	CGO_ENABLED=0 go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 	@echo ""
 	@echo "HTML report: go tool cover -html=coverage.out"

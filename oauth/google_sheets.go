@@ -40,7 +40,7 @@ func (g *GoogleSheets) Authenticate() (map[string]string, error) {
 	fmt.Println()
 
 	// Try to reuse credentials from gog skill (same Google OAuth app).
-	clientID, clientSecret := loadGogCredentials()
+	clientID, clientSecret, gogEmail := loadGogCredentials()
 	if clientID != "" {
 		fmt.Println("  Phát hiện credentials từ skill gog — dùng lại để đăng nhập.")
 		fmt.Println()
@@ -112,6 +112,9 @@ func (g *GoogleSheets) Authenticate() (map[string]string, error) {
 	tokens["google_client_secret"] = clientSecret
 	tokens["spreadsheet_id"] = sheetID
 	tokens["spreadsheet_url"] = sheetURL
+	if gogEmail != "" {
+		tokens["gmail_account"] = gogEmail
+	}
 	return tokens, nil
 }
 
@@ -416,32 +419,35 @@ func hexByte(s string) int {
 	return val
 }
 
-// loadGogCredentials reads google_client_id and google_client_secret from the
-// installed gog skill config, so the user doesn't have to re-enter them.
-func loadGogCredentials() (clientID, clientSecret string) {
-	cfgDir, err := os.UserConfigDir()
-	if err != nil {
-		home, _ := os.UserHomeDir()
-		cfgDir = filepath.Join(home, ".config")
+// loadGogCredentials reads google_client_id, google_client_secret and gmail_account
+// from the installed gog skill config, so the user doesn't have to re-enter them.
+func loadGogCredentials() (clientID, clientSecret, email string) {
+	home, _ := os.UserHomeDir()
+
+	candidates := []string{}
+	if cfgDir, err := os.UserConfigDir(); err == nil {
+		candidates = append(candidates, filepath.Join(cfgDir, "clawkit", "gog", "config.json"))
 	}
-	configPath := filepath.Join(cfgDir, "clawkit", "gog", "config.json")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		// Also try OpenClaw skills dir
-		home, _ := os.UserHomeDir()
-		configPath = filepath.Join(home, ".openclaw", "workspace", "skills", "gog", "config.json")
-		data, err = os.ReadFile(configPath)
+	candidates = append(candidates, filepath.Join(home, ".openclaw", "workspace", "skills", "gog", "config.json"))
+
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
 		if err != nil {
-			return "", ""
+			continue
+		}
+		var cfg struct {
+			Tokens map[string]string `json:"tokens"`
+		}
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			continue
+		}
+		id := cfg.Tokens["google_client_id"]
+		secret := cfg.Tokens["google_client_secret"]
+		if id != "" && secret != "" {
+			return id, secret, cfg.Tokens["gmail_account"]
 		}
 	}
-	var cfg struct {
-		Tokens map[string]string `json:"tokens"`
-	}
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return "", ""
-	}
-	return cfg.Tokens["google_client_id"], cfg.Tokens["google_client_secret"]
+	return "", "", ""
 }
 
 func sheetsAPI(method, apiURL, accessToken string, body any) ([]byte, error) {

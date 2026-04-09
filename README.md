@@ -87,22 +87,22 @@ clawkit status
 
 ```mermaid
 graph TD
-    User([User]) -->|npm install -g| clawkit
-    clawkit -->|clawkit install skill| Flow
+    User([User]) -->|npm install -g @rockship/clawkit| clawkit
 
-    subflow Flow [Install Flow]
-        Flow --> A[Detect OpenClaw]
-        A --> B[Download skill package]
+    subgraph Install [clawkit install skill]
+        A[Detect OpenClaw] --> B[Download skill package]
         B --> C[Run OAuth]
         C --> D[Apply configuration]
         D --> E[Register in OpenClaw workspace]
     end
 
+    clawkit --> A
+
     subgraph Runtime [Daily Usage]
         User2([User]) -->|Chat message| OpenClaw
         OpenClaw -->|Runs skill prompt| AI[AI Model]
         AI -->|gog sheets append| Sheets[(Google Sheets)]
-        AI -->|openclaw zalo send| Zalo[(Zalo)]
+        AI -->|zalo send| Zalo[(Zalo)]
     end
 ```
 

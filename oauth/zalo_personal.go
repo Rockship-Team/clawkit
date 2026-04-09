@@ -108,9 +108,9 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	}()
 
 	// Step 4: Wait for QR file to appear (poll up to 30s).
-	qrPath := waitForQRFile(30 * time.Second)
+	qrPath := waitForQRFile(5 * time.Minute)
 	if qrPath == "" {
-		fmt.Println("  ✗ QR code not generated within 30 seconds.")
+		fmt.Println("  ✗ QR code not generated within 5 minutes.")
 		fmt.Println()
 		fmt.Println("  Try running manually:")
 		fmt.Println("    openclaw channels login --channel zalouser")
@@ -171,16 +171,46 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	return map[string]string{"zalo_personal_connected": "true"}, nil
 }
 
+// openclawQRDirs returns all candidate directories where openclaw may write QR files.
+// openclaw uses /tmp/openclaw on macOS/Linux regardless of $TMPDIR,
+// and %TEMP%\openclaw on Windows.
+func openclawQRDirs() []string {
+	seen := map[string]bool{}
+	var dirs []string
+	add := func(d string) {
+		if d != "" && !seen[d] {
+			seen[d] = true
+			dirs = append(dirs, d)
+		}
+	}
+
+	// Always include /tmp/openclaw (macOS + Linux default used by openclaw).
+	add(filepath.Join("/tmp", "openclaw"))
+
+	// Go's os.TempDir() — matches $TMPDIR on macOS (/var/folders/…) and %TEMP% on Windows.
+	add(filepath.Join(os.TempDir(), "openclaw"))
+
+	// Extra Windows fallbacks via environment variables.
+	for _, env := range []string{"TEMP", "TMP", "USERPROFILE", "APPDATA", "LOCALAPPDATA"} {
+		if v := os.Getenv(env); v != "" {
+			add(filepath.Join(v, "openclaw"))
+		}
+	}
+
+	return dirs
+}
+
 // cleanOldQRFiles removes previous QR PNGs so we only detect the fresh one.
 func cleanOldQRFiles() {
-	dir := filepath.Join(os.TempDir(), "openclaw")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return
-	}
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(strings.ToLower(e.Name()), ".png") {
-			os.Remove(filepath.Join(dir, e.Name()))
+	for _, dir := range openclawQRDirs() {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(strings.ToLower(e.Name()), ".png") {
+				os.Remove(filepath.Join(dir, e.Name()))
+			}
 		}
 	}
 }
@@ -218,18 +248,18 @@ func printQRToTerminal(pngPath string) {
 }
 
 // printInlineImage displays a PNG inline using terminal-specific escape sequences.
-// Returns true if a supported terminal was detected.
+// Returns true if a supported terminal was detected AND image rendering is reliable.
+// VSCode is intentionally excluded — its iTerm2 protocol support is inconsistent
+// across versions and renders as blank; Unicode fallback works everywhere.
 func printInlineImage(data []byte) bool {
 	b64 := base64.StdEncoding.EncodeToString(data)
 
 	// iTerm2 inline image protocol.
-	// Supported by: iTerm2, WezTerm, Hyper, VS Code terminal, Tabby, mintty.
+	// Supported by: iTerm2, WezTerm, Hyper, Tabby, mintty (NOT VSCode — too unreliable).
 	// https://iterm2.com/documentation-images.html
 	if os.Getenv("TERM_PROGRAM") == "iTerm.app" ||
 		os.Getenv("TERM_PROGRAM") == "WezTerm" ||
-		os.Getenv("LC_TERMINAL") == "iTerm2" ||
-		os.Getenv("WT_SESSION") != "" ||
-		strings.Contains(os.Getenv("TERM_PROGRAM"), "vscode") {
+		os.Getenv("LC_TERMINAL") == "iTerm2" {
 		fmt.Printf("  \033]1337;File=inline=1;width=30;preserveAspectRatio=1:%s\a\n", b64)
 		return true
 	}
@@ -314,25 +344,35 @@ func printQRUnicode(data []byte) {
 }
 
 // detectModuleSize finds the size of one QR module (in pixels) by scanning
-// the top-left finder pattern.
+// horizontal rows to find the first substantial dark run (≥3 px).
+// Tries multiple rows (skipping quiet-zone rows that are all-white) so it
+// reliably hits the QR finder pattern even when the image has a thick border.
 func detectModuleSize(img image.Image) int {
 	bounds := img.Bounds()
-	inDark := false
-	darkStart := 0
+	w := bounds.Max.X - bounds.Min.X
+	h := bounds.Max.Y - bounds.Min.Y
 
-	for x := bounds.Min.X; x < bounds.Max.X; x++ {
-		if isDark(img.At(x, bounds.Min.Y+bounds.Dy()/4)) {
-			if !inDark {
-				inDark = true
-				darkStart = x
-			}
-		} else {
-			if inDark {
-				runLen := x - darkStart
-				if runLen > 2 {
-					return runLen
+	// Scan rows at 20%, 25%, 30% … 50% of image height.
+	for pct := 20; pct <= 50; pct += 5 {
+		y := bounds.Min.Y + h*pct/100
+		inDark := false
+		darkStart := 0
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			dark := isDark(img.At(x, y))
+			if dark {
+				if !inDark {
+					inDark = true
+					darkStart = x
 				}
-				inDark = false
+			} else {
+				if inDark {
+					runLen := x - darkStart
+					// A module must be at least 2px and at most half the image width.
+					if runLen >= 2 && runLen < w/2 {
+						return runLen
+					}
+					inDark = false
+				}
 			}
 		}
 	}
@@ -375,33 +415,43 @@ func isZaloConnected() bool {
 	return strings.TrimSpace(out.String()) == "true"
 }
 
-// findQRImage looks for the most recent QR PNG in $TMPDIR/openclaw/.
+// findQRImage looks for the most recent QR PNG across all candidate openclaw directories.
+// Searches /tmp/openclaw first (macOS/Linux), then os.TempDir()/openclaw,
+// then Windows %TEMP%/%APPDATA% variants.
 func findQRImage() string {
-	dir := filepath.Join(os.TempDir(), "openclaw")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return ""
+	type entry struct {
+		path    string
+		modTime time.Time
 	}
+	var candidates []entry
 
-	var pngs []os.DirEntry
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(strings.ToLower(e.Name()), ".png") {
-			pngs = append(pngs, e)
+	for _, dir := range openclawQRDirs() {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(strings.ToLower(e.Name()), ".png") {
+				continue
+			}
+			fi, err := e.Info()
+			if err != nil {
+				continue
+			}
+			candidates = append(candidates, entry{
+				path:    filepath.Join(dir, e.Name()),
+				modTime: fi.ModTime(),
+			})
 		}
 	}
 
-	if len(pngs) == 0 {
+	if len(candidates) == 0 {
 		return ""
 	}
 
-	sort.Slice(pngs, func(i, j int) bool {
-		fi, _ := pngs[i].Info()
-		fj, _ := pngs[j].Info()
-		if fi == nil || fj == nil {
-			return false
-		}
-		return fi.ModTime().After(fj.ModTime())
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].modTime.After(candidates[j].modTime)
 	})
 
-	return filepath.Join(dir, pngs[0].Name())
+	return candidates[0].path
 }

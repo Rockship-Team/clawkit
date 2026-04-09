@@ -3,7 +3,7 @@ name: finance-tracker
 description: Chụp hóa đơn → AI phân loại chi tiêu → lưu Google Sheets → báo cáo tài chính cá nhân
 version: "1.0.0"
 requires_oauth:
-  - google
+  - google_sheets
 setup_prompts: []
 metadata: {"openclaw":{"emoji":"💰"}}
 ---

@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -36,18 +38,25 @@ func (g *GoogleSheets) Authenticate() (map[string]string, error) {
 	fmt.Println("  ║   Kết nối Google Sheets                    ║")
 	fmt.Println("  ╚════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("  Bước 1: Tạo OAuth2 credentials tại Google Cloud Console")
-	fmt.Println("  → https://console.cloud.google.com/apis/credentials")
-	fmt.Println()
-	fmt.Println("  Lưu ý: Bật Google Sheets API trước tại")
-	fmt.Println("  → https://console.cloud.google.com/apis/library/sheets.googleapis.com")
-	fmt.Println()
-	fmt.Println("  Redirect URI cần thêm vào OAuth app:")
-	fmt.Printf("  → http://localhost:%d/callback\n", CallbackPort)
-	fmt.Println()
 
-	clientID := PromptInput("  Google Client ID")
-	clientSecret := PromptInput("  Google Client Secret")
+	// Try to reuse credentials from gog skill (same Google OAuth app).
+	clientID, clientSecret := loadGogCredentials()
+	if clientID != "" {
+		fmt.Println("  Phát hiện credentials từ skill gog — dùng lại để đăng nhập.")
+		fmt.Println()
+	} else {
+		fmt.Println("  Bước 1: Tạo OAuth2 credentials tại Google Cloud Console")
+		fmt.Println("  → https://console.cloud.google.com/apis/credentials")
+		fmt.Println()
+		fmt.Println("  Lưu ý: Bật Google Sheets API tại")
+		fmt.Println("  → https://console.cloud.google.com/apis/library/sheets.googleapis.com")
+		fmt.Println()
+		fmt.Println("  Redirect URI cần thêm vào OAuth app:")
+		fmt.Printf("  → http://localhost:%d/callback\n", CallbackPort)
+		fmt.Println()
+		clientID = PromptInput("  Google Client ID")
+		clientSecret = PromptInput("  Google Client Secret")
+	}
 
 	redirectURI := fmt.Sprintf("http://localhost:%d/callback", CallbackPort)
 	authURL := fmt.Sprintf(
@@ -405,6 +414,34 @@ func hexByte(s string) int {
 		}
 	}
 	return val
+}
+
+// loadGogCredentials reads google_client_id and google_client_secret from the
+// installed gog skill config, so the user doesn't have to re-enter them.
+func loadGogCredentials() (clientID, clientSecret string) {
+	cfgDir, err := os.UserConfigDir()
+	if err != nil {
+		home, _ := os.UserHomeDir()
+		cfgDir = filepath.Join(home, ".config")
+	}
+	configPath := filepath.Join(cfgDir, "clawkit", "gog", "config.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// Also try OpenClaw skills dir
+		home, _ := os.UserHomeDir()
+		configPath = filepath.Join(home, ".openclaw", "workspace", "skills", "gog", "config.json")
+		data, err = os.ReadFile(configPath)
+		if err != nil {
+			return "", ""
+		}
+	}
+	var cfg struct {
+		Tokens map[string]string `json:"tokens"`
+	}
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return "", ""
+	}
+	return cfg.Tokens["google_client_id"], cfg.Tokens["google_client_secret"]
 }
 
 func sheetsAPI(method, apiURL, accessToken string, body any) ([]byte, error) {

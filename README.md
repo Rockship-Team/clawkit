@@ -85,28 +85,16 @@ clawkit status
 
 ## How It Works
 
-```mermaid
-graph TD
-    User([User]) -->|npm install -g @rockship/clawkit| clawkit
+When you run `clawkit install`, it:
 
-    subgraph Install [clawkit install skill]
-        A[Detect OpenClaw] --> B[Download skill package]
-        B --> C[Run OAuth]
-        C --> D[Apply configuration]
-        D --> E[Register in OpenClaw workspace]
-    end
+1. Detects your OpenClaw installation
+2. Downloads the skill package
+3. Runs OAuth (e.g. Zalo QR scan, Gmail login)
+4. Applies your configuration to the skill template
+5. Initializes the database if needed
+6. Registers the skill in your OpenClaw workspace
 
-    clawkit --> A
-
-    subgraph Runtime [Daily Usage]
-        User2([User]) -->|Chat message| OpenClaw
-        OpenClaw -->|Runs skill prompt| AI[AI Model]
-        AI -->|gog sheets append| Sheets[(Google Sheets)]
-        AI -->|zalo send| Zalo[(Zalo)]
-    end
-```
-
-For a detailed architecture diagram, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For architecture diagrams and technical deep-dives, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### Zalo Authentication
 

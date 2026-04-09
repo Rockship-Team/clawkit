@@ -85,28 +85,16 @@ clawkit status
 
 ## Cách hoạt động
 
-```mermaid
-graph TD
-    User([Người dùng]) -->|npm install -g @rockship/clawkit| clawkit
+Khi chạy `clawkit install`, công cụ sẽ:
 
-    subgraph Install [clawkit install skill]
-        A[Phát hiện OpenClaw] --> B[Tải gói skill]
-        B --> C[Chạy OAuth]
-        C --> D[Áp dụng cấu hình]
-        D --> E[Đăng ký vào OpenClaw]
-    end
+1. Phát hiện vị trí cài đặt OpenClaw trên máy
+2. Tải về gói skill
+3. Chạy OAuth (ví dụ: quét QR Zalo, đăng nhập Gmail)
+4. Áp dụng cấu hình vào template skill
+5. Khởi tạo cơ sở dữ liệu nếu cần
+6. Đăng ký skill vào OpenClaw workspace
 
-    clawkit --> A
-
-    subgraph Runtime [Sử dụng hàng ngày]
-        User2([Người dùng]) -->|Tin nhắn| OpenClaw
-        OpenClaw -->|Chạy skill prompt| AI[AI Model]
-        AI -->|gog sheets append| Sheets[(Google Sheets)]
-        AI -->|zalo send| Zalo[(Zalo)]
-    end
-```
-
-Xem chi tiết kiến trúc tại [ARCHITECTURE.md](./ARCHITECTURE.md).
+Xem chi tiết kiến trúc và diagram tại [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### Xác thực Zalo
 

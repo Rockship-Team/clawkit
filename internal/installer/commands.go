@@ -116,6 +116,9 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 		}
 	}
 
+	// Move IDENTITY.md and SOUL.md to ~/.openclaw/workspace if present.
+	moveWorkspaceFiles(targetDir)
+
 	// Ensure flower directories match catalog.
 	template.EnsureFlowerDirs(targetDir)
 
@@ -647,6 +650,54 @@ func installBinDir() string {
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "bin")
+}
+
+// moveWorkspaceFiles moves IDENTITY.md and SOUL.md from the skill dir to
+// ~/.openclaw/workspace if they exist.
+func moveWorkspaceFiles(skillDir string) {
+	home, _ := os.UserHomeDir()
+	workspaceDir := filepath.Join(home, ".openclaw", "workspace")
+	files := []string{"IDENTITY.md", "SOUL.md"}
+	moved := false
+	for _, f := range files {
+		src := filepath.Join(skillDir, f)
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			continue
+		}
+		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+			ui.Warn("Could not create workspace dir: %v", err)
+			continue
+		}
+		dst := filepath.Join(workspaceDir, f)
+		if err := moveFile(src, dst); err != nil {
+			ui.Warn("Could not move %s to workspace: %v", f, err)
+			continue
+		}
+		ui.Ok("Moved %s → %s", f, dst)
+		moved = true
+	}
+	if moved {
+		ui.Info("Workspace files placed in %s", workspaceDir)
+	}
+}
+
+// moveFile moves src to dst, falling back to copy+delete if os.Rename fails
+// (e.g. cross-device on Linux, or dst already exists on Windows).
+func moveFile(src, dst string) error {
+	// Remove dst first so Windows rename doesn't fail on existing file.
+	os.Remove(dst)
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	// Fallback: copy then delete (handles cross-device / cross-drive moves).
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(dst, data, 0644); err != nil {
+		return err
+	}
+	return os.Remove(src)
 }
 
 // findPython returns the path to a Python 3 interpreter.

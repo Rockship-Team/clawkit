@@ -130,12 +130,14 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 		}
 	}
 
-	// Save config.
-	cfg := &config.SkillConfig{
-		SkillName: skillName,
-		Version:   skill.Version,
-		OAuthDone: len(skill.RequiresOAuth) > 0,
+	// Save config — load existing to preserve tokens written by runOAuth.
+	cfg, _ := config.LoadSkillConfig(targetDir)
+	if cfg == nil {
+		cfg = &config.SkillConfig{}
 	}
+	cfg.SkillName = skillName
+	cfg.Version = skill.Version
+	cfg.OAuthDone = len(skill.RequiresOAuth) > 0
 	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
 		ui.Fatal("Failed to save config: %v", err)
 	}

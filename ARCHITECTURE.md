@@ -107,25 +107,25 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant Zalo
+    participant Telegram
     participant OpenClaw
     participant AI as AI Model
     participant gog
     participant Sheets as Google Sheets
 
-    User->>Zalo: [sends receipt photo]
-    Zalo->>OpenClaw: incoming message + image
+    User->>Telegram: [sends receipt photo]
+    Telegram->>OpenClaw: incoming message + image
     OpenClaw->>AI: skill prompt + image + message history
 
     AI->>AI: Extract: amount, merchant, date
     AI->>AI: Classify category (Ăn uống / Cafe / ...)
 
     AI-->>OpenClaw: "55,000đ - Cafe Highlands. Lưu nhé?"
-    OpenClaw->>Zalo: send reply
-    Zalo->>User: "55,000đ - Cafe Highlands. Lưu nhé?"
+    OpenClaw->>Telegram: send reply
+    Telegram->>User: "55,000đ - Cafe Highlands. Lưu nhé?"
 
-    User->>Zalo: "ừ"
-    Zalo->>OpenClaw: incoming message
+    User->>Telegram: "ừ"
+    Telegram->>OpenClaw: incoming message
     OpenClaw->>AI: skill prompt + "ừ"
 
     AI->>gog: gog sheets append <spreadsheetId> "Giao dịch!A:E" "09/04/2026|Cafe Highlands|55000|Cafe|"
@@ -135,8 +135,8 @@ sequenceDiagram
     gog-->>AI: ✓
 
     AI-->>OpenClaw: "Đã lưu! Tổng hôm nay: 155,000đ"
-    OpenClaw->>Zalo: send reply
-    Zalo->>User: "Đã lưu! Tổng hôm nay: 155,000đ"
+    OpenClaw->>Telegram: send reply
+    Telegram->>User: "Đã lưu! Tổng hôm nay: 155,000đ"
 ```
 
 ---

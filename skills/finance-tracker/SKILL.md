@@ -5,7 +5,7 @@ version: "1.0.0"
 requires_oauth:
   - google_sheets
 setup_prompts: []
-metadata: {"openclaw":{"emoji":"💰","requires":{"bins":["gog"]}}}
+metadata: {"openclaw":{"emoji":"💰","channel":"telegram","requires":{"bins":["gog"]}}}
 ---
 
 # Trợ lý tài chính cá nhân
@@ -95,3 +95,9 @@ Tốn nhất: Ăn uống"
 - Spreadsheet ID: {spreadsheetId}
 - Gmail account: {gmailAccount}
 - Spreadsheet URL: {spreadsheetUrl}
+
+## Kênh giao tiếp
+
+Skill này chạy qua Telegram. User gửi ảnh hóa đơn hoặc mô tả chi tiêu qua Telegram bot.
+Để kết nối Telegram bot với OpenClaw, chạy:
+  openclaw channels add telegram --token <BOT_TOKEN>

@@ -8,6 +8,14 @@
       ],
       "setup_prompts": []
     },
+    "finance-tracker": {
+      "version": "1.0.0",
+      "description": "Chụp hóa đơn → AI phân loại chi tiêu → lưu Google Sheets → báo cáo tài chính cá nhân",
+      "requires_oauth": [
+        "google_sheets"
+      ],
+      "setup_prompts": []
+    },
     "gog": {
       "version": "1.0.0",
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",

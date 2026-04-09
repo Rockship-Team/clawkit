@@ -87,6 +87,13 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	}
 	ui.Ok("Skill files installed to %s", targetDir)
 
+	// Install required CLI binaries.
+	if len(skill.RequiresBins) > 0 {
+		fmt.Println()
+		ui.Info("Installing required CLI tools...")
+		installRequiredBins(skill.RequiresBins)
+	}
+
 	// Run OAuth for each required provider.
 	if shouldSkipOAuth {
 		ui.Warn("Skipping OAuth setup (--skip-oauth)")
@@ -326,9 +333,16 @@ func postOAuthGmail(skillDir string, tokens map[string]string) {
 		return
 	}
 
+	// gogEnv returns os.Environ() plus GOG_KEYRING_BACKEND=file and GOG_KEYRING_PASSWORD=""
+	// so gog never prompts for a passphrase interactively on any platform.
+	gogEnv := append(os.Environ(),
+		"GOG_KEYRING_BACKEND=file",
+		"GOG_KEYRING_PASSWORD=",
+	)
+
 	// 4. gog auth credentials set — import client_id/secret into gog keyring.
 	cmd := exec.Command(gogBin, "auth", "credentials", "set", credPath, "--force", "--no-input")
-	cmd.Stdin = os.Stdin
+	cmd.Env = gogEnv
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -338,19 +352,78 @@ func postOAuthGmail(skillDir string, tokens map[string]string) {
 	}
 
 	// 5. gog auth tokens import — import refresh_token into gog keyring.
-	// Use --force --no-input and pass Stdin to avoid hanging on keychain prompts.
 	tokPath := filepath.Join(skillDir, "token.json")
 	if _, err := os.Stat(tokPath); err == nil {
 		cmd = exec.Command(gogBin, "auth", "tokens", "import", tokPath, "--force", "--no-input")
-		cmd.Stdin = os.Stdin
+		cmd.Env = gogEnv
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			ui.Warn("gog auth tokens import failed: %v", err)
-			ui.Info("Run manually: gog auth tokens import %s --force", tokPath)
+			ui.Info("Run manually: GOG_KEYRING_BACKEND=file GOG_KEYRING_PASSWORD= gog auth tokens import %s --force", tokPath)
 		} else {
 			ui.Ok("Refresh token imported into gog for %s", email)
 		}
+	}
+
+	// 6. Persist keyring env vars to shell profile so gog works at runtime without prompts.
+	writeGogEnvToShellProfile()
+}
+
+// writeGogEnvToShellProfile appends GOG_KEYRING_* env vars to the user's shell profile
+// so gog never prompts for a keyring passphrase at runtime.
+// On Windows it writes to the user PATH via PowerShell instead.
+func writeGogEnvToShellProfile() {
+	if runtime.GOOS == "windows" {
+		vars := [][]string{
+			{"GOG_KEYRING_BACKEND", "file"},
+			{"GOG_KEYRING_PASSWORD", ""},
+		}
+		for _, kv := range vars {
+			psCmd := fmt.Sprintf(`[Environment]::SetEnvironmentVariable('%s','%s','User')`, kv[0], kv[1])
+			exec.Command("powershell", "-NoProfile", "-Command", psCmd).Run()
+		}
+		ui.Ok("GOG_KEYRING_BACKEND and GOG_KEYRING_PASSWORD set in user environment (restart terminal)")
+		return
+	}
+
+	const block = "\n# Added by clawkit — gog keyring (no passphrase prompt)\n" +
+		"export GOG_KEYRING_BACKEND=file\n" +
+		"export GOG_KEYRING_PASSWORD=\n"
+
+	// Detect which shell profile to write to.
+	home, _ := os.UserHomeDir()
+	profiles := []string{
+		filepath.Join(home, ".bashrc"),
+		filepath.Join(home, ".zshrc"),
+	}
+
+	// Write only to profiles that already exist.
+	wrote := false
+	for _, p := range profiles {
+		if _, err := os.Stat(p); err != nil {
+			continue
+		}
+		data, _ := os.ReadFile(p)
+		if strings.Contains(string(data), "GOG_KEYRING_BACKEND") {
+			continue // already set
+		}
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			continue
+		}
+		f.WriteString(block)
+		f.Close()
+		ui.Ok("Added GOG_KEYRING vars to %s", p)
+		wrote = true
+	}
+
+	if !wrote {
+		ui.Info("Add to your shell profile to use gog without passphrase prompts:")
+		ui.Info("  export GOG_KEYRING_BACKEND=file")
+		ui.Info("  export GOG_KEYRING_PASSWORD=")
+	} else {
+		ui.Info("Run: source ~/.bashrc  (or open a new terminal)")
 	}
 }
 
@@ -441,8 +514,14 @@ func installGogCLI() (string, error) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	if err := archive.ExtractTarGz(tmpFile.Name(), tmpDir); err != nil {
-		return "", fmt.Errorf("extract gog archive: %w", err)
+	var extractErr error
+	if goos == "windows" {
+		extractErr = archive.ExtractZip(tmpFile.Name(), tmpDir)
+	} else {
+		extractErr = archive.ExtractTarGz(tmpFile.Name(), tmpDir)
+	}
+	if extractErr != nil {
+		return "", fmt.Errorf("extract gog archive: %w", extractErr)
 	}
 
 	// Find the gog binary in extracted files.
@@ -452,7 +531,19 @@ func installGogCLI() (string, error) {
 	}
 	extractedBin := filepath.Join(tmpDir, binName)
 	if _, err := os.Stat(extractedBin); os.IsNotExist(err) {
-		return "", fmt.Errorf("gog binary not found in archive")
+		// Fallback: search recursively in case archive has a nested structure.
+		found := ""
+		_ = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() && info.Name() == binName {
+				found = path
+				return filepath.SkipAll
+			}
+			return nil
+		})
+		if found == "" {
+			return "", fmt.Errorf("gog binary not found in extracted archive at %s", tmpDir)
+		}
+		extractedBin = found
 	}
 
 	// Determine install directory per platform.
@@ -481,12 +572,60 @@ func installGogCLI() (string, error) {
 		}
 	}
 
+	// Ensure installDir is in PATH so the binary is discoverable.
+	ensureInPath(installDir, goos)
+
 	path, err := exec.LookPath("gog")
 	if err != nil {
-		return destPath, nil // not in PATH but we know where it is
+		return destPath, nil // not in PATH yet (restart terminal), but absolute path works
 	}
 	ui.Ok("Installed gog CLI to %s", path)
 	return path, nil
+}
+
+// ensureInPath adds dir to the user's persistent PATH if not already present.
+// On Windows it updates the user environment via PowerShell.
+// On Linux/macOS it warns the user if the dir is not already in PATH.
+func ensureInPath(dir, goos string) {
+	if goos == "windows" {
+		// Add to Windows user PATH via PowerShell (safe: reads current value first).
+		psCmd := fmt.Sprintf(
+			`$p=[Environment]::GetEnvironmentVariable('Path','User'); `+
+				`if($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path',"$p;%s",'User')}`,
+			dir, dir,
+		)
+		cmd := exec.Command("powershell", "-NoProfile", "-Command", psCmd)
+		if err := cmd.Run(); err == nil {
+			ui.Ok("Added %s to user PATH (restart terminal to take effect)", dir)
+		}
+		return
+	}
+	// Unix: check if dir is already in PATH.
+	for _, p := range strings.Split(os.Getenv("PATH"), string(os.PathListSeparator)) {
+		if p == dir {
+			return
+		}
+	}
+	ui.Warn("gog installed to %s — add it to your PATH if not already:", dir)
+	ui.Info("  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc && source ~/.bashrc", dir)
+}
+
+// installRequiredBins installs external CLI binaries required by a skill.
+// Each bin name maps to a dedicated installer function.
+func installRequiredBins(bins []string) {
+	for _, bin := range bins {
+		switch bin {
+		case "gog":
+			if path, err := installGogCLI(); err != nil {
+				ui.Warn("Could not install gog CLI: %v", err)
+				ui.Info("Install manually: https://github.com/steipete/gogcli/releases")
+			} else {
+				ui.Ok("gog CLI ready at %s", path)
+			}
+		default:
+			ui.Warn("Unknown required bin '%s' — install it manually", bin)
+		}
+	}
 }
 
 // installBinDir returns the appropriate directory for installing CLI binaries.

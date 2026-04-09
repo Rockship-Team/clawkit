@@ -1,8 +1,9 @@
-// Package archive provides tar.gz creation and extraction utilities.
+// Package archive provides tar.gz and zip creation and extraction utilities.
 package archive
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 const maxFileSize = 100 * 1024 * 1024
 
 // ExtractTarGz extracts a .tar.gz archive into destDir.
-// The top-level directory in the archive is stripped.
+// Handles both flat archives (files at root) and archives with a top-level directory (stripped).
 func ExtractTarGz(archivePath, destDir string) error {
 	f, err := os.Open(archivePath)
 	if err != nil {
@@ -40,13 +41,18 @@ func ExtractTarGz(archivePath, destDir string) error {
 			return fmt.Errorf("read tar: %w", err)
 		}
 
-		// Strip the top-level directory from the path.
 		name := header.Name
+		// Strip top-level directory if present (e.g. "gogcli_0.1.0_linux_amd64/gog" → "gog").
+		// If there is no top-level dir (flat archive), use name as-is.
 		parts := strings.SplitN(name, "/", 2)
-		if len(parts) < 2 || parts[1] == "" {
+		var relPath string
+		if len(parts) == 2 && parts[1] != "" {
+			relPath = parts[1]
+		} else if len(parts) == 1 && parts[0] != "" {
+			relPath = parts[0]
+		} else {
 			continue
 		}
-		relPath := parts[1]
 
 		target := filepath.Join(destDir, relPath)
 
@@ -73,6 +79,63 @@ func ExtractTarGz(archivePath, destDir string) error {
 			if err != nil {
 				return fmt.Errorf("write file %s: %w", target, err)
 			}
+		}
+	}
+	return nil
+}
+
+// ExtractZip extracts a .zip archive into destDir.
+// Handles both flat archives and archives with a top-level directory (stripped).
+func ExtractZip(archivePath, destDir string) error {
+	r, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return fmt.Errorf("open zip: %w", err)
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		name := f.Name
+		// Strip top-level directory if present.
+		parts := strings.SplitN(name, "/", 2)
+		var relPath string
+		if len(parts) == 2 && parts[1] != "" {
+			relPath = parts[1]
+		} else if len(parts) == 1 && parts[0] != "" {
+			relPath = parts[0]
+		} else {
+			continue
+		}
+
+		target := filepath.Join(destDir, relPath)
+
+		// Security: prevent path traversal.
+		if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(destDir)) {
+			return fmt.Errorf("invalid path in zip: %s", name)
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(target, 0755)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return fmt.Errorf("create parent dir: %w", err)
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return fmt.Errorf("open zip entry %s: %w", name, err)
+		}
+		outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, f.Mode())
+		if err != nil {
+			rc.Close()
+			return fmt.Errorf("create file %s: %w", target, err)
+		}
+		_, err = io.Copy(outFile, io.LimitReader(rc, maxFileSize))
+		outFile.Close()
+		rc.Close()
+		if err != nil {
+			return fmt.Errorf("write file %s: %w", target, err)
 		}
 	}
 	return nil

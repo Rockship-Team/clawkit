@@ -1,6 +1,9 @@
 package archive
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"os"
 	"path/filepath"
 	"testing"
@@ -64,6 +67,88 @@ func TestCreateAndExtractTarGz(t *testing.T) {
 
 			// Verify.
 			for relPath, wantContent := range tt.files {
+				data, err := os.ReadFile(filepath.Join(destDir, relPath))
+				if err != nil {
+					t.Errorf("file %s not extracted: %v", relPath, err)
+					continue
+				}
+				if string(data) != wantContent {
+					t.Errorf("file %s: got %q, want %q", relPath, string(data), wantContent)
+				}
+			}
+		})
+	}
+}
+
+// TestExtractTarGzFlatArchive verifies flat archives (no top-level dir) are extracted correctly.
+func TestExtractTarGzFlatArchive(t *testing.T) {
+	archivePath := filepath.Join(t.TempDir(), "flat.tar.gz")
+
+	// Build a flat tar.gz: files at root, no top-level directory.
+	f, _ := os.Create(archivePath)
+	gzw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gzw)
+	content := []byte("flat binary content")
+	tw.WriteHeader(&tar.Header{Name: "gog", Size: int64(len(content)), Mode: 0755, Typeflag: tar.TypeReg})
+	tw.Write(content)
+	tw.Close()
+	gzw.Close()
+	f.Close()
+
+	destDir := t.TempDir()
+	if err := ExtractTarGz(archivePath, destDir); err != nil {
+		t.Fatalf("ExtractTarGz flat archive: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(destDir, "gog"))
+	if err != nil {
+		t.Fatalf("flat archive: gog binary not extracted: %v", err)
+	}
+	if string(data) != string(content) {
+		t.Errorf("flat archive: got %q, want %q", string(data), string(content))
+	}
+}
+
+// TestExtractZip verifies zip extraction for both flat and nested archives.
+func TestExtractZip(t *testing.T) {
+	tests := []struct {
+		name    string
+		entries map[string]string // path in zip → content
+		want    map[string]string // expected path in destDir → content
+	}{
+		{
+			name:    "nested (with top-level dir)",
+			entries: map[string]string{"gogcli_0.1.0_windows_amd64/gog.exe": "exe content"},
+			want:    map[string]string{"gog.exe": "exe content"},
+		},
+		{
+			name:    "flat (no top-level dir)",
+			entries: map[string]string{"gog.exe": "exe flat"},
+			want:    map[string]string{"gog.exe": "exe flat"},
+		},
+		{
+			name:    "multiple files nested",
+			entries: map[string]string{"top/gog.exe": "exe", "top/README.md": "readme"},
+			want:    map[string]string{"gog.exe": "exe", "README.md": "readme"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archivePath := filepath.Join(t.TempDir(), "test.zip")
+			zf, _ := os.Create(archivePath)
+			zw := zip.NewWriter(zf)
+			for name, content := range tt.entries {
+				w, _ := zw.Create(name)
+				w.Write([]byte(content))
+			}
+			zw.Close()
+			zf.Close()
+
+			destDir := t.TempDir()
+			if err := ExtractZip(archivePath, destDir); err != nil {
+				t.Fatalf("ExtractZip() error: %v", err)
+			}
+			for relPath, wantContent := range tt.want {
 				data, err := os.ReadFile(filepath.Join(destDir, relPath))
 				if err != nil {
 					t.Errorf("file %s not extracted: %v", relPath, err)

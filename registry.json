@@ -22,6 +22,9 @@
       "requires_oauth": [
         "gmail"
       ],
+      "requires_bins": [
+        "gog"
+      ],
       "setup_prompts": []
     },
     "shop-hoa-zalo": {

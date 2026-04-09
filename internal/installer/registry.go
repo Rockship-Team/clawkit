@@ -29,6 +29,7 @@ type SkillInfo struct {
 	Version       string   `json:"version"`
 	Description   string   `json:"description"`
 	RequiresOAuth []string `json:"requires_oauth"`
+	RequiresBins  []string `json:"requires_bins,omitempty"`
 	SetupPrompts  []Prompt `json:"setup_prompts,omitempty"`
 }
 

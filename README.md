@@ -85,14 +85,28 @@ clawkit status
 
 ## How It Works
 
-When you run `clawkit install`, it:
+```mermaid
+graph TD
+    User([User]) -->|npm install -g| clawkit
+    clawkit -->|clawkit install skill| Flow
 
-1. Detects your OpenClaw installation
-2. Downloads the skill package
-3. Runs OAuth (e.g. Zalo QR code scan, Gmail login)
-4. Applies your configuration to the skill template
-5. Initializes the database if needed
-6. Registers the skill in your OpenClaw workspace
+    subflow Flow [Install Flow]
+        Flow --> A[Detect OpenClaw]
+        A --> B[Download skill package]
+        B --> C[Run OAuth]
+        C --> D[Apply configuration]
+        D --> E[Register in OpenClaw workspace]
+    end
+
+    subgraph Runtime [Daily Usage]
+        User2([User]) -->|Chat message| OpenClaw
+        OpenClaw -->|Runs skill prompt| AI[AI Model]
+        AI -->|gog sheets append| Sheets[(Google Sheets)]
+        AI -->|openclaw zalo send| Zalo[(Zalo)]
+    end
+```
+
+For a detailed architecture diagram, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### Zalo Authentication
 

@@ -85,14 +85,27 @@ clawkit status
 
 ## Cách hoạt động
 
-Khi chạy `clawkit install`, công cụ sẽ:
+```mermaid
+graph TD
+    User([Người dùng]) -->|npm install -g| clawkit
+    clawkit -->|clawkit install skill| Flow
 
-1. Phát hiện vị trí cài đặt OpenClaw trên máy
-2. Tải về gói skill
-3. Chạy OAuth (ví dụ: quét QR Zalo, đăng nhập Gmail)
-4. Áp dụng cấu hình của bạn vào template skill
-5. Khởi tạo cơ sở dữ liệu nếu cần
-6. Đăng ký skill vào OpenClaw workspace
+    subgraph Flow [Quy trình cài đặt]
+        A[Phát hiện OpenClaw] --> B[Tải gói skill]
+        B --> C[Chạy OAuth]
+        C --> D[Áp dụng cấu hình]
+        D --> E[Đăng ký vào OpenClaw]
+    end
+
+    subgraph Runtime [Sử dụng hàng ngày]
+        User2([Người dùng]) -->|Tin nhắn| OpenClaw
+        OpenClaw -->|Chạy skill prompt| AI[AI Model]
+        AI -->|gog sheets append| Sheets[(Google Sheets)]
+        AI -->|openclaw zalo send| Zalo[(Zalo)]
+    end
+```
+
+Xem chi tiết kiến trúc tại [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### Xác thực Zalo
 

@@ -55,7 +55,7 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdPackage(os.Args[2])
-	case "version":
+	case "version", "--version", "-v":
 		fmt.Printf("clawkit v%s\n", version)
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])

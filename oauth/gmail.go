@@ -100,12 +100,18 @@ func fetchGoogleEmail(accessToken string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read userinfo response: %w", err)
+	}
 	var info struct {
 		Email string `json:"email"`
 	}
-	if err := json.Unmarshal(body, &info); err != nil || info.Email == "" {
-		return "", fmt.Errorf("no email in response")
+	if err := json.Unmarshal(body, &info); err != nil {
+		return "", fmt.Errorf("parse userinfo response: %w", err)
+	}
+	if info.Email == "" {
+		return "", fmt.Errorf("no email in userinfo response")
 	}
 	return info.Email, nil
 }

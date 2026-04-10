@@ -86,9 +86,14 @@ func exchangeGoogleCode(code, clientID, clientSecret, redirectURI string) (map[s
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read token response: %w", err)
+	}
 	var result map[string]any
-	json.Unmarshal(body, &result)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parse token response: %w", err)
+	}
 
 	if errMsg, ok := result["error"].(string); ok && errMsg != "" {
 		return nil, fmt.Errorf("google auth error: %s - %v", errMsg, result["error_description"])

@@ -161,9 +161,10 @@ func (z *ZaloPersonal) Authenticate() (map[string]string, error) {
 	}
 	for _, args := range enableCmds {
 		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("  ⚠ Could not set %s: %v\n", args[3], err)
+			fmt.Println("  Run manually: openclaw config set", args[3], args[4])
+		}
 	}
 
 	fmt.Println("  ✓ Zalo Personal connected and enabled!")
@@ -226,7 +227,6 @@ func waitForQRFile(timeout time.Duration) string {
 	}
 	return ""
 }
-
 
 // printQRToTerminal displays a QR PNG in the terminal.
 // Tries iTerm2/Kitty inline image protocol first (shows actual PNG),

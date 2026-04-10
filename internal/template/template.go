@@ -67,14 +67,22 @@ func EnsureFlowerDirs(skillDir string) error {
 		return nil // no catalog = nothing to do
 	}
 	flowersDir := filepath.Join(skillDir, "flowers")
+
+	dirs := make([]string, 0, len(cat.Categories)+len(cat.PriceTiers)+1)
 	for _, c := range cat.Categories {
-		os.MkdirAll(filepath.Join(flowersDir, c.Folder), 0755)
+		dirs = append(dirs, filepath.Join(flowersDir, c.Folder))
 	}
 	for _, p := range cat.PriceTiers {
-		os.MkdirAll(filepath.Join(flowersDir, fmt.Sprintf("price-%d", p)), 0755)
+		dirs = append(dirs, filepath.Join(flowersDir, fmt.Sprintf("price-%d", p)))
 	}
 	if cat.BestSeller {
-		os.MkdirAll(filepath.Join(flowersDir, "best-seller"), 0755)
+		dirs = append(dirs, filepath.Join(flowersDir, "best-seller"))
+	}
+
+	for _, d := range dirs {
+		if err := os.MkdirAll(d, 0755); err != nil {
+			return fmt.Errorf("create dir %s: %w", d, err)
+		}
 	}
 	return nil
 }

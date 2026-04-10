@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 )
@@ -114,7 +115,9 @@ func ExtractZip(archivePath, destDir string) error {
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(target, 0755)
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return fmt.Errorf("create dir %s: %w", target, err)
+			}
 			continue
 		}
 
@@ -168,7 +171,8 @@ func CreateTarGz(sourceDir, outputPath string) error {
 		}
 
 		relPath, _ := filepath.Rel(sourceDir, path)
-		header.Name = filepath.Join(baseName, relPath)
+		// Use forward slashes in tar headers regardless of OS (tar format requires /).
+		header.Name = pathpkg.Join(baseName, filepath.ToSlash(relPath))
 
 		if err := tw.WriteHeader(header); err != nil {
 			return fmt.Errorf("write header: %w", err)

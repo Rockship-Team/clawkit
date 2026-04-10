@@ -63,6 +63,19 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	fmt.Printf("▸ Installing %s v%s\n", skillName, skill.Version)
 	fmt.Printf("  %s\n\n", skill.Description)
 
+	// Install required skills first.
+	for _, depSkill := range skill.RequiresSkills {
+		depDir := filepath.Join(skillsDir, depSkill)
+		if _, err := os.Stat(depDir); os.IsNotExist(err) {
+			fmt.Printf("  Skill '%s' requires '%s' — installing dependency first...\n\n", skillName, depSkill)
+			CmdInstall(depSkill, shouldSkipOAuth)
+			fmt.Println()
+			fmt.Printf("▸ Resuming installation of %s...\n\n", skillName)
+		} else {
+			ui.Ok("Dependency '%s' already installed", depSkill)
+		}
+	}
+
 	// Check if already installed.
 	targetDir := filepath.Join(skillsDir, skillName)
 	if _, err := os.Stat(targetDir); err == nil {
@@ -158,8 +171,8 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 	fmt.Println()
 	fmt.Println("  Next steps:")
 	fmt.Printf("  1. Edit config:  %s\n", filepath.Join(targetDir, "SKILL.md"))
-	fmt.Println("     (Update shop name, price list, email settings)")
-	fmt.Println("  2. Restart gateway:  openclaw gateway restart")
+
+	restartGateway()
 }
 
 // CmdUpdate updates an installed skill while preserving tokens and config.
@@ -202,6 +215,7 @@ func CmdUpdate(skillName string) {
 	}
 
 	ui.Ok("'%s' updated to latest version", skillName)
+	restartGateway()
 }
 
 // CmdStatus shows all installed skills with version and OAuth status.
@@ -698,6 +712,27 @@ func moveFile(src, dst string) error {
 		return err
 	}
 	return os.Remove(src)
+}
+
+// restartGateway attempts to restart the openclaw gateway.
+// If openclaw is not found or the gateway is not running, it warns instead of failing.
+func restartGateway() {
+	openclaw, err := exec.LookPath("openclaw")
+	if err != nil {
+		ui.Warn("openclaw not found — restart gateway manually when ready")
+		return
+	}
+	fmt.Println()
+	ui.Info("Restarting openclaw gateway...")
+	cmd := exec.Command(openclaw, "gateway", "restart")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		ui.Warn("Gateway restart failed: %v", err)
+		ui.Info("Run manually: openclaw gateway restart")
+		return
+	}
+	ui.Ok("Gateway restarted")
 }
 
 // findPython returns the path to a Python 3 interpreter.

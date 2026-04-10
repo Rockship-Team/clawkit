@@ -14,6 +14,9 @@
       "requires_oauth": [
         "google_sheets"
       ],
+      "requires_skills": [
+        "gog"
+      ],
       "setup_prompts": []
     },
     "gog": {

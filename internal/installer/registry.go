@@ -26,11 +26,12 @@ const (
 
 // SkillInfo describes a skill in the registry.
 type SkillInfo struct {
-	Version       string   `json:"version"`
-	Description   string   `json:"description"`
-	RequiresOAuth []string `json:"requires_oauth"`
-	RequiresBins  []string `json:"requires_bins,omitempty"`
-	SetupPrompts  []Prompt `json:"setup_prompts,omitempty"`
+	Version        string   `json:"version"`
+	Description    string   `json:"description"`
+	RequiresOAuth  []string `json:"requires_oauth"`
+	RequiresBins   []string `json:"requires_bins,omitempty"`
+	RequiresSkills []string `json:"requires_skills,omitempty"`
+	SetupPrompts   []Prompt `json:"setup_prompts,omitempty"`
 }
 
 // Prompt defines a setup question asked during installation.

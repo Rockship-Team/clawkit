@@ -54,7 +54,7 @@ Bước 5: CHỈ chốt đơn khi khách GỬI TIN NHẮN MỚI xác nhận (ví
 
 5b. BẮT BUỘC gọi tool `exec` để lưu đơn vào SQLite. Không được bỏ qua bước này:
 ```bash
-python -c "
+python3 -c "
 import sys, sqlite3
 from datetime import datetime, timezone, timedelta
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -132,7 +132,7 @@ Khi khách hỏi xem ảnh, làm ĐÚNG 2 bước sau:
 
 Bước 1: Dùng tool `exec` liệt kê rồi gửi ảnh. Mỗi ảnh kèm message "Mẫu 1", "Mẫu 2"...:
 ```bash
-ls {baseDir}/flowers/<folder>/
+python3 -c "import os; [print(f) for f in sorted(os.listdir('{baseDir}/flowers/<folder>/'))]"
 ```
 Rồi gửi từng ảnh bằng tool `zalouser` action `image` với url là đường dẫn tuyệt đối của file ảnh, message là "Mẫu 1", "Mẫu 2"...
 Giới hạn tối đa 5 ảnh.
@@ -150,7 +150,7 @@ CHỈ trả lời khách thông tin về đơn hàng của khách đó, KHÔNG t
 Khi khách hoặc chủ shop hỏi về đơn hàng đã đặt, dùng tool `exec` query SQLite:
 
 ```bash
-python -c "
+python3 -c "
 import sys, sqlite3
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 conn = sqlite3.connect('{baseDir}/orders.db')
@@ -182,6 +182,10 @@ Có thể filter theo customer_zalo_id, ngày, hoặc status tùy câu hỏi.
 Bảng `orders`: id, status, customer_name, customer_zalo_id, customer_zalo_name, recipient_name, recipient_phone, recipient_address, items, price (INT, VNĐ), delivery_time, note, created_at (ISO 8601)
 
 Nếu database chưa tồn tại, tạo bằng: `python {baseDir}/init_db.py`
+
+## Lệnh Python
+
+Dùng `python3` trên macOS/Linux. Trên Windows nếu `python3` không tìm thấy, thử lại với `python`. Các lệnh python trong SKILL.md đều dùng `python3` — nếu exec báo lỗi "not found", thay bằng `python`.
 
 ## Quy tắc về đường dẫn
 

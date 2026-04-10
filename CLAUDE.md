@@ -48,7 +48,7 @@ Clawkit is a CLI skill manager for OpenClaw AI agents. Skills are AI prompt file
 1. Create `skills/<name>/SKILL.md` with required frontmatter (`name`, `description`, `version`).
 2. Run `make generate`.
 3. Add any OAuth providers referenced in `requires_oauth` to `oauth/` if they don't exist.
-4. Skills listed in `requires_skills` are installed as dependencies first.
+4. Skills listed in `requires_skills` must be installed manually by the user first. `clawkit install <skill>` does NOT auto-install dependencies — it checks they exist and fails with install instructions if missing. This keeps each skill's OAuth flow isolated.
 5. Binaries listed in `requires_bins` are downloaded from their GitHub Releases at install time.
 
 ### Adding an OAuth provider

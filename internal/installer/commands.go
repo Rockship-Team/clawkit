@@ -64,17 +64,31 @@ func CmdInstall(skillName string, skipOAuth bool) {
 	fmt.Printf("▸ Installing %s v%s\n", skillName, skill.Version)
 	fmt.Printf("  %s\n\n", skill.Description)
 
-	// Install required skills first.
+	// Check required skills — dependencies must be installed manually first.
+	// We intentionally do not auto-install them so each skill's OAuth flow
+	// stays isolated and the user has explicit control over what's installed.
 	for _, depSkill := range skill.RequiresSkills {
 		depDir := filepath.Join(skillsDir, depSkill)
 		if _, err := os.Stat(depDir); os.IsNotExist(err) {
-			fmt.Printf("  Skill '%s' requires '%s' — installing dependency first...\n\n", skillName, depSkill)
-			CmdInstall(depSkill, shouldSkipOAuth) //nolint:contextcheck
 			fmt.Println()
-			fmt.Printf("▸ Resuming installation of %s...\n\n", skillName)
-		} else {
-			ui.Ok("Dependency '%s' already installed", depSkill)
+			ui.Fatal(`Skill '%s' requires '%s' to be installed first.
+
+  Install the dependency:
+    clawkit install %s
+
+  Then retry:
+    clawkit install %s`, skillName, depSkill, depSkill, skillName)
 		}
+		// Verify the dependency completed its install — config.json is written
+		// only at the end of a successful CmdInstall run.
+		if _, err := config.LoadSkillConfig(depDir); err != nil {
+			fmt.Println()
+			ui.Fatal(`Skill '%s' is required but its installation is incomplete.
+
+  Reinstall it:
+    clawkit install %s`, depSkill, depSkill)
+		}
+		ui.Ok("Dependency '%s' is installed", depSkill)
 	}
 
 	// Check if already installed.

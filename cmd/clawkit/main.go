@@ -39,7 +39,7 @@ func main() {
 				skipOAuth = true
 			}
 		}
-		installer.CmdInstall(os.Args[2], skipOAuth) //nolint:contextcheck
+		installer.CmdInstall(os.Args[2], skipOAuth)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")

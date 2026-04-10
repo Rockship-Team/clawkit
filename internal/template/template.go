@@ -128,3 +128,24 @@ func Process(skillDir string, userInputs map[string]string) error {
 
 	return nil
 }
+
+// ProcessTokens replaces {key} placeholders in SKILL.md with values from tokens.
+// Called after OAuth to substitute values like spreadsheet_id, gmail_account, etc.
+// Keys not present in the file are silently skipped.
+func ProcessTokens(skillDir string, tokens map[string]string) error {
+	skillPath := filepath.Join(skillDir, "SKILL.md")
+	data, err := os.ReadFile(skillPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("read SKILL.md: %w", err)
+	}
+	content := string(data)
+	for key, value := range tokens {
+		if value != "" {
+			content = strings.ReplaceAll(content, "{"+key+"}", value)
+		}
+	}
+	return os.WriteFile(skillPath, []byte(content), 0644)
+}

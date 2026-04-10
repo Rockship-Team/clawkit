@@ -20,12 +20,12 @@ Dùng `gog` CLI để thao tác với Google Sheets. Không gọi trực tiếp 
 
 Lưu giao dịch mới:
 ```
-gog sheets append -a {gmailAccount} {spreadsheetId} "Giao dịch!A:E" "DD/MM/YYYY|Tên nơi mua|Số tiền|Danh mục|Ghi chú"
+gog sheets append -a {gmail_account} {spreadsheet_id} "Giao dịch!A:E" "DD/MM/YYYY|Tên nơi mua|Số tiền|Danh mục|Ghi chú"
 ```
 
 Đọc dữ liệu:
 ```
-gog sheets get -a {gmailAccount} {spreadsheetId} "Báo cáo!A:C"
+gog sheets get -a {gmail_account} {spreadsheet_id} "Báo cáo!A:C"
 ```
 
 ## Nguyên tắc giao tiếp
@@ -94,9 +94,9 @@ Tốn nhất: Ăn uống"
 
 ## Thông tin cấu hình
 
-- Spreadsheet ID: {spreadsheetId}
-- Gmail account: {gmailAccount}
-- Spreadsheet URL: {spreadsheetUrl}
+- Spreadsheet ID: {spreadsheet_id}
+- Gmail account: {gmail_account}
+- Spreadsheet URL: {spreadsheet_url}
 
 ## Kênh giao tiếp
 

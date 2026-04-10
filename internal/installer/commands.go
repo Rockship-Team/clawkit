@@ -166,12 +166,23 @@ func CmdInstall(skillName string, skipOAuth bool) {
 		ui.Fatal("Failed to save config: %v", err)
 	}
 
+	// Replace {key} placeholders in SKILL.md with OAuth token values
+	// (e.g. {spreadsheet_id}, {gmail_account}) so the skill prompt is ready to use.
+	if len(cfg.Tokens) > 0 {
+		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
+			ui.Warn("Could not replace SKILL.md placeholders: %v", err)
+		}
+	}
+
 	fmt.Println()
 	ui.Ok("'%s' installed!", skillName)
 	fmt.Printf("  Location: %s\n", targetDir)
+	if url := cfg.Tokens["spreadsheet_url"]; url != "" {
+		fmt.Printf("  Spreadsheet: %s\n", url)
+	}
 	fmt.Println()
 	fmt.Println("  Next steps:")
-	fmt.Printf("  1. Edit config:  %s\n", filepath.Join(targetDir, "SKILL.md"))
+	fmt.Printf("  1. Open SKILL.md: %s\n", filepath.Join(targetDir, "SKILL.md"))
 
 	restartGateway()
 }

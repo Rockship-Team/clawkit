@@ -59,6 +59,7 @@ jobs:
           cp dist/clawkit-darwin-arm64      npm/binaries/clawkit-darwin-arm64
           cp dist/clawkit-darwin-amd64      npm/binaries/clawkit-darwin-amd64
           cp dist/clawkit-linux-amd64       npm/binaries/clawkit-linux-amd64
+          cp dist/clawkit-linux-arm64       npm/binaries/clawkit-linux-arm64
           cp dist/clawkit-windows-amd64.exe npm/binaries/clawkit-windows-amd64.exe
           cd npm
           npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version --allow-same-version

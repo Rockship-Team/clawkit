@@ -26,6 +26,6 @@
     "node": ">=16"
   },
   "scripts": {
-    "postinstall": "node bin/clawkit.js --version || true"
+    "postinstall": "node bin/clawkit.js --version"
   }
 }

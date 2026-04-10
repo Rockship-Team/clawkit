@@ -624,7 +624,8 @@ func ensureInPath(dir, goos string) {
 		}
 	}
 	ui.Warn("gog installed to %s — add it to your PATH if not already:", dir)
-	ui.Info("  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc && source ~/.bashrc", dir)
+	ui.Info("  bash:  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc && source ~/.bashrc", dir)
+	ui.Info("  zsh:   echo 'export PATH=\"%s:$PATH\"' >> ~/.zshrc  && source ~/.zshrc", dir)
 }
 
 // installRequiredBins installs external CLI binaries required by a skill.

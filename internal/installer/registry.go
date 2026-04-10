@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
 	"github.com/rockship-co/clawkit/internal/ui"
+	"github.com/rockship-co/clawkit/skills"
 )
 
 // embeddedRegistry is the registry.json shipped with the binary. It is the
@@ -123,16 +125,27 @@ func loadLocalRegistry() ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// downloadSkill downloads a skill package from GitHub Releases or copies from local.
+// downloadSkill installs a skill's files into targetDir. Sources in priority
+// order:
+//  1. Local ./skills/<name> (dev mode: developer is in the repo).
+//  2. Embedded skills shipped with the binary (works for npm-installed CLI).
+//  3. Remote GitHub Releases (.tar.gz) — useful when the repo is public and
+//     we want to ship registry/skill updates without rebuilding the binary.
 func downloadSkill(skillName, targetDir string) error {
-	// Try local first (dev mode).
+	// 1. Local (dev mode).
 	localDir := filepath.Join("skills", skillName)
 	if _, err := os.Stat(localDir); err == nil {
 		ui.Info("Installing from local source")
 		return copyDir(localDir, targetDir)
 	}
 
-	// Download from remote.
+	// 2. Embedded — check the skill exists in the embedded FS.
+	if _, err := skills.FS.ReadDir(skillName); err == nil {
+		ui.Info("Installing from embedded skills")
+		return copyEmbeddedSkill(skillName, targetDir)
+	}
+
+	// 3. Remote GitHub Release.
 	dlURL := fmt.Sprintf("%s/%s.tar.gz", remoteSkillBaseURL, skillName)
 	ui.Info("Downloading %s...", skillName)
 
@@ -167,6 +180,37 @@ func downloadSkill(skillName, targetDir string) error {
 	}
 
 	return archive.ExtractTarGz(tmpFile.Name(), targetDir)
+}
+
+// copyEmbeddedSkill walks skills.FS under skillName and writes every file
+// into targetDir, preserving the relative directory structure.
+func copyEmbeddedSkill(skillName, targetDir string) error {
+	return fs.WalkDir(skills.FS, skillName, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// path is like "finance-tracker/SKILL.md". Strip the skillName prefix
+		// so files land directly in targetDir.
+		relPath, err := filepath.Rel(skillName, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return os.MkdirAll(targetDir, 0755)
+		}
+		dest := filepath.Join(targetDir, relPath)
+		if d.IsDir() {
+			return os.MkdirAll(dest, 0755)
+		}
+		data, err := skills.FS.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read embedded %s: %w", path, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+			return fmt.Errorf("create parent dir: %w", err)
+		}
+		return os.WriteFile(dest, data, 0644)
+	})
 }
 
 // copyDir recursively copies a directory tree.

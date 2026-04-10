@@ -2,16 +2,17 @@ package installer
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
-
-	"encoding/json"
-	"io"
-	"net/http"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
@@ -43,8 +44,8 @@ func CmdList() {
 }
 
 // CmdInstall installs a skill with OAuth setup and configuration.
-func CmdInstall(skillName string, skipOAuth ...bool) {
-	shouldSkipOAuth := len(skipOAuth) > 0 && skipOAuth[0]
+func CmdInstall(skillName string, skipOAuth bool) {
+	shouldSkipOAuth := skipOAuth
 
 	// Check platform is installed and get skills directory.
 	skillsDir := config.Preflight()
@@ -68,7 +69,7 @@ func CmdInstall(skillName string, skipOAuth ...bool) {
 		depDir := filepath.Join(skillsDir, depSkill)
 		if _, err := os.Stat(depDir); os.IsNotExist(err) {
 			fmt.Printf("  Skill '%s' requires '%s' — installing dependency first...\n\n", skillName, depSkill)
-			CmdInstall(depSkill, shouldSkipOAuth)
+			CmdInstall(depSkill, shouldSkipOAuth) //nolint:contextcheck
 			fmt.Println()
 			fmt.Printf("▸ Resuming installation of %s...\n\n", skillName)
 		} else {
@@ -186,7 +187,7 @@ func CmdUpdate(skillName string) {
 	existingCfg, err := config.LoadSkillConfig(targetDir)
 	if err != nil {
 		ui.Info("No existing config found, doing fresh install")
-		CmdInstall(skillName)
+		CmdInstall(skillName, false)
 		return
 	}
 
@@ -204,7 +205,9 @@ func CmdUpdate(skillName string) {
 	}
 
 	// Restore config.
-	config.SaveSkillConfig(targetDir, existingCfg)
+	if err := config.SaveSkillConfig(targetDir, existingCfg); err != nil {
+		ui.Warn("Could not restore config: %v", err)
+	}
 
 	// Re-process template with existing config values.
 	if existingCfg.UserInputs != nil {
@@ -447,7 +450,10 @@ func writeGogEnvToShellProfile() {
 // fetchGogLatestVersion gets the latest release tag from GitHub.
 func fetchGogLatestVersion() (string, error) {
 	// GitHub redirects /releases/latest to /releases/tag/vX.Y.Z
-	req, err := http.NewRequest(http.MethodHead, "https://github.com/steipete/gogcli/releases/latest", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, "https://github.com/steipete/gogcli/releases/latest", nil)
 	if err != nil {
 		return "", err
 	}
@@ -503,7 +509,14 @@ func installGogCLI() (string, error) {
 	ui.Info("Downloading gog %s for %s/%s...", version, goos, goarch)
 
 	// Download to temp file.
-	resp, err := http.Get(dlURL)
+	dlCtx, dlCancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer dlCancel()
+
+	dlReq, err := http.NewRequestWithContext(dlCtx, http.MethodGet, dlURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("create download request: %w", err)
+	}
+	resp, err := http.DefaultClient.Do(dlReq)
 	if err != nil {
 		return "", fmt.Errorf("download gog failed: %w", err)
 	}
@@ -565,7 +578,9 @@ func installGogCLI() (string, error) {
 
 	// Determine install directory per platform.
 	installDir := installBinDir()
-	os.MkdirAll(installDir, 0755)
+	if err := os.MkdirAll(installDir, 0755); err != nil {
+		return "", fmt.Errorf("create install dir %s: %w", installDir, err)
+	}
 
 	destPath := filepath.Join(installDir, binName)
 	data, err := os.ReadFile(extractedBin)

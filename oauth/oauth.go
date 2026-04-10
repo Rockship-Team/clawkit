@@ -70,7 +70,7 @@ func WaitForCallback() (string, error) {
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, "Missing authorization code")
 			errCh <- fmt.Errorf("no code in OAuth callback")
 			return
@@ -83,23 +83,36 @@ func WaitForCallback() (string, error) {
 		codeCh <- code
 	})
 
-	go server.ListenAndServe()
+	// serverErrCh captures ListenAndServe startup failures (e.g. port in use).
+	// Buffered so the goroutine never blocks after server.Shutdown returns.
+	serverErrCh := make(chan error, 1)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErrCh <- fmt.Errorf("callback server failed to start: %w (is port %d in use?)", err, CallbackPort)
+		}
+	}()
 
 	fmt.Println("  Waiting for authorization...")
 
-	var code string
-	select {
-	case code = <-codeCh:
-	case err := <-errCh:
-		server.Shutdown(context.Background())
-		return "", err
-	case <-time.After(5 * time.Minute):
-		server.Shutdown(context.Background())
-		return "", fmt.Errorf("OAuth timeout - no response after 5 minutes")
+	shutdown := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		server.Shutdown(ctx) //nolint:errcheck
 	}
 
-	server.Shutdown(context.Background())
-	return code, nil
+	select {
+	case code := <-codeCh:
+		shutdown()
+		return code, nil
+	case err := <-errCh:
+		shutdown()
+		return "", err
+	case err := <-serverErrCh:
+		return "", err
+	case <-time.After(5 * time.Minute):
+		shutdown()
+		return "", fmt.Errorf("OAuth timeout - no response after 5 minutes")
+	}
 }
 
 // OpenBrowser opens a URL in the default browser (cross-platform).

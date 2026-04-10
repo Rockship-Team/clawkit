@@ -53,7 +53,7 @@ clawkit version
 clawkit list
 
 # Install a skill
-clawkit install shop-hoa-zalo
+clawkit install shop-hoa
 
 # Check installed skills
 clawkit status
@@ -65,7 +65,7 @@ clawkit status
 
 | Skill | Description |
 |-------|-------------|
-| `shop-hoa-zalo` | Zalo chatbot for flower shops — auto-reply, pricing, order tracking |
+| `shop-hoa` | Flower shop assistant for OpenClaw web chat / TUI — consult, quote, send images, take orders, look up history |
 | `carehub-baby` | Blackmores baby nutrition consultant for CareHub via Zalo |
 | `gog` | Google Workspace assistant — Gmail, Calendar, Drive, Contacts |
 

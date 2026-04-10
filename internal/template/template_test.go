@@ -17,24 +17,22 @@ func TestProcess(t *testing.T) {
 		wantNotIn []string
 	}{
 		{
-			name:    "replaces all placeholders",
-			tmpl:    "# {shopName}\nFrom: {notifyEmailFrom}\nTo: {notifyEmailTo}\nPass: {notifyEmailAppPassword}\n{catalogSection}\n{baseDir}",
+			name:    "replaces user inputs and catalog section",
+			tmpl:    "# {shop_name}\nFrom: {notify_email}\n{catalogSection}\n{baseDir}",
 			catalog: `{"categories":[{"folder":"roses","label":"red roses"}],"price_tiers":[100000],"best_seller":true}`,
 			inputs: map[string]string{
-				"shop_name":                 "Test Shop",
-				"notify_email_from":         "a@b.com",
-				"notify_email_to":           "c@d.com",
-				"notify_email_app_password": "pass",
+				"shop_name":    "Test Shop",
+				"notify_email": "a@b.com",
 			},
-			wantIn:    []string{"Test Shop", "a@b.com", "c@d.com", "pass", "`roses`", "`price-100000`", "`best-seller`", "{baseDir}"},
-			wantNotIn: []string{"{shopName}", "{notifyEmailFrom}", "{notifyEmailTo}", "{notifyEmailAppPassword}", "{catalogSection}"},
+			wantIn:    []string{"Test Shop", "a@b.com", "`roses`", "`price-100000`", "`best-seller`", "{baseDir}"},
+			wantNotIn: []string{"{shop_name}", "{notify_email}", "{catalogSection}"},
 		},
 		{
 			name:    "empty inputs leave placeholders",
-			tmpl:    "# {shopName}",
+			tmpl:    "# {shop_name}",
 			catalog: `{"categories":[],"price_tiers":[],"best_seller":false}`,
 			inputs:  map[string]string{},
-			wantIn:  []string{"{shopName}"},
+			wantIn:  []string{"{shop_name}"},
 		},
 	}
 

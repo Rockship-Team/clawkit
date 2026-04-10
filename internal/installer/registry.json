@@ -30,12 +30,10 @@
       ],
       "setup_prompts": []
     },
-    "shop-hoa-zalo": {
-      "version": "1.1.0",
-      "description": "Bot bán hoa qua Zalo cá nhân - tự động trả lời, báo giá, gửi ảnh, chốt đơn, tra cứu đơn hàng",
-      "requires_oauth": [
-        "zalo_personal"
-      ],
+    "shop-hoa": {
+      "version": "2.0.0",
+      "description": "Bot bán hoa cho OpenClaw - tư vấn, báo giá, gửi ảnh sản phẩm, chốt đơn, tra cứu đơn hàng. Chạy trực tiếp trên web chat / TUI, không cần OAuth.",
+      "requires_oauth": null,
       "setup_prompts": []
     }
   }

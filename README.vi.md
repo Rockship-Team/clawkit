@@ -53,7 +53,7 @@ clawkit version
 clawkit list
 
 # Cài đặt một skill
-clawkit install shop-hoa-zalo
+clawkit install shop-hoa
 
 # Kiểm tra các skill đã cài
 clawkit status
@@ -65,7 +65,7 @@ clawkit status
 
 | Skill | Mô tả |
 |-------|-------|
-| `shop-hoa-zalo` | Bot bán hoa qua Zalo cá nhân — tự động trả lời, báo giá, gửi ảnh, chốt đơn |
+| `shop-hoa` | Bot bán hoa cho OpenClaw web chat / TUI — tư vấn, báo giá, gửi ảnh, chốt đơn, tra cứu đơn hàng |
 | `carehub-baby` | Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo |
 | `gog` | Trợ lý Google Workspace — Gmail, Calendar, Drive, Contacts |
 

@@ -80,6 +80,6 @@ Commands:
 
 Examples:
   clawkit list
-  clawkit install shop-hoa-zalo
+  clawkit install shop-hoa
 `, version)
 }

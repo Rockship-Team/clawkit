@@ -11,8 +11,6 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             status TEXT NOT NULL DEFAULT 'new',
             customer_name TEXT,
-            customer_zalo_id TEXT,
-            customer_zalo_name TEXT,
             recipient_name TEXT,
             recipient_phone TEXT,
             recipient_address TEXT,

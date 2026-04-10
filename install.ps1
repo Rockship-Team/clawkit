@@ -80,7 +80,7 @@ Write-Ok "Installed: $Version"
 Write-Host ""
 Write-Host "  Get started:"
 Write-Host "    clawkit list"
-Write-Host "    clawkit install shop-hoa-zalo"
+Write-Host "    clawkit install shop-hoa"
 Write-Host ""
 Write-Host "  NOTE: Restart your terminal for PATH changes to take effect." -ForegroundColor Yellow
 Write-Host ""

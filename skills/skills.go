@@ -13,5 +13,5 @@ import "embed"
 // FS holds the embedded skill directories. Use FS.ReadDir("skill-name")
 // to enumerate a skill's files, and FS.ReadFile to read each one.
 //
-//go:embed all:finance-tracker all:gog all:shop-hoa-zalo all:carehub-baby
+//go:embed all:finance-tracker all:gog all:shop-hoa all:carehub-baby
 var FS embed.FS

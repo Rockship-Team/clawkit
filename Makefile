@@ -1,4 +1,4 @@
-VERSION := 0.2.0
+VERSION := 0.2.7
 BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)
@@ -77,7 +77,7 @@ npm-publish: dist
 
 ## package: Package a skill for distribution
 package:
-	@test -n "$(SKILL)" || (echo "Usage: make package SKILL=shop-hoa-zalo" && exit 1)
+	@test -n "$(SKILL)" || (echo "Usage: make package SKILL=shop-hoa" && exit 1)
 	./$(BINARY) package $(SKILL)
 
 ## help: Show this help

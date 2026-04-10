@@ -102,17 +102,10 @@ func Process(skillDir string, userInputs map[string]string) error {
 
 	content := string(data)
 
-	// Replace user input placeholders.
-	replacements := map[string]string{
-		"{shopName}":               userInputs["shop_name"],
-		"{notifyEmailFrom}":        userInputs["notify_email_from"],
-		"{notifyEmailTo}":          userInputs["notify_email_to"],
-		"{notifyEmailAppPassword}": userInputs["notify_email_app_password"],
-	}
-
-	for placeholder, value := range replacements {
+	// Replace user input placeholders ({key} → userInputs[key]).
+	for key, value := range userInputs {
 		if value != "" {
-			content = strings.ReplaceAll(content, placeholder, value)
+			content = strings.ReplaceAll(content, "{"+key+"}", value)
 		}
 	}
 

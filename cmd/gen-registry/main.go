@@ -21,11 +21,13 @@ import (
 
 // SkillFrontmatter mirrors the YAML frontmatter in SKILL.md.
 type SkillFrontmatter struct {
-	Name          string        `json:"name"`
-	Description   string        `json:"description"`
-	Version       string        `json:"version"`
-	RequiresOAuth []string      `json:"requires_oauth"`
-	SetupPrompts  []SetupPrompt `json:"setup_prompts"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	Version        string        `json:"version"`
+	RequiresOAuth  []string      `json:"requires_oauth"`
+	RequiresBins   []string      `json:"requires_bins"`
+	RequiresSkills []string      `json:"requires_skills"`
+	SetupPrompts   []SetupPrompt `json:"setup_prompts"`
 }
 
 // SetupPrompt defines a setup question asked during installation.
@@ -37,10 +39,12 @@ type SetupPrompt struct {
 
 // RegistrySkill is the per-skill entry in registry.json.
 type RegistrySkill struct {
-	Version       string        `json:"version"`
-	Description   string        `json:"description"`
-	RequiresOAuth []string      `json:"requires_oauth"`
-	SetupPrompts  []SetupPrompt `json:"setup_prompts"`
+	Version        string        `json:"version"`
+	Description    string        `json:"description"`
+	RequiresOAuth  []string      `json:"requires_oauth"`
+	RequiresBins   []string      `json:"requires_bins,omitempty"`
+	RequiresSkills []string      `json:"requires_skills,omitempty"`
+	SetupPrompts   []SetupPrompt `json:"setup_prompts"`
 }
 
 // Registry is the top-level structure of registry.json.
@@ -61,10 +65,12 @@ func main() {
 	reg := Registry{Skills: make(map[string]RegistrySkill, len(skills))}
 	for _, s := range skills {
 		reg.Skills[s.Name] = RegistrySkill{
-			Version:       s.Version,
-			Description:   s.Description,
-			RequiresOAuth: s.RequiresOAuth,
-			SetupPrompts:  s.SetupPrompts,
+			Version:        s.Version,
+			Description:    s.Description,
+			RequiresOAuth:  s.RequiresOAuth,
+			RequiresBins:   s.RequiresBins,
+			RequiresSkills: s.RequiresSkills,
+			SetupPrompts:   s.SetupPrompts,
 		}
 	}
 
@@ -147,9 +153,7 @@ func parseFrontmatter(path, dirName string) (SkillFrontmatter, error) {
 	fmBlock := content[4 : 4+end]
 
 	fm := SkillFrontmatter{
-		Name:          dirName, // default to directory name
-		RequiresOAuth: []string{},
-		SetupPrompts:  []SetupPrompt{},
+		Name: dirName, // default to directory name
 	}
 
 	lines := strings.Split(fmBlock, "\n")
@@ -162,25 +166,11 @@ func parseFrontmatter(path, dirName string) (SkillFrontmatter, error) {
 		} else if strings.HasPrefix(line, "version:") {
 			fm.Version = trimYAMLValue(line)
 		} else if strings.HasPrefix(line, "requires_oauth:") {
-			// Check if inline array or block list
-			inline := trimYAMLValue(line)
-			if inline == "" || inline == "[]" {
-				// Block list: read subsequent "  - value" lines
-				fm.RequiresOAuth = []string{}
-				for i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - ") {
-					i++
-					fm.RequiresOAuth = append(fm.RequiresOAuth, strings.TrimSpace(strings.TrimPrefix(lines[i], "  - ")))
-				}
-			} else {
-				// Inline: [val1, val2]
-				inline = strings.Trim(inline, "[]")
-				for _, v := range strings.Split(inline, ",") {
-					v = strings.TrimSpace(v)
-					if v != "" {
-						fm.RequiresOAuth = append(fm.RequiresOAuth, v)
-					}
-				}
-			}
+			fm.RequiresOAuth, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
+		} else if strings.HasPrefix(line, "requires_bins:") {
+			fm.RequiresBins, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
+		} else if strings.HasPrefix(line, "requires_skills:") {
+			fm.RequiresSkills, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
 		} else if strings.HasPrefix(line, "setup_prompts:") {
 			inline := trimYAMLValue(line)
 			if inline == "[]" {
@@ -216,6 +206,29 @@ func parseFrontmatter(path, dirName string) (SkillFrontmatter, error) {
 	}
 
 	return fm, nil
+}
+
+// parseYAMLStringList parses a YAML string list field, supporting both inline
+// ([val1, val2]) and block list (  - val) forms. Returns the parsed values and
+// the updated line index.
+func parseYAMLStringList(lines []string, i int, inline string) ([]string, int) {
+	if inline == "" || inline == "[]" {
+		// Block list: read subsequent "  - value" lines.
+		var result []string
+		for i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - ") {
+			i++
+			result = append(result, strings.TrimSpace(strings.TrimPrefix(lines[i], "  - ")))
+		}
+		return result, i
+	}
+	// Inline: [val1, val2]
+	var result []string
+	for _, v := range strings.Split(strings.Trim(inline, "[]"), ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			result = append(result, v)
+		}
+	}
+	return result, i
 }
 
 func parsePromptField(p *SetupPrompt, field string) {

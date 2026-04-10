@@ -4,6 +4,7 @@ package installer
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,13 @@ import (
 	"github.com/rockship-co/clawkit/internal/config"
 	"github.com/rockship-co/clawkit/internal/ui"
 )
+
+// embeddedRegistry is the registry.json shipped with the binary. It is the
+// authoritative source when running the globally-installed CLI (no network,
+// no local file). Remote and local sources are treated as optional overrides.
+//
+//go:embed registry.json
+var embeddedRegistry []byte
 
 const (
 	// remoteRegistryURL is the GitHub raw content URL for registry.json.
@@ -52,33 +60,33 @@ func (r *Registry) GetSkill(name string) (*SkillInfo, bool) {
 	return &skill, ok
 }
 
-// loadRegistry fetches the registry from remote, falling back to local.
-// Local entries are merged in so skills added locally (not yet pushed) are available.
+// loadRegistry returns the skills registry. The embedded registry.json is
+// always available and is the authoritative baseline. Remote and local
+// registry files are treated as optional overrides: remote lets us ship
+// registry updates without rebuilding the binary, and local supports dev
+// mode (skills added to ./skills but not yet pushed).
 func loadRegistry() (*Registry, error) {
 	var reg Registry
+	if err := json.Unmarshal(embeddedRegistry, &reg); err != nil {
+		return nil, fmt.Errorf("invalid embedded registry.json: %w", err)
+	}
 
-	data, err := fetchRemoteRegistry()
-	if err != nil {
-		data, err = loadLocalRegistry()
-		if err != nil {
-			return nil, fmt.Errorf("cannot load registry (tried remote and local): %w", err)
+	// Optional remote override — ignored on failure (private repo, offline, etc.).
+	if data, err := fetchRemoteRegistry(); err == nil {
+		var remote Registry
+		if json.Unmarshal(data, &remote) == nil {
+			for name, skill := range remote.Skills {
+				reg.Skills[name] = skill
+			}
 		}
-		ui.Info("Using local registry (offline mode)")
 	}
 
-	if err := json.Unmarshal(data, &reg); err != nil {
-		return nil, fmt.Errorf("invalid registry.json: %w", err)
-	}
-
-	// Merge local registry entries (dev mode: skills not yet pushed to remote).
-	localData, err := loadLocalRegistry()
-	if err == nil {
-		var localReg Registry
-		if json.Unmarshal(localData, &localReg) == nil {
-			for name, skill := range localReg.Skills {
-				if _, exists := reg.Skills[name]; !exists {
-					reg.Skills[name] = skill
-				}
+	// Optional local override (dev mode: ./registry.json or config dir).
+	if data, err := loadLocalRegistry(); err == nil {
+		var local Registry
+		if json.Unmarshal(data, &local) == nil {
+			for name, skill := range local.Skills {
+				reg.Skills[name] = skill
 			}
 		}
 	}

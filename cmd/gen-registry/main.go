@@ -52,6 +52,11 @@ type Registry struct {
 	Skills map[string]RegistrySkill `json:"skills"`
 }
 
+// registryPath is where the canonical registry.json lives inside the module.
+// The installer package embeds it via //go:embed, so it must stay alongside
+// internal/installer/*.go source files.
+const registryPath = "internal/installer/registry.json"
+
 func main() {
 	check := flag.Bool("check", false, "verify registry.json is up to date (exit 1 if not)")
 	flag.Parse()
@@ -81,25 +86,25 @@ func main() {
 	}
 
 	if *check {
-		existing, err := os.ReadFile("registry.json")
+		existing, err := os.ReadFile(registryPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading registry.json: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error reading %s: %v\n", registryPath, err)
 			fmt.Fprintln(os.Stderr, "Run 'go run ./cmd/gen-registry' to generate it.")
 			os.Exit(1)
 		}
 		if !bytes.Equal(existing, generated) {
-			fmt.Fprintln(os.Stderr, "registry.json is outdated. Run 'go run ./cmd/gen-registry' to update.")
+			fmt.Fprintf(os.Stderr, "%s is outdated. Run 'go run ./cmd/gen-registry' to update.\n", registryPath)
 			os.Exit(1)
 		}
-		fmt.Println("registry.json is up to date.")
+		fmt.Printf("%s is up to date.\n", registryPath)
 		return
 	}
 
-	if err := os.WriteFile("registry.json", generated, 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "error writing registry.json: %v\n", err)
+	if err := os.WriteFile(registryPath, generated, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", registryPath, err)
 		os.Exit(1)
 	}
-	fmt.Printf("registry.json generated with %d skills.\n", len(reg.Skills))
+	fmt.Printf("%s generated with %d skills.\n", registryPath, len(reg.Skills))
 }
 
 // scanSkills reads all skills/*/SKILL.md files and parses their frontmatter.

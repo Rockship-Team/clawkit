@@ -4,6 +4,8 @@ description: Chụp hóa đơn → AI phân loại chi tiêu → lưu Google She
 version: "1.0.0"
 requires_oauth:
   - google_sheets
+requires_skills:
+  - gog
 setup_prompts: []
 metadata: {"openclaw":{"emoji":"💰","channel":"telegram","requires":{"bins":["gog"]}}}
 ---

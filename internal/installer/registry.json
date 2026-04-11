@@ -9,12 +9,9 @@
       "setup_prompts": []
     },
     "finance-tracker": {
-      "version": "1.0.0",
-      "description": "Chụp hóa đơn → AI phân loại chi tiêu → lưu Google Sheets → báo cáo tài chính cá nhân",
+      "version": "2.0.0",
+      "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.",
       "requires_oauth": null,
-      "requires_skills": [
-        "gog"
-      ],
       "setup_prompts": []
     },
     "gog": {
@@ -29,8 +26,8 @@
       "setup_prompts": []
     },
     "shop-hoa": {
-      "version": "2.0.0",
-      "description": "Bot bán hoa cho OpenClaw - tư vấn, báo giá, gửi ảnh sản phẩm, chốt đơn, tra cứu đơn hàng. Chạy trực tiếp trên web chat / TUI, không cần OAuth.",
+      "version": "3.0.0",
+      "description": "Bot bán hoa cho OpenClaw - tư vấn, báo giá, gửi ảnh sản phẩm, chốt đơn, tra cứu đơn hàng. Chạy trực tiếp trên web chat / TUI, không cần OAuth. Dùng Node.js để thao tác dữ liệu.",
       "requires_oauth": null,
       "setup_prompts": []
     }

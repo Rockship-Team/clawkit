@@ -1,28 +1,41 @@
 package oauth
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"time"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 )
+
+// (browser OAuth removed — gog auth add handles the browser flow itself,
+// so clawkit only needs to collect client credentials and the account email.)
 
 func init() {
 	Register(&Gmail{})
 }
 
 // Gmail implements OAuth for Gmail via gog CLI.
-// After obtaining tokens, it writes credential.json and configures gog.
+// Flow: auto-detect client_secret_*.json (or prompt path / manual input) →
+// prompt for account email → return. The actual browser OAuth is performed
+// later by `gog auth add`, so the user only sees one browser window.
 type Gmail struct{}
 
 func (g *Gmail) Name() string    { return "gmail" }
 func (g *Gmail) Display() string { return "Gmail (Google OAuth2)" }
 
-// gmailScopes includes userinfo.email so we can auto-detect the account email after OAuth.
-const gmailScopes = "https://mail.google.com/ https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/userinfo.email"
+// googleCredentialFile mirrors the structure of a downloaded client_secret_*.json.
+type googleCredentialFile struct {
+	Installed struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+	} `json:"installed"`
+	Web struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+	} `json:"web"`
+}
 
 func (g *Gmail) Authenticate() (map[string]string, error) {
 	fmt.Println()
@@ -30,88 +43,146 @@ func (g *Gmail) Authenticate() (map[string]string, error) {
 	fmt.Printf("  ║   %s            ║\n", g.Display())
 	fmt.Printf("  ╚══════════════════════════════════════╝\n")
 	fmt.Println()
-	fmt.Println("  Đang mở Google Cloud Console để tạo OAuth credentials...")
-	fmt.Println("  1. Chọn project (hoặc tạo mới)")
-	fmt.Println("  2. Create Credentials → OAuth client ID → Desktop app")
-	fmt.Println("  3. Copy Client ID và Client Secret dán vào bên dưới")
-	fmt.Println()
-	fmt.Println("  Redirect URI cần thêm vào OAuth app:")
-	fmt.Println("  → http://localhost:9876/callback")
-	fmt.Println()
-	OpenBrowser("https://console.cloud.google.com/apis/credentials")
 
-	clientID := PromptInput("  Google Client ID")
-	clientSecret := PromptInput("  Google Client Secret")
-
-	redirectURI := fmt.Sprintf("http://localhost:%d/callback", CallbackPort)
-	authURL := fmt.Sprintf(
-		"https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&access_type=offline&prompt=consent",
-		url.QueryEscape(clientID),
-		url.QueryEscape(redirectURI),
-		url.QueryEscape(gmailScopes),
-	)
-
-	fmt.Println()
-	fmt.Println("  Opening browser for Google authorization...")
-	fmt.Println("  If browser doesn't open, visit:")
-	fmt.Printf("  %s\n\n", authURL)
-
-	OpenBrowser(authURL)
-
-	code, err := WaitForCallback()
-	if err != nil {
-		return nil, err
+	// Step 1: collect client_id / client_secret.
+	credPath := findLatestGoogleCredential()
+	if credPath != "" {
+		fmt.Printf("  ✓ Tìm thấy credential file: %s\n", credPath)
+		use := PromptInput("  Dùng file này? [Y/n]")
+		if strings.EqualFold(strings.TrimSpace(use), "n") {
+			credPath = ""
+		}
 	}
 
-	tokens, err := exchangeGoogleCode(code, clientID, clientSecret, redirectURI)
-	if err != nil {
-		return nil, err
+	var clientID, clientSecret string
+
+	if credPath == "" {
+		fmt.Println("  Chưa tìm thấy credential file trong Downloads.")
+		fmt.Println("  1. Tạo Desktop OAuth client tại Google Cloud Console")
+		fmt.Println("  2. Download file JSON (client_secret_*.json)")
+		fmt.Println()
+		fmt.Println("  → Nhập đường dẫn tới file JSON (để trống nếu muốn nhập Client ID/Secret thủ công)")
+		OpenBrowser("https://console.cloud.google.com/apis/credentials")
+		credPath = strings.TrimSpace(PromptInput("  Đường dẫn tới client_secret_*.json"))
+		if strings.HasPrefix(credPath, "~") {
+			if home, err := os.UserHomeDir(); err == nil {
+				credPath = filepath.Join(home, strings.TrimPrefix(credPath, "~"))
+			}
+		}
 	}
 
-	// Auto-detect email from Google userinfo — no need to ask the user.
-	email, err := fetchGoogleEmail(tokens["access_token"])
-	if err != nil {
-		fmt.Println("  Không lấy được email tự động.")
-		email = PromptInput("  Gmail address (e.g. you@gmail.com)")
+	if credPath != "" {
+		id, secret, err := parseGoogleCredential(credPath)
+		if err != nil {
+			return nil, fmt.Errorf("đọc credential file: %w", err)
+		}
+		clientID, clientSecret = id, secret
 	} else {
-		fmt.Printf("  ✓ Tài khoản: %s\n", email)
+		fmt.Println()
+		fmt.Println("  Nhập credentials thủ công:")
+		clientID = strings.TrimSpace(PromptInput("  Google Client ID"))
+		clientSecret = strings.TrimSpace(PromptInput("  Google Client Secret"))
+		if clientID == "" || clientSecret == "" {
+			return nil, fmt.Errorf("client_id và client_secret là bắt buộc")
+		}
+	}
+	fmt.Printf("  ✓ Client ID: %s\n", maskMiddle(clientID))
+
+	// Step 2: prompt for the Gmail account email. The browser OAuth itself
+	// runs later via `gog auth add <email>`, keeping the flow to a single
+	// browser window.
+	fmt.Println()
+	email := strings.TrimSpace(PromptInput("  Gmail address (e.g. you@gmail.com)"))
+	if email == "" {
+		return nil, fmt.Errorf("gmail address là bắt buộc")
 	}
 
-	tokens["google_client_id"] = clientID
-	tokens["google_client_secret"] = clientSecret
-	tokens["gmail_account"] = email
-	return tokens, nil
+	return map[string]string{
+		"google_client_id":     clientID,
+		"google_client_secret": clientSecret,
+		"gmail_account":        email,
+		"credential_file":      credPath,
+	}, nil
 }
 
-// fetchGoogleEmail calls the Google userinfo endpoint to get the authenticated account email.
-func fetchGoogleEmail(accessToken string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// findLatestGoogleCredential scans common Downloads locations (cross-platform)
+// for client_secret_*.json files and returns the most recently modified one,
+// or "" if none found.
+func findLatestGoogleCredential() string {
+	dirs := downloadDirs()
+	var all []string
+	for _, d := range dirs {
+		matches, err := filepath.Glob(filepath.Join(d, "client_secret_*.json"))
+		if err != nil {
+			continue
+		}
+		all = append(all, matches...)
+	}
+	if len(all) == 0 {
+		return ""
+	}
+	sort.Slice(all, func(i, j int) bool {
+		fi, err1 := os.Stat(all[i])
+		fj, err2 := os.Stat(all[j])
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		return fi.ModTime().After(fj.ModTime())
+	})
+	return all[0]
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", nil)
-	if err != nil {
-		return "", err
+// downloadDirs returns likely Downloads directory locations for the current OS.
+// Covers: ~/Downloads (all platforms), $XDG_DOWNLOAD_DIR (Linux), and
+// OneDrive-redirected ~/OneDrive/Downloads (Windows).
+func downloadDirs() []string {
+	var dirs []string
+	home, err := os.UserHomeDir()
+	if err == nil {
+		dirs = append(dirs, filepath.Join(home, "Downloads"))
+		dirs = append(dirs, filepath.Join(home, "OneDrive", "Downloads"))
 	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
+	if xdg := os.Getenv("XDG_DOWNLOAD_DIR"); xdg != "" {
+		dirs = append(dirs, xdg)
+	}
+	seen := map[string]bool{}
+	out := make([]string, 0, len(dirs))
+	for _, d := range dirs {
+		if d == "" || seen[d] {
+			continue
+		}
+		seen[d] = true
+		if info, err := os.Stat(d); err == nil && info.IsDir() {
+			out = append(out, d)
+		}
+	}
+	return out
+}
 
-	resp, err := http.DefaultClient.Do(req)
+// parseGoogleCredential reads a Google OAuth client JSON file and extracts
+// the client_id and client_secret from either the "installed" or "web" key.
+func parseGoogleCredential(path string) (string, string, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	defer resp.Body.Close()
+	var f googleCredentialFile
+	if err := json.Unmarshal(data, &f); err != nil {
+		return "", "", fmt.Errorf("parse JSON: %w", err)
+	}
+	if f.Installed.ClientID != "" {
+		return f.Installed.ClientID, f.Installed.ClientSecret, nil
+	}
+	if f.Web.ClientID != "" {
+		return f.Web.ClientID, f.Web.ClientSecret, nil
+	}
+	return "", "", fmt.Errorf("không tìm thấy client_id trong file (cần 'installed' hoặc 'web')")
+}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read userinfo response: %w", err)
+// maskMiddle masks the middle of a string for display.
+func maskMiddle(s string) string {
+	if len(s) <= 12 {
+		return s
 	}
-	var info struct {
-		Email string `json:"email"`
-	}
-	if err := json.Unmarshal(body, &info); err != nil {
-		return "", fmt.Errorf("parse userinfo response: %w", err)
-	}
-	if info.Email == "" {
-		return "", fmt.Errorf("no email in userinfo response")
-	}
-	return info.Email, nil
+	return s[:6] + "..." + s[len(s)-4:]
 }

@@ -325,52 +325,68 @@ func collectUserInputs(prompts []Prompt) map[string]string {
 	return inputs
 }
 
-// postOAuthGmail writes credential files into the skill dir and configures gog CLI.
-// Flow:
-//  1. Write credential.json (Google client creds format) → gog auth credentials set
-//  2. Write token.json (refresh token) → gog auth tokens import
-//  3. Set GOG_ACCOUNT in SKILL.md
+// postOAuthGmail writes credential files and configures gog CLI.
+// Flow (clawkit already did browser OAuth to capture email via userinfo):
+//  1. Copy original client_secret_*.json → ~/.openclaw/workspace/skills/gog/
+//  2. gog auth credentials set → import client_id/secret
+//  3. gog auth add <email> --services … → let gog run its own OAuth flow
+//  4. gog auth list → verify
 func postOAuthGmail(skillDir string, tokens map[string]string) {
 	clientID := tokens["google_client_id"]
 	clientSecret := tokens["google_client_secret"]
 	email := tokens["gmail_account"]
-	refreshToken := tokens["refresh_token"]
+	srcCredFile := tokens["credential_file"]
 	if clientID == "" || clientSecret == "" {
 		return
 	}
 
-	// 1. Write credential.json — Google OAuth client credentials format.
-	credData, _ := json.MarshalIndent(map[string]any{
-		"installed": map[string]any{
-			"client_id":     clientID,
-			"client_secret": clientSecret,
-			"auth_uri":      "https://accounts.google.com/o/oauth2/auth",
-			"token_uri":     "https://oauth2.googleapis.com/token",
-			"redirect_uris": []string{"http://localhost:9876/callback"},
-		},
-	}, "", "  ")
-	credPath := filepath.Join(skillDir, "credential.json")
-	if err := os.WriteFile(credPath, credData, 0600); err != nil {
-		ui.Warn("Could not write credential.json: %v", err)
+	// 1. Copy the original client_secret_*.json into the openclaw workspace,
+	//    preserving the filename so future reinstalls can find it.
+	home, _ := os.UserHomeDir()
+	gogWorkspace := filepath.Join(home, ".openclaw", "workspace", "skills", "gog")
+	if err := os.MkdirAll(gogWorkspace, 0755); err != nil {
+		ui.Warn("Could not create gog workspace dir: %v", err)
 		return
 	}
-	ui.Ok("Saved credential.json")
 
-	// 2. Write token.json — refresh token for gog import.
-	if email != "" && refreshToken != "" {
-		tokData, _ := json.MarshalIndent(map[string]string{
-			"email":         email,
-			"refresh_token": refreshToken,
-		}, "", "  ")
-		tokPath := filepath.Join(skillDir, "token.json")
-		if err := os.WriteFile(tokPath, tokData, 0600); err != nil {
-			ui.Warn("Could not write token.json: %v", err)
-		} else {
-			ui.Ok("Saved token.json")
+	var credPath string
+	if srcCredFile != "" {
+		if data, err := os.ReadFile(srcCredFile); err == nil {
+			credPath = filepath.Join(gogWorkspace, filepath.Base(srcCredFile))
+			if err := os.WriteFile(credPath, data, 0600); err != nil {
+				ui.Warn("Could not copy credential file: %v", err)
+				credPath = ""
+			} else {
+				ui.Ok("Saved %s → %s", filepath.Base(srcCredFile), credPath)
+			}
 		}
 	}
 
-	// 3. Install gog CLI if missing.
+	// Fallback: synthesize a client_secret_*.json from client_id/secret if we
+	// don't have the original file (user pasted values manually). Use the
+	// standard Google naming convention so it matches the auto-detect pattern.
+	if credPath == "" {
+		credData, _ := json.MarshalIndent(map[string]any{
+			"installed": map[string]any{
+				"client_id":     clientID,
+				"client_secret": clientSecret,
+				"auth_uri":      "https://accounts.google.com/o/oauth2/auth",
+				"token_uri":     "https://oauth2.googleapis.com/token",
+				"redirect_uris": []string{"http://localhost"},
+			},
+		}, "", "  ")
+		// Google's convention: client_secret_<client_id>.json (client_id already
+		// ends with .apps.googleusercontent.com).
+		fname := fmt.Sprintf("client_secret_%s.json", clientID)
+		credPath = filepath.Join(gogWorkspace, fname)
+		if err := os.WriteFile(credPath, credData, 0600); err != nil {
+			ui.Warn("Could not write %s: %v", fname, err)
+			return
+		}
+		ui.Ok("Saved %s → %s", fname, credPath)
+	}
+
+	// 2. Install gog CLI if missing.
 	gogBin, err := installGogCLI()
 	if err != nil {
 		ui.Warn("%v", err)
@@ -378,41 +394,162 @@ func postOAuthGmail(skillDir string, tokens map[string]string) {
 		return
 	}
 
-	// gogEnv returns os.Environ() plus GOG_KEYRING_BACKEND=file and GOG_KEYRING_PASSWORD=""
-	// so gog never prompts for a passphrase interactively on any platform.
+	// gogEnv includes GOG_KEYRING_BACKEND=file and GOG_KEYRING_PASSWORD=""
+	// so gog never prompts for a keyring passphrase interactively.
 	gogEnv := append(os.Environ(),
 		"GOG_KEYRING_BACKEND=file",
 		"GOG_KEYRING_PASSWORD=",
 	)
 
-	// 4. gog auth credentials set — import client_id/secret into gog keyring.
+	// 3. gog auth credentials set — import client_id/secret into gog.
 	cmd := exec.Command(gogBin, "auth", "credentials", "set", credPath, "--force", "--no-input")
 	cmd.Env = gogEnv
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		ui.Warn("gog auth credentials set failed: %v", err)
+		return
+	}
+	ui.Ok("Client credentials imported into gog")
+
+	// 4. gog auth add <email> --services … — let gog run its own OAuth flow.
+	//    This opens a second browser window, but it's the canonical path and
+	//    ensures the refresh token is persisted in gog's keyring correctly.
+	if email == "" {
+		ui.Warn("Missing email; skipping gog auth add")
+		ui.Info("Run manually: gog auth add you@gmail.com --services gmail,calendar,drive,contacts,sheets,docs")
+		return
+	}
+	services := "gmail,calendar,drive,contacts,sheets,docs"
+	ui.Info("Running: gog auth add %s --services %s", email, services)
+	cmd = exec.Command(gogBin, "auth", "add", email, "--services", services)
+	cmd.Env = gogEnv
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		ui.Warn("gog auth add failed: %v", err)
+		ui.Info("Run manually: GOG_KEYRING_BACKEND=file GOG_KEYRING_PASSWORD= gog auth add %s --services %s", email, services)
 	} else {
-		ui.Ok("Client credentials imported into gog")
+		ui.Ok("gog auth add succeeded for %s", email)
 	}
 
-	// 5. gog auth tokens import — import refresh_token into gog keyring.
-	tokPath := filepath.Join(skillDir, "token.json")
-	if _, err := os.Stat(tokPath); err == nil {
-		cmd = exec.Command(gogBin, "auth", "tokens", "import", tokPath, "--force", "--no-input")
-		cmd.Env = gogEnv
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			ui.Warn("gog auth tokens import failed: %v", err)
-			ui.Info("Run manually: GOG_KEYRING_BACKEND=file GOG_KEYRING_PASSWORD= gog auth tokens import %s --force", tokPath)
-		} else {
-			ui.Ok("Refresh token imported into gog for %s", email)
+	// 5. gog auth list — verify.
+	fmt.Println()
+	cmd = exec.Command(gogBin, "auth", "list")
+	cmd.Env = gogEnv
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
+	// 6. Install a gog wrapper in ~/.openclaw/bin that bakes in GOG_KEYRING_*
+	//    env vars. This removes the dependency on the user's shell profile,
+	//    so any process (openclaw-tui, subprocess, cron, CI) that calls gog
+	//    via PATH gets the correct keyring backend automatically.
+	if err := installGogWrapper(gogBin); err != nil {
+		ui.Warn("Could not install gog wrapper: %v", err)
+		// Fallback to the old shell-profile approach.
+		writeGogEnvToShellProfile()
+	}
+}
+
+// installGogWrapper creates ~/.openclaw/bin/gog (or gog.cmd on Windows) that
+// sets GOG_KEYRING_BACKEND=file and GOG_KEYRING_PASSWORD= before exec'ing the
+// real gog binary. It then prepends ~/.openclaw/bin to the user's PATH so the
+// wrapper takes precedence over any other gog binary on the system.
+func installGogWrapper(realGogPath string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	binDir := filepath.Join(home, ".openclaw", "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return err
+	}
+
+	if runtime.GOOS == "windows" {
+		wrapperPath := filepath.Join(binDir, "gog.cmd")
+		content := "@echo off\r\n" +
+			"set GOG_KEYRING_BACKEND=file\r\n" +
+			"set GOG_KEYRING_PASSWORD=\r\n" +
+			fmt.Sprintf("\"%s\" %%*\r\n", realGogPath)
+		if err := os.WriteFile(wrapperPath, []byte(content), 0755); err != nil {
+			return err
 		}
+		ui.Ok("Installed gog wrapper → %s", wrapperPath)
+		prependOpenclawBinToPath(binDir)
+		return nil
 	}
 
-	// 6. Persist keyring env vars to shell profile so gog works at runtime without prompts.
-	writeGogEnvToShellProfile()
+	wrapperPath := filepath.Join(binDir, "gog")
+	content := "#!/bin/sh\n" +
+		"# clawkit-managed wrapper — sets gog keyring env vars before exec.\n" +
+		"export GOG_KEYRING_BACKEND=file\n" +
+		"export GOG_KEYRING_PASSWORD=\n" +
+		fmt.Sprintf("exec %q \"$@\"\n", realGogPath)
+	if err := os.WriteFile(wrapperPath, []byte(content), 0755); err != nil {
+		return err
+	}
+	// Ensure executable bit (WriteFile mode may be masked by umask).
+	_ = os.Chmod(wrapperPath, 0755)
+	ui.Ok("Installed gog wrapper → %s", wrapperPath)
+
+	prependOpenclawBinToPath(binDir)
+	return nil
+}
+
+// prependOpenclawBinToPath adds ~/.openclaw/bin to the FRONT of the user's
+// PATH in their shell profile (so the wrapper wins over any other gog binary).
+// On Windows it prepends via PowerShell to the user PATH env var.
+func prependOpenclawBinToPath(binDir string) {
+	if runtime.GOOS == "windows" {
+		psCmd := fmt.Sprintf(
+			`$p=[Environment]::GetEnvironmentVariable('Path','User'); `+
+				`if($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path',"%s;$p",'User')}`,
+			binDir, binDir,
+		)
+		if err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).Run(); err == nil {
+			ui.Ok("Prepended %s to user PATH (restart terminal to take effect)", binDir)
+		}
+		return
+	}
+
+	const marker = "# Added by clawkit — openclaw bin (gog wrapper)"
+	block := fmt.Sprintf("\n%s\nexport PATH=\"%s:$PATH\"\n", marker, binDir)
+
+	home, _ := os.UserHomeDir()
+	profiles := []string{
+		filepath.Join(home, ".bashrc"),
+		filepath.Join(home, ".zshrc"),
+	}
+
+	wrote := false
+	for _, p := range profiles {
+		if _, err := os.Stat(p); err != nil {
+			continue
+		}
+		data, _ := os.ReadFile(p)
+		if strings.Contains(string(data), marker) {
+			continue // already added
+		}
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			continue
+		}
+		f.WriteString(block)
+		f.Close()
+		ui.Ok("Prepended %s to PATH in %s", binDir, p)
+		wrote = true
+	}
+
+	if !wrote {
+		// All profiles already have the marker, or none exist.
+		if _, err := os.Stat(filepath.Join(home, ".zshrc")); os.IsNotExist(err) {
+			ui.Info("Add to your shell profile: export PATH=\"%s:$PATH\"", binDir)
+		}
+	} else {
+		ui.Info("Restart your terminal (or agent) to pick up the new PATH")
+	}
 }
 
 // writeGogEnvToShellProfile appends GOG_KEYRING_* env vars to the user's shell profile

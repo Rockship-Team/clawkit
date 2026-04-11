@@ -191,9 +191,6 @@ func CmdInstall(skillName string, skipOAuth bool) {
 	fmt.Println()
 	ui.Ok("'%s' installed!", skillName)
 	fmt.Printf("  Location: %s\n", targetDir)
-	if url := cfg.Tokens["spreadsheet_url"]; url != "" {
-		fmt.Printf("  Spreadsheet: %s\n", url)
-	}
 	fmt.Println()
 	fmt.Println("  Next steps:")
 	fmt.Printf("  1. Open SKILL.md: %s\n", filepath.Join(targetDir, "SKILL.md"))
@@ -238,6 +235,14 @@ func CmdUpdate(skillName string) {
 		template.EnsureFlowerDirs(targetDir)
 		if err := template.Process(targetDir, existingCfg.UserInputs); err != nil {
 			ui.Warn("Template processing failed: %v", err)
+		}
+	}
+
+	// Re-inject OAuth tokens (spreadsheet_id, gmail_account, ...) into SKILL.md
+	// so the updated prompt keeps the real values instead of {placeholders}.
+	if len(existingCfg.Tokens) > 0 {
+		if err := template.ProcessTokens(targetDir, existingCfg.Tokens); err != nil {
+			ui.Warn("Could not re-inject token placeholders: %v", err)
 		}
 	}
 

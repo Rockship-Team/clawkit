@@ -138,9 +138,9 @@ func createFinanceSpreadsheet(accessToken string) (sheetID, sheetURL string, err
 	}
 
 	var created struct {
-		SpreadsheetID string `json:"spreadsheetId"`
+		SpreadsheetID  string `json:"spreadsheetId"`
 		SpreadsheetURL string `json:"spreadsheetUrl"`
-		Sheets        []struct {
+		Sheets         []struct {
 			Properties struct {
 				SheetID int    `json:"sheetId"`
 				Title   string `json:"title"`
@@ -297,7 +297,7 @@ func updateCellsRequest(sheetID, startRow, startCol int, rows [][]cellValue) map
 
 	return map[string]any{
 		"updateCells": map[string]any{
-			"rows": apiRows,
+			"rows":   apiRows,
 			"fields": "userEnteredValue,userEnteredFormat",
 			"start": map[string]any{
 				"sheetId":     sheetID,
@@ -347,7 +347,7 @@ func addPieChartRequest(reportSheetID, categoryCount int) map[string]any {
 				"spec": map[string]any{
 					"title": "Chi tiêu theo danh mục",
 					"pieChart": map[string]any{
-						"legendPosition": "RIGHT_LEGEND",
+						"legendPosition":   "RIGHT_LEGEND",
 						"threeDimensional": false,
 						"domain": map[string]any{
 							"sourceRange": map[string]any{

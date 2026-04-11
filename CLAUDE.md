@@ -35,7 +35,7 @@ Clawkit is a CLI skill manager for OpenClaw AI agents. Skills are AI prompt file
 ### Key packages
 
 - **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, status, package, version)
-- **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → OAuth → template processing → DB init → config save → gateway restart
+- **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → OAuth → template processing → DB init → config save. Gateway restart is left to the user (printed as a next step).
 - **`internal/installer/registry.go`** — Registry loading (remote + local merge) and skill package downloading
 - **`internal/archive/`** — tar.gz / zip extraction and creation; strips top-level directory from archives
 - **`internal/config/`** — `SkillConfig` struct, config file read/write, OpenClaw detection

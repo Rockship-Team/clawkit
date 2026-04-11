@@ -122,23 +122,46 @@ func Process(skillDir string, userInputs map[string]string) error {
 	return nil
 }
 
-// ProcessTokens replaces {key} placeholders in SKILL.md with values from tokens.
-// Called after OAuth to substitute values like spreadsheet_id, gmail_account, etc.
-// Keys not present in the file are silently skipped.
+// snakeToCamel converts snake_case to camelCase (e.g. "agent_name" → "agentName").
+func snakeToCamel(s string) string {
+	parts := strings.Split(s, "_")
+	for i := 1; i < len(parts); i++ {
+		if len(parts[i]) > 0 {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// ProcessTokens replaces {key} placeholders in SKILL.md, IDENTITY.md, and SOUL.md
+// with values from tokens. Both snake_case and camelCase variants of each key are
+// substituted so skills can use either convention. Keys not present in the file
+// are silently skipped.
 func ProcessTokens(skillDir string, tokens map[string]string) error {
-	skillPath := filepath.Join(skillDir, "SKILL.md")
-	data, err := os.ReadFile(skillPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+	targets := []string{"SKILL.md", "IDENTITY.md", "SOUL.md"}
+	for _, fname := range targets {
+		fpath := filepath.Join(skillDir, fname)
+		data, err := os.ReadFile(fpath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("read %s: %w", fname, err)
 		}
-		return fmt.Errorf("read SKILL.md: %w", err)
-	}
-	content := string(data)
-	for key, value := range tokens {
-		if value != "" {
+		content := string(data)
+		for key, value := range tokens {
+			if value == "" {
+				continue
+			}
+			// Replace both {snake_case} and {camelCase} variants.
 			content = strings.ReplaceAll(content, "{"+key+"}", value)
+			if camel := snakeToCamel(key); camel != key {
+				content = strings.ReplaceAll(content, "{"+camel+"}", value)
+			}
+		}
+		if err := os.WriteFile(fpath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", fname, err)
 		}
 	}
-	return os.WriteFile(skillPath, []byte(content), 0644)
+	return nil
 }

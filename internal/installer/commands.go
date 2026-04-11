@@ -91,13 +91,16 @@ func CmdInstall(skillName string, skipOAuth bool) {
 		ui.Ok("Dependency '%s' is installed", depSkill)
 	}
 
+	// Shared stdin reader — must be created once and reused throughout CmdInstall
+	// so bufio buffering doesn't silently consume lines meant for later prompts.
+	stdinReader := bufio.NewReader(os.Stdin)
+
 	// Check if already installed.
 	targetDir := filepath.Join(skillsDir, skillName)
 	if _, err := os.Stat(targetDir); err == nil {
 		fmt.Printf("  Skill already installed at %s\n", targetDir)
 		fmt.Print("  Overwrite? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
-		answer, _ := reader.ReadString('\n')
+		answer, _ := stdinReader.ReadString('\n')
 		answer = strings.TrimSpace(strings.ToLower(answer))
 		if answer != "y" && answer != "yes" {
 			fmt.Println("  Cancelled.")
@@ -144,6 +147,40 @@ func CmdInstall(skillName string, skipOAuth bool) {
 		}
 	}
 
+	// Collect setup_prompts inputs from user (reuse shared stdinReader).
+	userInputs := collectUserInputs(skill.SetupPrompts, stdinReader)
+
+	// Save config — load existing to preserve tokens written by runOAuth.
+	cfg, _ := config.LoadSkillConfig(targetDir)
+	if cfg == nil {
+		cfg = &config.SkillConfig{}
+	}
+	cfg.SkillName = skillName
+	cfg.Version = skill.Version
+	cfg.OAuthDone = len(skill.RequiresOAuth) > 0
+	// Merge user inputs into tokens map.
+	if len(userInputs) > 0 {
+		if cfg.Tokens == nil {
+			cfg.Tokens = map[string]string{}
+		}
+		for k, v := range userInputs {
+			if v != "" {
+				cfg.Tokens[k] = v
+			}
+		}
+	}
+	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
+		ui.Fatal("Failed to save config: %v", err)
+	}
+
+	// Replace {key} placeholders in SKILL.md, IDENTITY.md, SOUL.md — while all
+	// files are still in skillDir (before moveWorkspaceFiles relocates them).
+	if len(cfg.Tokens) > 0 {
+		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
+			ui.Warn("Could not replace SKILL.md placeholders: %v", err)
+		}
+	}
+
 	// Move IDENTITY.md and SOUL.md to ~/.openclaw/workspace if present.
 	moveWorkspaceFiles(targetDir)
 
@@ -165,26 +202,6 @@ func CmdInstall(skillName string, skipOAuth bool) {
 			} else {
 				ui.Ok("Database initialized")
 			}
-		}
-	}
-
-	// Save config — load existing to preserve tokens written by runOAuth.
-	cfg, _ := config.LoadSkillConfig(targetDir)
-	if cfg == nil {
-		cfg = &config.SkillConfig{}
-	}
-	cfg.SkillName = skillName
-	cfg.Version = skill.Version
-	cfg.OAuthDone = len(skill.RequiresOAuth) > 0
-	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
-		ui.Fatal("Failed to save config: %v", err)
-	}
-
-	// Replace {key} placeholders in SKILL.md with OAuth token values
-	// (e.g. {spreadsheet_id}, {gmail_account}) so the skill prompt is ready to use.
-	if len(cfg.Tokens) > 0 {
-		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
-			ui.Warn("Could not replace SKILL.md placeholders: %v", err)
 		}
 	}
 
@@ -304,7 +321,7 @@ func CmdPackage(skillName string) {
 }
 
 // collectUserInputs prompts the user for each setup prompt.
-func collectUserInputs(prompts []Prompt) map[string]string {
+func collectUserInputs(prompts []Prompt, reader *bufio.Reader) map[string]string {
 	inputs := map[string]string{}
 	if len(prompts) == 0 {
 		return inputs
@@ -312,7 +329,6 @@ func collectUserInputs(prompts []Prompt) map[string]string {
 
 	fmt.Println()
 	ui.Info("Skill configuration")
-	reader := bufio.NewReader(os.Stdin)
 	for _, prompt := range prompts {
 		label := prompt.Label
 		if prompt.Default != "" {

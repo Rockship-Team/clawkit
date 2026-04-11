@@ -46,6 +46,12 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdUpdate(os.Args[2])
+	case "uninstall", "remove":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit uninstall <skill-name>")
+			os.Exit(1)
+		}
+		installer.CmdUninstall(os.Args[2])
 	case "status":
 		installer.CmdStatus()
 	case "package":
@@ -72,14 +78,19 @@ Usage:
 
 Commands:
   list                  List available skills
-  install <skill>       Install a skill + run OAuth setup
+  install <skill>       Install a skill (locks workspace to its persona)
+  uninstall <skill>     Uninstall a skill (restores prior workspace files)
   update  <skill>       Update an installed skill
   status                Show installed skills
   package <skill>       Package a skill for distribution (dev)
   version               Print version
 
+Note: clawkit enforces a 1-skill-at-a-time model. Installing a new skill
+will prompt to remove any previously installed skill first.
+
 Examples:
   clawkit list
   clawkit install shop-hoa
+  clawkit uninstall shop-hoa
 `, version)
 }

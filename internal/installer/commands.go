@@ -144,8 +144,14 @@ func CmdInstall(skillName string, skipOAuth bool) {
 		}
 	}
 
-	// Move IDENTITY.md and SOUL.md to ~/.openclaw/workspace if present.
-	moveWorkspaceFiles(targetDir)
+	// Lock down the workspace into this skill's persona:
+	//   1. Remove any previously installed skill (1-skill-at-a-time model)
+	//   2. Back up existing workspace MD files
+	//   3. Copy workspace-overrides/* from the new skill to workspace root
+	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
+	//   5. Reset prior conversation sessions
+	//   6. Set agents.defaults.skills = [<skillName>]
+	LockdownWorkspace(skillsDir, targetDir, skillName)
 
 	// Ensure flower directories match catalog.
 	template.EnsureFlowerDirs(targetDir)
@@ -248,6 +254,69 @@ func CmdUpdate(skillName string) {
 
 	ui.Ok("'%s' updated to latest version", skillName)
 	ui.Info("Restart the gateway to pick up changes: openclaw gateway restart")
+}
+
+// CmdUninstall removes a skill and reverses the workspace lockdown applied
+// during install: restores backed-up workspace MD files, clears the skill
+// allowlist, resets sessions, and deletes the skill directory.
+//
+// After this runs, the user's OpenClaw returns to a generic-assistant state
+// (their pre-install workspace files are restored) and is ready to install
+// a different skill or run without any skill.
+func CmdUninstall(skillName string) {
+	skillsDir := config.Preflight()
+	fmt.Println()
+
+	targetDir := filepath.Join(skillsDir, skillName)
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		ui.Fatal("Skill '%s' is not installed.", skillName)
+	}
+
+	fmt.Printf("▸ Uninstalling %s\n", skillName)
+	fmt.Printf("  This will:\n")
+	fmt.Printf("    • Delete %s (including orders database and assets)\n", targetDir)
+	fmt.Printf("    • Restore your workspace files from the most recent backup\n")
+	fmt.Printf("    • Clear agents.defaults.skills config\n")
+	fmt.Printf("    • Archive all conversation sessions\n\n")
+	fmt.Print("  Continue? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimSpace(strings.ToLower(answer))
+	if answer != "y" && answer != "yes" {
+		fmt.Println("  Cancelled.")
+		return
+	}
+
+	workspaceDir := ResolveWorkspaceDir()
+
+	// Restore workspace MD files from the backup dir written at install time.
+	if err := RestoreWorkspaceFromBackup(workspaceDir); err != nil {
+		ui.Warn("Could not restore workspace from backup: %v", err)
+	}
+
+	// Clear the skill allowlist so the agent goes back to unrestricted mode.
+	if err := ClearSkillsAllowlist(); err != nil {
+		ui.Warn("Could not clear skill allowlist: %v", err)
+		ui.Info("Run manually: openclaw config unset agents.defaults.skills")
+	} else {
+		ui.Ok("Cleared agents.defaults.skills")
+	}
+
+	// Reset sessions so stale conversation history doesn't confuse the next
+	// install or plain-assistant usage.
+	if err := resetAgentSessions(workspaceDir); err != nil {
+		ui.Warn("Could not reset sessions: %v", err)
+	}
+
+	// Finally, remove the skill directory itself.
+	if err := os.RemoveAll(targetDir); err != nil {
+		ui.Fatal("Could not remove skill directory: %v", err)
+	}
+	ui.Ok("Removed %s", targetDir)
+
+	fmt.Println()
+	ui.Ok("'%s' uninstalled", skillName)
+	ui.Info("Restart the gateway to apply: openclaw gateway restart")
 }
 
 // CmdStatus shows all installed skills with version and OAuth status.
@@ -846,54 +915,6 @@ func installBinDir() string {
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "bin")
-}
-
-// moveWorkspaceFiles moves IDENTITY.md and SOUL.md from the skill dir to
-// ~/.openclaw/workspace if they exist.
-func moveWorkspaceFiles(skillDir string) {
-	home, _ := os.UserHomeDir()
-	workspaceDir := filepath.Join(home, ".openclaw", "workspace")
-	files := []string{"IDENTITY.md", "SOUL.md"}
-	moved := false
-	for _, f := range files {
-		src := filepath.Join(skillDir, f)
-		if _, err := os.Stat(src); os.IsNotExist(err) {
-			continue
-		}
-		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-			ui.Warn("Could not create workspace dir: %v", err)
-			continue
-		}
-		dst := filepath.Join(workspaceDir, f)
-		if err := moveFile(src, dst); err != nil {
-			ui.Warn("Could not move %s to workspace: %v", f, err)
-			continue
-		}
-		ui.Ok("Moved %s → %s", f, dst)
-		moved = true
-	}
-	if moved {
-		ui.Info("Workspace files placed in %s", workspaceDir)
-	}
-}
-
-// moveFile moves src to dst, falling back to copy+delete if os.Rename fails
-// (e.g. cross-device on Linux, or dst already exists on Windows).
-func moveFile(src, dst string) error {
-	// Remove dst first so Windows rename doesn't fail on existing file.
-	os.Remove(dst)
-	if err := os.Rename(src, dst); err == nil {
-		return nil
-	}
-	// Fallback: copy then delete (handles cross-device / cross-drive moves).
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(dst, data, 0644); err != nil {
-		return err
-	}
-	return os.Remove(src)
 }
 
 // findPython returns the path to a Python 3 interpreter.

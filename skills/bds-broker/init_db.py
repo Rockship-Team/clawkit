@@ -43,7 +43,6 @@ def init_db():
             scheduled_at TEXT,
             status TEXT DEFAULT 'scheduled',
             note TEXT,
-            gcal_event_id TEXT,
             created_at TEXT NOT NULL,
             FOREIGN KEY (listing_id) REFERENCES listings(id)
         )
@@ -56,6 +55,7 @@ def init_db():
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
             print(f"Migrated: {table}.{column} added")
 
+    # Core columns (v1)
     add_column_if_missing("listings", "bathrooms", "INTEGER DEFAULT 0")
     add_column_if_missing("listings", "floor", "INTEGER DEFAULT 0")
     add_column_if_missing("listings", "certificate", "TEXT")
@@ -63,9 +63,45 @@ def init_db():
     add_column_if_missing("listings", "legal_note", "TEXT")
     add_column_if_missing("listings", "sale_type", "TEXT DEFAULT 'primary'")
     add_column_if_missing("listings", "images", "TEXT")
-    add_column_if_missing("appointments", "gcal_event_id", "TEXT")
+
+    # Extended metadata columns (v2)
+    add_column_if_missing("listings", "source", "TEXT")
+    add_column_if_missing("listings", "source_id", "TEXT")
+    add_column_if_missing("listings", "url", "TEXT")
+    add_column_if_missing("listings", "price_raw", "INTEGER DEFAULT 0")
+    add_column_if_missing("listings", "tower", "TEXT")
+    add_column_if_missing("listings", "project_name", "TEXT")
+    add_column_if_missing("listings", "developer", "TEXT")
+    add_column_if_missing("listings", "amenities", "TEXT")
+    add_column_if_missing("listings", "bank_appraisal", "TEXT")
+    add_column_if_missing("listings", "bank_support_pct", "TEXT")
+    add_column_if_missing("listings", "interest_rate", "TEXT")
+    add_column_if_missing("listings", "supported_banks", "TEXT")
+    add_column_if_missing("listings", "handover_date", "TEXT")
+    add_column_if_missing("listings", "payment_schedule", "TEXT")
+    add_column_if_missing("listings", "deposit", "TEXT")
+    add_column_if_missing("listings", "furniture", "TEXT")
+    add_column_if_missing("listings", "structure", "TEXT")
+    add_column_if_missing("listings", "road_info", "TEXT")
+    add_column_if_missing("listings", "notes", "TEXT")
+    add_column_if_missing("listings", "image_folder", "TEXT")
+    add_column_if_missing("listings", "image_count", "INTEGER DEFAULT 0")
+    add_column_if_missing("listings", "crawled_at", "TEXT")
+
+    # Appointments columns (v1-v2)
     add_column_if_missing("appointments", "listing_title", "TEXT")
     add_column_if_missing("appointments", "customer_contact", "TEXT")
+
+    # Conversations table — tracks last activity per Telegram chat for follow-up cron
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            chat_id TEXT PRIMARY KEY,
+            last_message_at TEXT NOT NULL,
+            follow_up_sent_at TEXT,
+            follow_up_count INTEGER DEFAULT 0,
+            stage TEXT DEFAULT 'new'
+        )
+    """)
 
     conn.commit()
     conn.close()

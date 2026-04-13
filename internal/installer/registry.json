@@ -4,9 +4,6 @@
       "version": "3.0.0",
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
       "requires_oauth": null,
-      "requires_skills": [
-        "gog"
-      ],
       "setup_prompts": [
         {
           "key": "agent_name",

@@ -18,7 +18,7 @@ import (
 	"io/fs"
 )
 
-//go:embed all:ecommerce all:utilities all:tools
+//go:embed all:ecommerce all:utilities all:tools all:consulting
 var FS embed.FS
 
 // FindSkill searches the embedded FS for a skill by name across all verticals.

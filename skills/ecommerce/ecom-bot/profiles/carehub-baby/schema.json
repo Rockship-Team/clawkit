@@ -1,0 +1,14 @@
+{
+  "extend": true,
+  "images_dir": "products",
+  "tables": {
+    "orders": {
+      "fields": [
+        {"name": "quantity", "type": "integer"},
+        {"name": "baby_age", "type": "text"},
+        {"name": "payment_status", "type": "text", "default": "unpaid"},
+        {"name": "deposit_amount", "type": "integer", "default": "0"}
+      ]
+    }
+  }
+}

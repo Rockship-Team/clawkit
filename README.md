@@ -20,10 +20,10 @@ Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [
 ## Quick Start
 
 ```bash
-clawkit list                              # See available skills
-clawkit install shop-hoa                  # Install a skill
-clawkit install ecom-bot --profile bakery # Install with a domain profile
-clawkit status                            # Check installed skills
+clawkit list                                    # See available skills
+clawkit install ecom-bot --profile shop-hoa     # Install with a domain profile
+clawkit install ecom-bot --profile carehub-baby # Same skill, different domain
+clawkit status                                  # Check installed skills
 ```
 
 ---

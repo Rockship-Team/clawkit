@@ -1,11 +1,9 @@
 {
   "skills": {
-    "carehub-baby": {
-      "version": "2.0.0",
-      "description": "Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo",
-      "requires_oauth": [
-        "zalo_personal"
-      ],
+    "ecom-bot": {
+      "version": "1.0.0",
+      "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
+      "requires_oauth": null,
       "setup_prompts": []
     },
     "finance-tracker": {
@@ -23,12 +21,6 @@
       "requires_bins": [
         "gog"
       ],
-      "setup_prompts": []
-    },
-    "shop-hoa": {
-      "version": "3.1.0",
-      "description": "Bot bán hoa cho OpenClaw — tư vấn, báo giá, gửi ảnh sản phẩm trực tiếp qua Telegram API, chốt đơn, tra cứu đơn hàng theo từng khách. Chạy trên Telegram (primary), không cần OAuth. Dùng Node.js thao tác dữ liệu và upload ảnh qua curl.",
-      "requires_oauth": null,
       "setup_prompts": []
     }
   }

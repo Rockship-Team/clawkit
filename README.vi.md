@@ -66,7 +66,6 @@ clawkit status
 | Skill | Mô tả |
 |-------|-------|
 | `shop-hoa` | Bot bán hoa cho OpenClaw web chat / TUI — tư vấn, báo giá, gửi ảnh, chốt đơn, tra cứu đơn hàng |
-| `carehub-baby` | Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo |
 | `gog` | Trợ lý Google Workspace — Gmail, Calendar, Drive, Contacts |
 
 ---

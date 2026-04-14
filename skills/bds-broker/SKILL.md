@@ -8,6 +8,9 @@ setup_prompts:
   - key: agent_name
     label: "Tên nhân viên tư vấn"
     placeholder: "BDS"
+  - key: admin_telegram_ids
+    label: "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)"
+    placeholder: "123456789,987654321"
 metadata: {"openclaw":{"emoji":"🏠"}}
 ---
 
@@ -70,66 +73,9 @@ KHÔNG BAO GIỜ dùng các từ kỹ thuật sau khi nói chuyện với khách
 
 ---
 
-## BƯỚC 0 — CẬP NHẬT HOẠT ĐỘNG KHÁCH
-
-**Chạy ngay khi nhận bất kỳ tin nhắn nào từ khách** (trước khi trả lời). Lấy `chat_id` và cập nhật thời gian hoạt động để cron follow-up hoạt động đúng:
-
-```bash
-python3 -c "
-import json, sqlite3, os
-from datetime import datetime, timezone, timedelta
-
-# Đọc chat_id từ sessions OpenClaw (không dùng getUpdates vì bot dùng webhook)
-SESSIONS = os.path.expanduser('~/.openclaw/agents/main/sessions/sessions.json')
-chat_id = None
-try:
-    data = json.loads(open(SESSIONS).read())
-    # Tìm session telegram:direct gần nhất
-    tg_sessions = [(k, v) for k, v in data.items() if 'telegram:direct:' in k]
-    if tg_sessions:
-        # Lấy session mới nhất theo updatedAt
-        latest = max(tg_sessions, key=lambda x: x[1].get('updatedAt', 0))
-        chat_id = latest[0].split('telegram:direct:')[-1]
-except Exception as e:
-    print(f'ERR: {e}')
-
-if not chat_id:
-    print('NO_CHAT_ID')
-else:
-    VN = timezone(timedelta(hours=7))
-    now = datetime.now(VN).isoformat()
-    DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
-    conn = sqlite3.connect(DB)
-    conn.execute('''INSERT INTO conversations (chat_id, last_message_at, follow_up_count, stage)
-        VALUES (?,?,0,'new')
-        ON CONFLICT(chat_id) DO UPDATE SET last_message_at=?, follow_up_count=0''',
-        (chat_id, now, now))
-    conn.commit()
-    conn.close()
-    print(chat_id)
-"
-```
-
-Lưu `chat_id` này để dùng lại ở Bước 4 (gửi ảnh), không cần chạy lại getUpdates.
-
----
-
 ## BƯỚC 1 — KHẢO SÁT NHU CẦU
 
-Chào khách và hỏi từng câu (không hỏi dồn). **Ngay khi khách trả lời câu đầu tiên**, cập nhật stage để follow-up cron biết cuộc hội thoại đang active:
-
-```bash
-python3 -c "
-import sqlite3, os
-DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
-conn = sqlite3.connect(DB)
-conn.execute('UPDATE conversations SET stage=? WHERE chat_id=?', ('consulting', 'CHAT_ID'))
-conn.commit()
-conn.close()
-"
-```
-
-(Thay `CHAT_ID` bằng chat_id lấy ở Bước 0.)
+Chào khách và hỏi từng câu (không hỏi dồn).
 
 1. Mục đích: mua hay thuê?
 2. Loại BDS: căn hộ / nhà phố / đất nền / biệt thự / mặt bằng kinh doanh?
@@ -142,41 +88,60 @@ conn.close()
 
 ## BƯỚC 2 — LỌC SẢN PHẨM PHÙ HỢP
 
-Sau khi có đủ thông tin, query database để tìm sản phẩm:
+Sau khi có đủ thông tin, quét thư mục `du-an/` để tìm sản phẩm phù hợp:
 
 ```bash
 python3 -c "
-import sys, sqlite3, os
+import sys, os, re
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
-conn = sqlite3.connect(DB)
-conn.row_factory = sqlite3.Row
+BASE = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/du-an')
 
-# Build location filter: khách có thể gõ 'Quận 1', 'Q1', 'Bình Thạnh', 'Go Vap'...
-# Dùng nhiều LIKE để khớp cả tên đầy đủ lẫn viết tắt trong cột location/address
-location_kw = 'LOCATION'  # e.g. 'Bình Thạnh', 'Quận 1', 'Thủ Đức'
-loc_filter = '1=1'
-if location_kw and location_kw != 'LOCATION':
-    loc_filter = \"(location LIKE '%\" + location_kw + \"%' OR address LIKE '%\" + location_kw + \"%')\"
+def parse_front(text):
+    m = re.match(r'^---\s*\n(.*?)\n---', text, re.DOTALL)
+    if not m: return {}
+    d = {}
+    for line in m.group(1).splitlines():
+        if ':' in line:
+            k, _, v = line.partition(':')
+            d[k.strip()] = v.strip().strip('\"')
+    return d
 
-rows = conn.execute(f'''SELECT * FROM listings
-WHERE status='available'
-AND (property_type LIKE '%PROPERTY_TYPE%' OR 'PROPERTY_TYPE'='')
-AND {loc_filter}
-AND price >= BUDGET_MIN AND price <= BUDGET_MAX
-ORDER BY price ASC LIMIT 5''').fetchall()
-for r in rows:
-    d = dict(r)
-    print(f\"#{d['id']} | {d['title']} | {d['location']} | {d['area']}m2 | {d['price']:,}tr | {d.get('bedrooms',0)}PN | {d['legal_status']}\")
-if not rows: print('KHONG_CO_SAN_PHAM')
-conn.close()
+property_type = 'PROPERTY_TYPE'
+location_kw   = 'LOCATION'
+budget_min    = BUDGET_MIN
+budget_max    = BUDGET_MAX
+
+results = []
+for loai in os.listdir(BASE):
+    loai_dir = os.path.join(BASE, loai)
+    if not os.path.isdir(loai_dir): continue
+    for pid in os.listdir(loai_dir):
+        pid_dir = os.path.join(loai_dir, pid)
+        chi_tiet = os.path.join(pid_dir, 'chi-tiet.md')
+        if not os.path.isfile(chi_tiet): continue
+        d = parse_front(open(chi_tiet, encoding='utf-8').read())
+        if d.get('trang_thai','con_hang') not in ('con_hang',''):  continue
+        if property_type and property_type != 'PROPERTY_TYPE':
+            if property_type.lower() not in (d.get('loai_bds','') + d.get('ten','')).lower(): continue
+        if location_kw and location_kw != 'LOCATION':
+            if location_kw.lower() not in (d.get('vi_tri','') + d.get('dia_chi','')).lower(): continue
+        gia = int(d.get('gia', 0) or 0)
+        if gia < budget_min or gia > budget_max: continue
+        results.append((gia, loai, pid, d))
+
+results.sort(key=lambda x: x[0])
+for gia, loai, pid, d in results[:5]:
+    print(f\"{loai}/{pid} | {d.get('ten','')} | {d.get('vi_tri','')} | {d.get('dien_tich','')}m2 | {gia:,}tr | {d.get('so_phong_ngu',0)}PN | {d.get('phap_ly','')}\")
+if not results: print('KHONG_CO_SAN_PHAM')
 "
 ```
 
 Thay:
-- `PROPERTY_TYPE`: loại BDS (căn hộ chung cư / nhà phố / đất nền...) hoặc để trống `''`
-- `LOCATION`: tên quận/huyện khách yêu cầu (Quận 1, Bình Thạnh, Thủ Đức...) hoặc để `''` để tìm toàn TP
+- `PROPERTY_TYPE`: loại BDS (căn hộ chung cư / nhà phố...) hoặc `''` để bỏ qua lọc
+- `LOCATION`: tên quận/huyện khách yêu cầu hoặc `''` để tìm toàn TP
 - `BUDGET_MIN`, `BUDGET_MAX`: đơn vị triệu VND (ví dụ 3000 = 3 tỷ)
+
+Kết quả trả về dạng `<loai-bds>/<id>` — dùng làm `LISTING_PATH` ở BƯỚC 3.
 
 Nếu kết quả `KHONG_CO_SAN_PHAM`, thông báo thật lòng với khách: "Dạ hiện tại mình chưa có sản phẩm phù hợp với tiêu chí này ạ. Anh/chị có muốn điều chỉnh ngân sách hoặc khu vực để mình tìm lại không?"
 
@@ -186,33 +151,23 @@ Giới thiệu tối đa **3 sản phẩm** phù hợp nhất. Mỗi sản phẩ
 
 ## BƯỚC 3 — GỬI THÔNG TIN DỰ ÁN
 
-Khi khách quan tâm một sản phẩm cụ thể, lấy chi tiết đầy đủ:
+Khi khách quan tâm một sản phẩm cụ thể (`LISTING_PATH` = `<loai-bds>/<id>` từ BƯỚC 2):
 
 ```bash
 python3 -c "
-import sys, sqlite3, os
+import sys, os
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
-conn = sqlite3.connect(DB)
-conn.row_factory = sqlite3.Row
-r = conn.execute('SELECT * FROM listings WHERE id=?', (LISTING_ID,)).fetchone()
-if r:
-    d = dict(r)
-    print(f\"Tên: {d['title']}\")
-    print(f\"Địa chỉ: {d['address']}\")
-    print(f\"Loại: {d['property_type']}\")
-    print(f\"Diện tích: {d['area']}m2\")
-    print(f\"Giá: {d['price']:,} triệu VND\")
-    print(f\"Phòng ngủ: {d.get('bedrooms',0)}\")
-    print(f\"Hướng: {d.get('direction','')}\")
-    print(f\"Pháp lý: {d['legal_status']}\")
-    print(f\"Mô tả: {d.get('description','')}\")
-    print(f\"image_folder: {d.get('image_folder','')}\")
-conn.close()
+BASE = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/du-an')
+path = os.path.join(BASE, 'LISTING_PATH', 'chi-tiet.md')
+if os.path.isfile(path):
+    print(open(path, encoding='utf-8').read())
+    print(f'thu_muc_anh: LISTING_PATH')
+else:
+    print('KHONG_TIM_THAY')
 "
 ```
 
-Trình bày thông tin dự án đẹp, có markdown, kèm highlight điểm nổi bật.
+Trình bày thông tin dự án đẹp, có markdown, kèm highlight điểm nổi bật. Dùng toàn bộ nội dung `chi-tiet.md` (phân khu, tiến độ, lịch thanh toán...). Ghi nhớ `thu_muc_anh = LISTING_PATH` để dùng ở BƯỚC 4.
 
 ---
 
@@ -238,13 +193,16 @@ except Exception as e:
 "
 ```
 
-**Bước 4b** — Upload từng ảnh lên Telegram (thay `IMAGE_FOLDER` bằng `image_folder` từ BƯỚC 3, thay `CHAT_ID` bằng output Bước 4a):
+**Bước 4b** — Upload ảnh từ thư mục `du-an/IMAGE_FOLDER/SUBFOLDER/` lên Telegram:
+- `IMAGE_FOLDER`: giá trị `thu_muc_anh` từ BƯỚC 3 (dạng `<loai-bds>/<id>`, ví dụ `can-ho-chung-cu/3`)
+- `SUBFOLDER`: mặc định dùng `hinh-anh`; nếu khách hỏi tiện ích → `tien-ich`; sân vườn → `san-vuon`; lịch thanh toán → `lich-thanh-toan`; thông tin tổng quan → `thong-tin`
+
 ```bash
 python3 -c "
-import os, urllib.request
+import os, subprocess
 token = '8623915046:AAFbs_UKB7YvqToEnovOKxz_uZOUIBzdFBQ'
 chat_id = 'CHAT_ID'
-folder = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/listings/IMAGE_FOLDER')
+folder = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/du-an/IMAGE_FOLDER/SUBFOLDER')
 if not os.path.isdir(folder):
     print('NO_IMAGES')
 else:
@@ -252,7 +210,6 @@ else:
     if not files:
         print('NO_IMAGES')
     else:
-        import subprocess
         for f in files:
             path = os.path.join(folder, f)
             result = subprocess.run([
@@ -293,9 +250,9 @@ from datetime import datetime, timezone, timedelta
 VN = timezone(timedelta(hours=7))
 DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
 conn = sqlite3.connect(DB)
-conn.execute('''INSERT INTO appointments (customer_name, customer_contact, listing_id, listing_title, scheduled_at, note, created_at)
-VALUES (?,?,?,?,?,?,?)''',
-('CUSTOMER_NAME','CUSTOMER_CONTACT',LISTING_ID,'LISTING_TITLE','SCHEDULED_DATETIME','NOTE',datetime.now(VN).isoformat()))
+conn.execute('''INSERT INTO \"lich-hen\" (ten_khach, lien_he_khach, du_an_id, ten_du_an, thu_muc_anh, thoi_gian_hen, ghi_chu, created_at)
+VALUES (?,?,?,?,?,?,?,?)''',
+('CUSTOMER_NAME','CUSTOMER_CONTACT','LISTING_PATH','LISTING_TITLE','LISTING_PATH','SCHEDULED_DATETIME','NOTE',datetime.now(VN).isoformat()))
 conn.commit()
 aid = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 conn.close()
@@ -327,10 +284,10 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
 conn = sqlite3.connect(DB)
 conn.row_factory = sqlite3.Row
-rows = conn.execute('SELECT * FROM appointments WHERE customer_contact LIKE ? OR customer_name LIKE ? ORDER BY scheduled_at DESC LIMIT 5', ('%KEYWORD%','%KEYWORD%')).fetchall()
+rows = conn.execute('SELECT * FROM \"lich-hen\" WHERE lien_he_khach LIKE ? OR ten_khach LIKE ? ORDER BY thoi_gian_hen DESC LIMIT 5', ('%KEYWORD%','%KEYWORD%')).fetchall()
 for r in rows:
     d = dict(r)
-    print(f\"Lịch #{d['id']}: {d['listing_title']} | {d['scheduled_at']} | {d['status']}\")
+    print(f\"Lịch #{d['id']}: {d['ten_du_an']} | {d['thoi_gian_hen']} | {d['trang_thai']}\")
 if not rows: print('Chưa có lịch xem')
 conn.close()
 "
@@ -340,27 +297,55 @@ conn.close()
 
 ## QUẢN LÝ — LỆNH CHỦ
 
-Nhận dạng chủ khi tin nhắn bắt đầu bằng `/admin`:
+### Xác thực
+
+Danh sách Telegram User ID được phép dùng `/admin`: `{adminTelegramIds}`
+
+**Trên Telegram DM, `chat_id` chính là `user_id` của người gửi.** OpenClaw truyền `chat_id` vào context mỗi tin nhắn — đây là ID dùng để xác thực.
+
+**Kiểm tra mỗi lệnh `/admin`:**
+1. Lấy `chat_id` của người gửi từ context hiện tại (đã có sẵn từ BƯỚC 4a hoặc lấy lại bằng script tương tự)
+2. Kiểm tra xem `chat_id` đó có nằm trong `{adminTelegramIds}` không (so sánh string sau khi split bằng dấu phẩy, trim khoảng trắng)
+3. **Nếu có** → thực hiện lệnh
+4. **Nếu không** → im lặng hoàn toàn, không reply gì (tránh lộ bot có chức năng admin)
+
+> Lưu ý: Kiểm tra này thực hiện trong context AI, không cần chạy script thêm nếu đã có `chat_id` từ trước trong hội thoại.
+
+---
 
 **Xem lịch:**
-- "lich hom nay" → `WHERE date(scheduled_at)=date('now','localtime') AND status!='cancelled'`
-- "lich tuan nay" → `WHERE scheduled_at BETWEEN ... AND ...`
-- "xac nhan lich #id" → `UPDATE appointments SET status='confirmed' WHERE id=?`
-- "huy lich #id" → `UPDATE appointments SET status='cancelled' WHERE id=?`
+- "lich hom nay" → `WHERE date(thoi_gian_hen)=date('now','localtime') AND trang_thai!='da_huy'`
+- "lich tuan nay" → `WHERE thoi_gian_hen BETWEEN ... AND ...`
+- "xac nhan lich #id" → `UPDATE "lich-hen" SET trang_thai='da_xac_nhan' WHERE id=?`
+- "huy lich #id" → `UPDATE "lich-hen" SET trang_thai='da_huy' WHERE id=?`
 
 **Sản phẩm:**
 - "them bds" → Hỏi từng thông tin (xem THÊM SẢN PHẨM bên dưới)
-- "san pham kha dung" → `SELECT * FROM listings WHERE status='available'`
-- "cap nhat gia #id GIA" → `UPDATE listings SET price=GIA WHERE id=?`
-- "an bds #id" → `UPDATE listings SET status='hidden' WHERE id=?`
+- "san pham kha dung" → Quét `du-an/*/` và lọc `trang_thai: con_hang` từ `chi-tiet.md`
+- "cap nhat gia LISTING_PATH GIA" → Sửa trường `gia:` trong `du-an/LISTING_PATH/chi-tiet.md`
+- "an bds LISTING_PATH" → Sửa `trang_thai: an` trong `du-an/LISTING_PATH/chi-tiet.md`
 
 ---
 
 ## THÊM SẢN PHẨM MỚI (`/admin them bds`)
 
+**Bảng ánh xạ loại BDS → tên thư mục:**
+| Loại | Thư mục |
+|---|---|
+| căn hộ chung cư | can-ho-chung-cu |
+| biệt thự liền kề | biet-thu-lien-ke |
+| nhà mặt phố | nha-mat-pho |
+| nhà ở xã hội | nha-o-xa-hoi |
+| shophouse | shophouse |
+| cao ốc văn phòng | cao-oc-van-phong |
+| khu công nghiệp | khu-cong-nghiep |
+| khu đô thị mới | khu-do-thi-moi |
+| khu nghỉ dưỡng sinh thái | khu-nghi-duong-sinh-thai |
+| trung tâm thương mại | trung-tam-thuong-mai |
+
 Hỏi lần lượt:
 1. Tiêu đề / tên dự án
-2. Loại: căn hộ / nhà phố / đất nền / biệt thự / mặt bằng
+2. Loại BDS (chọn từ bảng trên)
 3. Vị trí (quận/huyện, thành phố)
 4. Địa chỉ đầy đủ
 5. Diện tích (m²)
@@ -370,30 +355,55 @@ Hỏi lần lượt:
 9. Tình trạng pháp lý (sổ đỏ / sổ hồng / chưa có sổ)
 10. Mô tả ngắn điểm nổi bật
 
-Sau khi đủ thông tin, lưu DB:
+Sau khi đủ thông tin, tạo thư mục và file `chi-tiet.md`:
+
+**Bước 1** — Xác định `LISTING_ID` (số thứ tự tiếp theo trong thư mục `du-an/LOAI_FOLDER/`):
 ```bash
 python3 -c "
-import sqlite3, os
-from datetime import datetime, timezone, timedelta
-VN = timezone(timedelta(hours=7))
-DB = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/bds.db')
-conn = sqlite3.connect(DB)
-conn.execute('''INSERT INTO listings (title, property_type, location, address, area, price, bedrooms, direction, legal_status, description, status, created_at)
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
-('TITLE','PROPERTY_TYPE','LOCATION','ADDRESS',AREA,PRICE,BEDROOMS,'DIRECTION','LEGAL_STATUS','DESCRIPTION','available',datetime.now(VN).isoformat()))
-conn.commit()
-lid = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-conn.close()
-print(f'Listing #{lid} saved')
+import os
+BASE = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/du-an/LOAI_FOLDER')
+os.makedirs(BASE, exist_ok=True)
+existing = [int(d) for d in os.listdir(BASE) if d.isdigit()]
+print(max(existing, default=0) + 1)
 "
 ```
 
-Tạo thư mục ảnh:
+**Bước 2** — Tạo thư mục và `chi-tiet.md`:
 ```bash
-python3 -c "import os; os.makedirs(os.path.expanduser('~/.openclaw/workspace/skills/bds-broker/listings/LISTING_ID'), exist_ok=True); print('OK')"
+python3 -c "
+import os
+from datetime import datetime, timezone, timedelta
+VN = timezone(timedelta(hours=7))
+BASE = os.path.expanduser('~/.openclaw/workspace/skills/bds-broker')
+dst = f'{BASE}/du-an/LOAI_FOLDER/LISTING_ID'
+for sub in ['hinh-anh','tien-ich','san-vuon','lich-thanh-toan','thong-tin']:
+    os.makedirs(f'{dst}/{sub}', exist_ok=True)
+content = '''---
+ten: TITLE
+loai_bds: LOAI_BDS_VI
+vi_tri: LOCATION
+dia_chi: ADDRESS
+dien_tich: AREA
+gia: PRICE
+so_phong_ngu: BEDROOMS
+huong: DIRECTION
+phap_ly: LEGAL_STATUS
+trang_thai: con_hang
+loai_giao_dich: ban
+chu_dau_tu: 
+tien_ich: 
+ngay_ban_giao: 
+created_at: ''' + datetime.now(VN).isoformat() + '''
+---
+
+DESCRIPTION
+'''
+open(f'{dst}/chi-tiet.md', 'w', encoding='utf-8').write(content)
+print(f'OK: LOAI_FOLDER/LISTING_ID')
+"
 ```
 
-Thông báo: "Đã thêm **#LISTING_ID - TITLE** ✅ Gửi ảnh vào thư mục `listings/LISTING_ID/` để hiển thị cho khách ạ."
+Thông báo: "Đã thêm **LOAI_FOLDER/LISTING_ID - TITLE** ✅ Gửi ảnh vào thư mục `du-an/LOAI_FOLDER/LISTING_ID/hinh-anh/` để hiển thị cho khách ạ."
 
 ---
 
@@ -401,68 +411,33 @@ Thông báo: "Đã thêm **#LISTING_ID - TITLE** ✅ Gửi ảnh vào thư mục
 
 Đường dẫn: `~/.openclaw/workspace/skills/bds-broker/bds.db`
 
-Bảng **listings**: id, title, property_type, location, address, area (INT m²), price (INT triệu VND), bedrooms (INT), direction, legal_status, description, status (available/hidden/sold), created_at
-
-Bảng **appointments**: id, customer_name, customer_contact, listing_id, listing_title, scheduled_at, status (scheduled/confirmed/cancelled), note, created_at
+Bảng **lich-hen**: id, ten_khach, lien_he_khach, du_an_id (= LISTING_PATH dạng `<loai>/<id>`), ten_du_an, thu_muc_anh, thoi_gian_hen, trang_thai (cho_xac_nhan/da_xac_nhan/da_huy), ghi_chu, created_at
 
 Khởi tạo DB nếu chưa có: `python3 ~/.openclaw/workspace/skills/bds-broker/init_db.py`
 
 ---
 
-## FOLLOW-UP TỰ ĐỘNG (CRON JOB)
+## THƯ MỤC ẢNH
 
-Script `followup_cron.py` gửi tin nhắn hỏi lại khách nếu họ im lặng **1–5 phút** sau tin nhắn cuối.
+**Template (mẫu):** `~/.openclaw/workspace/skills/bds-broker/mau/<loai-bds>/`
+- Dùng làm skeleton khi tạo dự án mới, chứa cấu trúc thư mục và `chi-tiet.md` mẫu theo từng loại BDS.
+- Không chứa ảnh thật — chỉ là bản mẫu để copy.
 
-**Cài một lần sau khi cài skill** (chạy lệnh này trong terminal):
-```bash
-(crontab -l 2>/dev/null; echo "* * * * * python3 ~/.openclaw/workspace/skills/bds-broker/followup_cron.py >> ~/.openclaw/workspace/skills/bds-broker/followup.log 2>&1") | crontab -
-```
+**Dữ liệu thật:** `~/.openclaw/workspace/skills/bds-broker/du-an/<loai-bds>/<id>/`
+- `thu_muc_anh` trong DB lưu dạng `<loai-bds>/<id>` (ví dụ: `can-ho-chung-cu/3`)
+- Đường dẫn đầy đủ: `du-an/<thu_muc_anh>/<subfolder>/`
 
-**Kiểm tra cron đang chạy:**
-```bash
-crontab -l | grep bds-broker
-```
+Các thư mục con:
+- `hinh-anh/` — ảnh thực tế căn hộ/nhà (mặc định khi khách xin ảnh)
+- `tien-ich/` — ảnh tiện ích, khu vực chung
+- `san-vuon/` — ảnh sân vườn, ban công, không gian ngoài trời
+- `lich-thanh-toan/` — bảng lịch thanh toán, chính sách tài chính
+- `thong-tin/` — brochure, thông tin tổng quan dự án
 
-**Xem log follow-up:**
-```bash
-tail -20 ~/.openclaw/workspace/skills/bds-broker/followup.log
-```
-
-Cron chỉ gửi tối đa **2 lần** follow-up mỗi cuộc hội thoại. Khi khách nhắn lại, bộ đếm reset tự động (BƯỚC 0 cập nhật `follow_up_count=0`).
+`chi-tiet.md` tại root của thư mục dự án chứa thông tin chi tiết (phân khu, tiến độ, chủ đầu tư...). Định dạng Markdown — chỉnh sửa bằng bất kỳ text editor nào.
 
 ---
 
 ## DANH SÁCH SẢN PHẨM
 
-> Toàn bộ sản phẩm lưu trong `bds.db`. Dùng query ở BƯỚC 2 để lấy dữ liệu thực tế — KHÔNG dùng bộ nhớ hay đoán mò.
-
----
-
-## CRAWL DỮ LIỆU MỚI (`/admin crawl`)
-
-Script hỗ trợ tất cả quận/huyện TP.HCM:
-
-```bash
-# Crawl toàn TP.HCM (giá 3-5 tỷ)
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py
-
-# Crawl theo quận cụ thể
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Quận 1"
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Bình Thạnh"
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Gò Vấp"
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Thủ Đức"
-
-# Tùy chỉnh ngân sách và số lượng
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Quận 7" --price-min 5 --price-max 10 --limit 10
-```
-
-Quận hỗ trợ: Quận 1-12, Bình Chánh, Bình Tân, Bình Thạnh, Cần Giờ, Củ Chi, Gò Vấp, Hóc Môn, Nhà Bè, Phú Nhuận, Tân Bình, Tân Phú, Thủ Đức.
-
-Nguồn dữ liệu: nhatot.com (API), batdongsan.com.vn, mogi.vn, alonhadat.com.vn — crawl tuần tự, bổ sung nhau cho đủ số lượng.
-
-```bash
-# Chỉ crawl từ nguồn chọn
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --sources chotot,bds
-python3 ~/.openclaw/workspace/skills/bds-broker/crawl_bds.py --quan "Quận 7" --sources bds,mogi
-```
-
+> Toàn bộ sản phẩm lưu trong thư mục `du-an/<loai-bds>/<id>/chi-tiet.md`. Dùng script quét filesystem ở BƯỚC 2 để lấy dữ liệu thực tế — KHÔNG dùng bộ nhớ hay đoán mò.

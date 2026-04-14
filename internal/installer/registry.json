@@ -11,14 +11,6 @@
         }
       ]
     },
-    "carehub-baby": {
-      "version": "1.0.0",
-      "description": "Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo",
-      "requires_oauth": [
-        "zalo_personal"
-      ],
-      "setup_prompts": []
-    },
     "finance-tracker": {
       "version": "1.0.0",
       "description": "Chụp hóa đơn → AI phân loại chi tiêu → lưu Google Sheets → báo cáo tài chính cá nhân",

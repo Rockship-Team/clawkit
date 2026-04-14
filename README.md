@@ -66,7 +66,6 @@ clawkit status
 | Skill | Description |
 |-------|-------------|
 | `shop-hoa` | Flower shop assistant for OpenClaw web chat / TUI — consult, quote, send images, take orders, look up history |
-| `carehub-baby` | Blackmores baby nutrition consultant for CareHub via Zalo |
 | `gog` | Google Workspace assistant — Gmail, Calendar, Drive, Contacts |
 
 ---

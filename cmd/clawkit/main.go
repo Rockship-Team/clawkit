@@ -55,6 +55,17 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdPackage(os.Args[2])
+	case "dashboard":
+		port := 7432
+		for i, arg := range os.Args[2:] {
+			if arg == "--port" && i+1 < len(os.Args[2:]) {
+				if p, err := fmt.Sscan(os.Args[i+3], &port); p == 0 || err != nil {
+					fmt.Println("Usage: clawkit dashboard [--port <number>]")
+					os.Exit(1)
+				}
+			}
+		}
+		installer.CmdDashboard(port)
 	case "version", "--version", "-v":
 		fmt.Printf("clawkit v%s\n", version)
 	default:
@@ -75,6 +86,7 @@ Commands:
   install <skill>       Install a skill + run OAuth setup
   update  <skill>       Update an installed skill
   status                Show installed skills
+  dashboard             Start web dashboard (default port 7432)
   package <skill>       Package a skill for distribution (dev)
   version               Print version
 

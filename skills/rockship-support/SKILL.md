@@ -1,6 +1,8 @@
 ---
 name: rockship-support
 description: Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like "what is openclaw", "how do I get started", "which plan should I choose", "what has Rockship built before", or "my openclaw is not working".
+version: "1.0.0"
+requires_oauth: []
 ---
 
 # Vai trò

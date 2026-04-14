@@ -3,7 +3,6 @@ name: ecom-bot
 description: Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.
 version: "1.0.0"
 requires_oauth: []
-setup_prompts: []
 metadata: {"openclaw":{"emoji":"🛒"}}
 ---
 

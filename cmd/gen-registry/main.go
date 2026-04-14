@@ -21,30 +21,21 @@ import (
 
 // SkillFrontmatter mirrors the YAML frontmatter in SKILL.md.
 type SkillFrontmatter struct {
-	Name           string        `json:"name"`
-	Description    string        `json:"description"`
-	Version        string        `json:"version"`
-	RequiresOAuth  []string      `json:"requires_oauth"`
-	RequiresBins   []string      `json:"requires_bins"`
-	RequiresSkills []string      `json:"requires_skills"`
-	SetupPrompts   []SetupPrompt `json:"setup_prompts"`
-}
-
-// SetupPrompt defines a setup question asked during installation.
-type SetupPrompt struct {
-	Key     string `json:"key"`
-	Label   string `json:"label"`
-	Default string `json:"default,omitempty"`
+	Name           string   `json:"name"`
+	Description    string   `json:"description"`
+	Version        string   `json:"version"`
+	RequiresOAuth  []string `json:"requires_oauth"`
+	RequiresBins   []string `json:"requires_bins"`
+	RequiresSkills []string `json:"requires_skills"`
 }
 
 // RegistrySkill is the per-skill entry in registry.json.
 type RegistrySkill struct {
-	Version        string        `json:"version"`
-	Description    string        `json:"description"`
-	RequiresOAuth  []string      `json:"requires_oauth"`
-	RequiresBins   []string      `json:"requires_bins,omitempty"`
-	RequiresSkills []string      `json:"requires_skills,omitempty"`
-	SetupPrompts   []SetupPrompt `json:"setup_prompts"`
+	Version        string   `json:"version"`
+	Description    string   `json:"description"`
+	RequiresOAuth  []string `json:"requires_oauth"`
+	RequiresBins   []string `json:"requires_bins,omitempty"`
+	RequiresSkills []string `json:"requires_skills,omitempty"`
 }
 
 // Registry is the top-level structure of registry.json.
@@ -75,7 +66,6 @@ func main() {
 			RequiresOAuth:  s.RequiresOAuth,
 			RequiresBins:   s.RequiresBins,
 			RequiresSkills: s.RequiresSkills,
-			SetupPrompts:   s.SetupPrompts,
 		}
 	}
 
@@ -179,27 +169,6 @@ func parseFrontmatter(path, dirName string) (SkillFrontmatter, error) {
 			fm.RequiresBins, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
 		} else if strings.HasPrefix(line, "requires_skills:") {
 			fm.RequiresSkills, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
-		} else if strings.HasPrefix(line, "setup_prompts:") {
-			inline := trimYAMLValue(line)
-			if inline == "[]" {
-				fm.SetupPrompts = []SetupPrompt{}
-				continue
-			}
-			// Block list of objects
-			fm.SetupPrompts = []SetupPrompt{}
-			for i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - ") {
-				i++
-				prompt := SetupPrompt{}
-				// First line: "  - key: value"
-				first := strings.TrimPrefix(lines[i], "  - ")
-				parsePromptField(&prompt, first)
-				// Subsequent lines: "    label: value", "    default: value"
-				for i+1 < len(lines) && strings.HasPrefix(lines[i+1], "    ") && !strings.HasPrefix(lines[i+1], "  - ") {
-					i++
-					parsePromptField(&prompt, strings.TrimSpace(lines[i]))
-				}
-				fm.SetupPrompts = append(fm.SetupPrompts, prompt)
-			}
 		}
 	}
 
@@ -237,16 +206,6 @@ func parseYAMLStringList(lines []string, i int, inline string) ([]string, int) {
 		}
 	}
 	return result, i
-}
-
-func parsePromptField(p *SetupPrompt, field string) {
-	if strings.HasPrefix(field, "key:") {
-		p.Key = trimYAMLValue(field)
-	} else if strings.HasPrefix(field, "label:") {
-		p.Label = trimYAMLValue(field)
-	} else if strings.HasPrefix(field, "default:") {
-		p.Default = trimYAMLValue(field)
-	}
 }
 
 // trimYAMLValue extracts the value after "key: value", handling quoted strings.

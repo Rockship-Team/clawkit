@@ -3,14 +3,12 @@
     "ecom-bot": {
       "version": "1.0.0",
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
-      "requires_oauth": null,
-      "setup_prompts": []
+      "requires_oauth": null
     },
     "finance-tracker": {
       "version": "2.0.0",
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.",
-      "requires_oauth": null,
-      "setup_prompts": []
+      "requires_oauth": null
     },
     "gog": {
       "version": "1.0.0",
@@ -20,8 +18,7 @@
       ],
       "requires_bins": [
         "gog"
-      ],
-      "setup_prompts": []
+      ]
     }
   }
 }

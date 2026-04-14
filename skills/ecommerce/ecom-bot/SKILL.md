@@ -68,6 +68,9 @@ QUY TAC KHI GOI EXEC:
 
 ## Gui anh san pham
 
+TUYET DOI KHONG dung image generation (AI tao anh). Chi gui anh THAT tu thu muc san pham.
+KHONG dung tool `image`, `canvas`, hay bat ky tool tao anh nao. Chi dung `exec` voi cli.js.
+
 {image_instructions}
 
 ## Tra cuu don hang

@@ -95,7 +95,7 @@ Bước 5: CHỈ chốt đơn khi khách GỬI TIN NHẮN MỚI xác nhận (ví
 
 **5a. TRƯỚC TIÊN, gọi tool `exec` để lưu đơn.** Đây là BƯỚC ĐẦU TIÊN khi khách xác nhận. KHÔNG reply text trước. KHÔNG nói "đã lưu" trước khi gọi tool. Phải GỌI TOOL TRƯỚC.
 
-**5b. SAU KHI tool `exec` trả về `{"ok":true,"order":{"id":N,...}}`**, và CHỈ sau đó, mới reply khách câu chốt đơn có ghi rõ số đơn `#N` và kết thúc bằng "Cảm ơn bạn đã đặt hàng!".
+**5b. SAU KHI tool `exec` trả về `{"ok":true,"record":{"id":N,...}}`**, và CHỈ sau đó, mới reply khách câu chốt đơn có ghi rõ số đơn `#N` và kết thúc bằng "Cảm ơn bạn đã đặt hàng!".
 
 Nếu tool `exec` trả về `{"ok":false,...}` hoặc lỗi → báo khách có vấn đề, KHÔNG được giả vờ đã lưu.
 
@@ -129,7 +129,7 @@ Ví dụ thực tế (khách có `sender_id: "2006815602"`):
 node skills/shop-hoa/cli.js add "Chị Mai" "Nguyễn Thị Hồng" "0912345678" "456/12 Nguyễn Trãi Q.1 TP.HCM" "Hồng đỏ 20 bông" 350000 "14h chiều mai" "" "2006815602"
 ```
 
-Kết quả thành công: `{"ok":true,"order":{"id":1,"status":"new",...}}`. Lưu thành công thì có field `id`.
+Kết quả thành công: `{"ok":true,"record":{"id":1,"status":"new",...}}`. Lưu thành công thì có field `id`.
 
 NHẮC LẠI: Khi chốt đơn, PHẢI gọi `exec` 1 lần để lưu đơn. Chỉ reply text mà không gọi `exec` = ĐƠN HÀNG BỊ MẤT.
 
@@ -252,7 +252,7 @@ Filter options (giống `list` nhưng luôn bị restrict theo sender_id trướ
 
 Kết quả JSON:
 ```json
-{"ok":true,"scope":"customer","sender_id":"2006815602","filter":"recent","count":N,"orders":[...]}
+{"ok":true,"scope":"customer","sender_id":"2006815602","filter":"recent","count":N,"records":[...]}
 ```
 
 Nếu `count === 0`, reply: "Dạ mình không tìm thấy đơn nào của bạn trong hệ thống ạ. Có thể bạn chưa từng đặt đơn, hoặc đơn được đặt từ tài khoản khác." KHÔNG được fallback sang `list` trần để kiếm đơn "gần giống".
@@ -289,10 +289,10 @@ Các lệnh sau dành cho **chủ shop**, không được gọi khi đang phục
 
 ## Database
 
-- File: `skills/shop-hoa/orders.json` (tương đối từ workspace dir; thực tế nằm trong thư mục cài đặt của skill, `cli.js` tự resolve qua `os.homedir()` nên chạy đồng nhất trên macOS, Linux, Windows).
-- Format: JSON array of order objects
-- Fields mỗi order: `id` (auto increment), `status` (`new`|`completed`|`cancelled`), `customer_name`, `recipient_name`, `recipient_phone`, `recipient_address`, `items`, `price` (số nguyên VND), `delivery_time`, `note`, `created_at` (ISO 8601 giờ VN +07:00)
-- `cli.js` tự tạo file rỗng `[]` ở lần gọi đầu — không cần chạy init.
+- Schema: `skills/shop-hoa/schema.json` — defines table structure, field types, and roles.
+- File: `skills/shop-hoa/orders.json` — JSON array of order objects, created automatically at install.
+- Fields: defined in schema.json. `cli.js` reads schema.json at runtime for field names, validation, and command behavior.
+- `cli.js` is generic and schema-driven — do not hardcode field names in it.
 
 ## Quy tắc về đường dẫn (CROSS-PLATFORM)
 

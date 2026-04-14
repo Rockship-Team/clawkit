@@ -1,0 +1,48 @@
+{
+  "tables": {
+    "enrollments": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "course_id", "type": "integer", "ref": "courses"},
+        {"name": "contact_id", "type": "integer", "ref": "contacts"},
+        {"name": "status", "type": "text", "default": "pending", "role": "status"},
+        {"name": "progress_pct", "type": "integer", "default": "0"},
+        {"name": "enrolled_at", "type": "text", "auto": "timestamp", "role": "timestamp"},
+        {"name": "completed_at", "type": "text"},
+        {"name": "certificate_url", "type": "text"}
+      ],
+      "statuses": ["pending", "active", "completed", "dropped"]
+    },
+    "courses": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "title", "type": "text", "required": true},
+        {"name": "category", "type": "text"},
+        {"name": "level", "type": "text"},
+        {"name": "format", "type": "text"},
+        {"name": "description", "type": "text"},
+        {"name": "price", "type": "integer", "role": "price"},
+        {"name": "duration_hours", "type": "integer"},
+        {"name": "max_students", "type": "integer"},
+        {"name": "instructor", "type": "text"},
+        {"name": "status", "type": "text", "default": "draft", "role": "status"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ],
+      "statuses": ["draft", "published", "archived"]
+    },
+    "contacts": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "full_name", "type": "text", "required": true},
+        {"name": "phone", "type": "text"},
+        {"name": "email", "type": "text"},
+        {"name": "source", "type": "text"},
+        {"name": "status", "type": "text", "default": "lead", "role": "status"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ],
+      "statuses": ["lead", "prospect", "student", "alumni"]
+    }
+  },
+  "primary": "enrollments",
+  "timezone": "Asia/Ho_Chi_Minh"
+}

@@ -1,73 +1,30 @@
 # clawkit
 
-The official CLI for installing and managing [OpenClaw](https://docs.openclaw.ai) skills.
+CLI skill manager for [OpenClaw](https://docs.openclaw.ai) AI agents. Install, configure, and manage AI skills with one command.
 
 ```bash
 npm install -g @rockship/clawkit
 ```
 
-Built by [Rockship](https://rockship.co) · [Tiếng Việt](./README.vi.md)
+Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [Templates](./templates/README.md)
 
 ---
 
 ## Requirements
 
-**Node.js 16 or higher** is required. If you don't have it:
-
-- **Download:** [nodejs.org](https://nodejs.org) — install the LTS version
-- **macOS (Homebrew):** `brew install node`
-- **Windows (winget):** `winget install OpenJS.NodeJS.LTS`
-- **Linux:** `sudo apt install nodejs npm` or use [nvm](https://github.com/nvm-sh/nvm)
-
-Verify your installation:
-
-```bash
-node --version   # should be v16 or higher
-npm --version
-```
-
-**OpenClaw** must also be installed and running on your machine. See the [OpenClaw install guide](https://docs.openclaw.ai/installation).
-
----
-
-## Installation
-
-```bash
-npm install -g @rockship/clawkit
-```
-
-Supports macOS (Apple Silicon & Intel), Linux, and Windows.
-
-Verify:
-
-```bash
-clawkit version
-```
+- **Node.js 18+** — [nodejs.org](https://nodejs.org)
+- **OpenClaw** — [install guide](https://docs.openclaw.ai/installation)
 
 ---
 
 ## Quick Start
 
 ```bash
-# See all available skills
-clawkit list
-
-# Install a skill
-clawkit install shop-hoa
-
-# Check installed skills
-clawkit status
+clawkit list                              # See available skills
+clawkit install shop-hoa                  # Install a skill
+clawkit install ecom-bot --profile bakery # Install with a domain profile
+clawkit status                            # Check installed skills
 ```
-
----
-
-## Available Skills
-
-| Skill | Description |
-|-------|-------------|
-| `shop-hoa` | Flower shop assistant for OpenClaw web chat / TUI — consult, quote, send images, take orders, look up history |
-| `carehub-baby` | Blackmores baby nutrition consultant for CareHub via Zalo |
-| `gog` | Google Workspace assistant — Gmail, Calendar, Drive, Contacts |
 
 ---
 
@@ -75,93 +32,147 @@ clawkit status
 
 | Command | Description |
 |---------|-------------|
-| `clawkit list` | List available skills and install status |
-| `clawkit install <skill>` | Install a skill (runs OAuth + configuration) |
-| `clawkit update <skill>` | Update a skill, preserving tokens and config |
-| `clawkit status` | Show all installed skills |
+| `clawkit list` | List available skills |
+| `clawkit install <skill> [--profile <name>] [--skip-oauth]` | Install a skill |
+| `clawkit update <skill>` | Update, preserving config and tokens |
+| `clawkit uninstall <skill>` | Uninstall and restore workspace |
+| `clawkit status` | Show installed skills with profile and OAuth status |
+| `clawkit package <skill>` | Package a skill for distribution |
 | `clawkit version` | Print version |
 
 ---
 
-## How It Works
-
-When you run `clawkit install`, it:
-
-1. Detects your OpenClaw installation
-2. Downloads the skill package
-3. Runs OAuth (e.g. Zalo QR scan, Gmail login)
-4. Applies your configuration to the skill template
-5. Initializes the database if needed
-6. Registers the skill in your OpenClaw workspace
-
-For architecture diagrams and technical deep-dives, see [ARCHITECTURE.md](./ARCHITECTURE.md).
-
-### Zalo Authentication
-
-No App ID or App Secret required. clawkit uses OpenClaw's built-in Zalo integration. You scan a QR code once from the Zalo mobile app:
+## Architecture
 
 ```
-[1/3] Checking OpenClaw...         ✓
-[2/3] Loading Zalo plugin...       ✓
-[3/3] Scan the QR code with Zalo
-
-██████████████████████████
-█ ▄▄▄▄▄ █▀█▄▄▀▄█ ▄▄▄▄▄ █
-█ █   █ █ ▀▄▄▄█ █   █ █
-...
-
-Waiting for scan... (3 min timeout)
-✓ Zalo connected
+clawkit (Go CLI)
+  │
+  ├── Install flow: preflight → download → profile overlay → OAuth → lockdown → schema init → config save
+  │
+  ├── schema.json       Declarative data model (multi-table, field roles, statuses)
+  ├── cli.js            Generic Node.js runtime (CRUD, images, Telegram upload)
+  └── profile.yaml      Domain-specific overrides (catalog, images, persona)
 ```
+
+### Storage Backends
+
+Skills support three database targets, configured via `db_target` in profile.yaml:
+
+| Target | Storage | Use Case |
+|--------|---------|----------|
+| `local` | JSON files (1 per table) | Development, small shops |
+| `supabase` | Supabase REST API | Cloud database, no server needed |
+| `api` | Customer's own REST API | Existing backend integration |
+
+### Project Structure
+
+```
+cmd/
+  clawkit/              CLI entry point
+  gen-registry/         Registry generator (scans SKILL.md frontmatter)
+internal/
+  archive/              tar.gz / zip extraction and creation
+  config/               SkillConfig struct, OpenClaw detection
+  installer/            Install/update/uninstall commands, schema, profiles
+  template/             SKILL.md placeholder substitution, catalog processing
+  ui/                   Terminal output helpers (Info/Ok/Warn/Fatal)
+oauth/                  OAuth providers (self-registering via init())
+skills/                 Built-in skills grouped by vertical
+  ecommerce/            shop-hoa, carehub-baby
+  utilities/            finance-tracker
+  tools/                gog (Google Workspace CLI)
+templates/              Reusable templates for new skills
+  cli.js                Generic schema-driven CLI
+  verticals/            Pre-built schemas per business vertical
+    ecommerce/          Orders, products, contacts (4 tables)
+    education/          Enrollments, courses, contacts (3 tables)
+    consulting/         Students, applications, test scores (4 tables)
+    gold/               Transactions, products, price board (4 tables)
+    food-distribution/  Orders, inventory, products (5 tables)
+```
+
+---
+
+## Creating a New Skill
+
+```bash
+# 1. Copy a vertical template
+cp -r templates/verticals/ecommerce skills/ecommerce/my-shop
+
+# 2. Copy the generic CLI
+cp templates/cli.js skills/ecommerce/my-shop/cli.js
+
+# 3. Customize SKILL.md (AI prompt) and schema.json (data model)
+
+# 4. Register and build
+make generate
+make build
+```
+
+See [templates/README.md](templates/README.md) for detailed guides per vertical.
+
+### Schema Format
+
+```json
+{
+  "tables": {
+    "orders": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "status", "type": "text", "default": "new", "role": "status"},
+        {"name": "customer", "type": "text", "required": true},
+        {"name": "total", "type": "integer", "role": "price"},
+        {"name": "sender_id", "type": "text", "role": "owner"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ],
+      "statuses": ["new", "completed", "cancelled"]
+    }
+  },
+  "primary": "orders",
+  "timezone": "Asia/Ho_Chi_Minh"
+}
+```
+
+### Profiles
+
+Profiles enable one skill base to serve multiple domains:
+
+```bash
+clawkit install ecom-bot --profile shop-hoa   # Flower shop
+clawkit install ecom-bot --profile bakery     # Bakery
+```
+
+Each profile overrides: `catalog.json`, product images, `workspace-overrides/`, `schema.json` (with extend support), and template placeholders via `profile.yaml`.
 
 ---
 
 ## Development
 
-### Adding a New Skill
-
-1. Create a directory under `skills/`:
-
-```
-skills/your-skill/
-├── SKILL.md        # Required: YAML frontmatter + OpenClaw prompt
-├── catalog.json    # Optional: product/service catalog
-├── init_db.py      # Optional: database initialization
-└── [assets]
-```
-
-2. Add YAML frontmatter to `SKILL.md`:
-
-```yaml
----
-version: "1.0.0"
-description: "Short description"
-requires_oauth:
-  - zalo_personal
-setup_prompts: []
----
-```
-
-3. Regenerate the registry and test:
-
 ```bash
-make generate
-make build
-./clawkit install your-skill --skip-oauth
+make build          # Build binary → ./clawkit
+make test           # Run all tests
+make fmt            # go fmt + go vet
+make generate       # Regenerate registry.json from skills
+make check-generate # Verify registry.json is in sync (CI check)
+make dist           # Cross-compile for all platforms
 ```
 
-> `registry.json` is auto-generated from SKILL.md frontmatter. Never edit it manually.
+### Key Constraints
 
-### Releasing a New Version
+- **Zero external Go dependencies** — stdlib only
+- **Cross-platform** — macOS, Linux, Windows (arm64 + amd64)
+- **No Python** — all runtime is Go (install) + Node.js (skill CLI)
 
-Push a version tag — GitHub Actions handles everything:
+---
+
+## Release
 
 ```bash
 git tag v1.2.0
 git push origin v1.2.0
 ```
 
-The CI will build binaries for all platforms, create a GitHub Release, and publish `@rockship/clawkit` to npm automatically.
+GitHub Actions cross-compiles, creates a Release, and publishes to npm as `@rockship/clawkit`.
 
 ---
 

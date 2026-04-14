@@ -1,0 +1,145 @@
+package installer
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// parseProfileYAML reads a simple key: value file and returns the values as a map.
+// Lines starting with # and blank lines are skipped. Only flat key-value pairs
+// are supported (no nesting, no lists).
+func parseProfileYAML(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read profile.yaml: %w", err)
+	}
+
+	values := make(map[string]string)
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		idx := strings.Index(line, ":")
+		if idx < 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		val := strings.TrimSpace(line[idx+1:])
+		// Strip surrounding quotes.
+		if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+			val = val[1 : len(val)-1]
+		}
+		if key != "" {
+			values[key] = val
+		}
+	}
+	return values, nil
+}
+
+// applyProfile overlays a profile's files onto the base skill directory.
+// It copies catalog.json, product images, and workspace-overrides from
+// profiles/<profileName>/ over the base skill's files, then removes the
+// profiles/ directory (only the selected profile's data is needed at runtime).
+// Returns the profile's key-value pairs for template placeholder substitution.
+func applyProfile(skillDir, profileName string) (map[string]string, error) {
+	profileDir := filepath.Join(skillDir, "profiles", profileName)
+	if _, err := os.Stat(profileDir); os.IsNotExist(err) {
+		available, _ := listProfiles(skillDir)
+		if len(available) > 0 {
+			return nil, fmt.Errorf("profile '%s' not found (available: %s)", profileName, strings.Join(available, ", "))
+		}
+		return nil, fmt.Errorf("profile '%s' not found and no profiles/ directory exists", profileName)
+	}
+
+	// Parse profile values.
+	values := make(map[string]string)
+	yamlPath := filepath.Join(profileDir, "profile.yaml")
+	if fileExists(yamlPath) {
+		parsed, err := parseProfileYAML(yamlPath)
+		if err != nil {
+			return nil, err
+		}
+		values = parsed
+	}
+
+	// Overlay catalog.json.
+	if src := filepath.Join(profileDir, "catalog.json"); fileExists(src) {
+		dst := filepath.Join(skillDir, "catalog.json")
+		if err := copyFile(src, dst); err != nil {
+			return nil, fmt.Errorf("overlay catalog.json: %w", err)
+		}
+	}
+
+	// Overlay schema.json (with extend-merge support).
+	if src := filepath.Join(profileDir, "schema.json"); fileExists(src) {
+		dst := filepath.Join(skillDir, "schema.json")
+		if err := applySchemaOverlay(dst, src); err != nil {
+			return nil, fmt.Errorf("overlay schema.json: %w", err)
+		}
+	}
+
+	// Overlay product images directory.
+	// Try schema.json images_dir, then common names, then skip.
+	for _, imgDir := range profileImagesDirs(skillDir) {
+		src := filepath.Join(profileDir, imgDir)
+		if dirExists(src) {
+			dst := filepath.Join(skillDir, imgDir)
+			if err := copyDir(src, dst); err != nil {
+				return nil, fmt.Errorf("overlay %s/: %w", imgDir, err)
+			}
+			break
+		}
+	}
+
+	// Overlay workspace overrides.
+	if src := filepath.Join(profileDir, "workspace-overrides"); dirExists(src) {
+		dst := filepath.Join(skillDir, "workspace-overrides")
+		if err := copyDir(src, dst); err != nil {
+			return nil, fmt.Errorf("overlay workspace-overrides/: %w", err)
+		}
+	}
+
+	// Clean up — only the selected profile's data is needed at runtime.
+	os.RemoveAll(filepath.Join(skillDir, "profiles"))
+
+	return values, nil
+}
+
+// listProfiles returns the names of available profiles in a skill directory.
+func listProfiles(skillDir string) ([]string, error) {
+	profilesDir := filepath.Join(skillDir, "profiles")
+	entries, err := os.ReadDir(profilesDir)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, e := range entries {
+		if e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	return names, nil
+}
+
+// profileImagesDirs returns candidate image directory names to overlay,
+// reading from schema.json if available, falling back to common names.
+func profileImagesDirs(skillDir string) []string {
+	s, _ := loadSchema(skillDir)
+	if s != nil && s.ImagesDir != "" {
+		return []string{s.ImagesDir}
+	}
+	return []string{"products", "flowers"}
+}
+
+func fileExists(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && !fi.IsDir()
+}
+
+func dirExists(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && fi.IsDir()
+}

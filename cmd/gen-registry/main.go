@@ -107,28 +107,31 @@ func main() {
 	fmt.Printf("%s generated with %d skills.\n", registryPath, len(reg.Skills))
 }
 
-// scanSkills reads all skills/*/SKILL.md files and parses their frontmatter.
+// scanSkills reads all SKILL.md files under the skills directory.
+// Supports both flat (skills/<name>/SKILL.md) and grouped
+// (skills/<vertical>/<name>/SKILL.md) layouts.
 func scanSkills(dir string) ([]SkillFrontmatter, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("read skills directory: %w", err)
-	}
-
 	var skills []SkillFrontmatter
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		skillMD := filepath.Join(dir, e.Name(), "SKILL.md")
-		if _, err := os.Stat(skillMD); os.IsNotExist(err) {
-			continue
-		}
 
-		fm, err := parseFrontmatter(skillMD, e.Name())
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil, fmt.Errorf("parse %s: %w", skillMD, err)
+			return err
+		}
+		if info.IsDir() || info.Name() != "SKILL.md" {
+			return nil
+		}
+		skillDir := filepath.Dir(path)
+		skillName := filepath.Base(skillDir)
+
+		fm, err := parseFrontmatter(path, skillName)
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", path, err)
 		}
 		skills = append(skills, fm)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("scan skills directory: %w", err)
 	}
 
 	sort.Slice(skills, func(i, j int) bool {

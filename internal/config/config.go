@@ -18,7 +18,9 @@ const ConfigFileName = "config.json"
 // SkillConfig is the per-skill config saved after installation.
 type SkillConfig struct {
 	SkillName  string            `json:"skill_name"`
+	Profile    string            `json:"profile,omitempty"`
 	Version    string            `json:"version"`
+	DBTarget   string            `json:"db_target,omitempty"`
 	OAuthDone  bool              `json:"oauth_done"`
 	Tokens     map[string]string `json:"tokens,omitempty"`
 	UserInputs map[string]string `json:"user_inputs,omitempty"`
@@ -44,11 +46,20 @@ func SaveSkillConfig(skillDir string, cfg *SkillConfig) error {
 	return os.WriteFile(filepath.Join(skillDir, ConfigFileName), data, 0600)
 }
 
+// homeDir returns the user's home directory or panics if unavailable.
+func homeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fatal: cannot determine home directory: %v\n", err)
+		os.Exit(1)
+	}
+	return home
+}
+
 // detectOpenClaw checks if OpenClaw is installed.
 // Returns binary path and skills directory.
 func detectOpenClaw() (binary string, skillsDir string) {
-	home, _ := os.UserHomeDir()
-	skillsDir = filepath.Join(home, ".openclaw", "workspace", "skills")
+	skillsDir = filepath.Join(homeDir(), ".openclaw", "workspace", "skills")
 
 	if path, err := exec.LookPath("openclaw"); err == nil {
 		binary = path
@@ -72,8 +83,7 @@ func GetSkillsDir() string {
 	if skillsDir != "" {
 		return skillsDir
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".openclaw", "workspace", "skills")
+	return filepath.Join(homeDir(), ".openclaw", "workspace", "skills")
 }
 
 // GetConfigDir returns the clawkit config directory.
@@ -85,8 +95,7 @@ func GetConfigDir() string {
 	if cfgDir, err := os.UserConfigDir(); err == nil {
 		return filepath.Join(cfgDir, "clawkit")
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".clawkit")
+	return filepath.Join(homeDir(), ".clawkit")
 }
 
 // Preflight checks that OpenClaw is installed before proceeding.

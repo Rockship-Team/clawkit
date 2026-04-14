@@ -6,10 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 make build          # Build binary for current platform → ./clawkit
-make test           # Run all tests with race detector
+make test           # Run all tests
 make fmt            # go fmt + go vet
-make lint           # golangci-lint run ./...
-make generate       # Regenerate registry.json from skills/*/SKILL.md
+make generate       # Regenerate registry.json from skills/**/SKILL.md
 make check-generate # Verify registry.json is in sync (CI check)
 make dist           # Cross-compile for darwin/linux/windows
 make package SKILL=<name>  # Package a skill to .tar.gz
@@ -20,36 +19,100 @@ Run a single test package:
 CGO_ENABLED=0 go test -v ./internal/archive/...
 ```
 
-**Important:** After editing any `skills/*/SKILL.md` frontmatter, always run `make generate` to keep `registry.json` in sync. CI will fail if they diverge (`make check-generate`).
+**Important:** After editing any `SKILL.md` frontmatter, always run `make generate` to keep `registry.json` in sync. CI will fail if they diverge (`make check-generate`).
 
 ## Architecture
 
-Clawkit is a CLI skill manager for OpenClaw AI agents. Skills are AI prompt files with an install lifecycle (OAuth, config, binaries, templates). The binary is distributed via npm wrapping platform-specific Go binaries (`npm/binaries/`).
+Clawkit is a CLI skill manager for OpenClaw AI agents. Skills are AI prompt files with an install lifecycle (OAuth, config, schema-driven DB, templates). The binary is distributed via npm wrapping platform-specific Go binaries (`npm/binaries/`).
+
+### Standard flow
+
+Go (installer) + Node.js (runtime) + schema.json (data model). No Python.
 
 ### Data flow
 
-1. `registry.json` is generated from `skills/*/SKILL.md` YAML frontmatter by `cmd/gen-registry`. Never edit it by hand.
-2. At install time, `internal/installer` fetches the registry (remote GitHub raw URL → local fallback), downloads the skill package from GitHub Releases (or copies from local `skills/` in dev mode), runs OAuth flows, processes templates, and saves `config.json` per skill.
-3. Tokens from OAuth are written to the skill's config dir (`~/Library/Application Support/clawkit/<skill>/` on macOS, `~/.config/clawkit/<skill>/` on Linux). Runtime OAuth refresh is handled by OpenClaw/gog, not clawkit.
+1. `registry.json` is generated from `skills/**/SKILL.md` YAML frontmatter by `cmd/gen-registry`. Never edit it by hand.
+2. At install time, `internal/installer` fetches the registry, downloads the skill package, applies profile overlay, runs OAuth, initializes DB from `schema.json`, processes templates, and saves `config.json` per skill.
+3. At runtime, `cli.js` (generic, schema-driven) reads `schema.json` + `config.json` and performs CRUD operations against the configured store backend (local JSON, Supabase, or custom API).
 
 ### Key packages
 
-- **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, status, package, version)
-- **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → OAuth → template processing → DB init → config save. Gateway restart is left to the user (printed as a next step).
-- **`internal/installer/registry.go`** — Registry loading (remote + local merge) and skill package downloading
+- **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, uninstall, status, package, version)
+- **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → profile overlay → OAuth → lockdown → schema init → config save → template processing
+- **`internal/installer/schema.go`** — Schema parsing, validation, multi-table merge, DB initialization, credential collection. Constants: `DBTargetLocal`, `DBTargetSupabase`, `DBTargetAPI`
+- **`internal/installer/profile.go`** — Profile overlay: catalog, schema (with extend-merge), images, workspace-overrides
+- **`internal/installer/registry.go`** — Registry loading (remote + embedded + local) and skill package downloading. Supports nested vertical dirs via `findLocalSkill()`
+- **`internal/installer/lockdown.go`** — 1-skill-at-a-time workspace lockdown: remove prior, backup, override, reset sessions, set allowlist
 - **`internal/archive/`** — tar.gz / zip extraction and creation; strips top-level directory from archives
-- **`internal/config/`** — `SkillConfig` struct, config file read/write, OpenClaw detection
-- **`internal/template/`** — SKILL.md placeholder substitution (e.g. `{shopName}`); `catalog.json` loading
+- **`internal/config/`** — `SkillConfig` struct (skill_name, profile, version, db_target, oauth_done, tokens, user_inputs), config file read/write, OpenClaw detection
+- **`internal/template/`** — SKILL.md placeholder substitution; `catalog.json` loading; `EnsureImageDirs` (reads images_dir from schema.json)
 - **`internal/ui/`** — ANSI terminal output helpers (Info/Ok/Warn/Fatal) and `PromptInput`
 - **`oauth/`** — OAuth providers; each self-registers via `init()`. Add a new provider by creating a new file and calling `Register()` in its `init()`
+- **`skills/`** — Built-in skills grouped by vertical (ecommerce/, utilities/, tools/)
+- **`templates/`** — Generic `cli.js` and per-vertical schemas (ecommerce, education, consulting, gold, food-distribution)
+
+### Skills directory structure
+
+Skills are grouped by vertical under `skills/`:
+
+```
+skills/
+  ecommerce/
+    shop-hoa/
+    carehub-baby/
+  utilities/
+    finance-tracker/
+  tools/
+    gog/
+```
+
+The registry generator (`cmd/gen-registry`) scans recursively. The installer (`findLocalSkill`) searches one level of nesting. The embed directive in `skills/skills.go` uses vertical-level `all:` directives.
 
 ### Adding a skill
 
-1. Create `skills/<name>/SKILL.md` with required frontmatter (`name`, `description`, `version`).
-2. Run `make generate`.
-3. Add any OAuth providers referenced in `requires_oauth` to `oauth/` if they don't exist.
-4. Skills listed in `requires_skills` must be installed manually by the user first. `clawkit install <skill>` does NOT auto-install dependencies — it checks they exist and fails with install instructions if missing. This keeps each skill's OAuth flow isolated.
-5. Binaries listed in `requires_bins` are downloaded from their GitHub Releases at install time.
+1. Pick a vertical or create a new one under `skills/`.
+2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `schema.json` + copy `templates/cli.js`.
+3. Run `make generate`.
+4. Update the `//go:embed` directive in `skills/skills.go` if adding a new vertical.
+5. Add any OAuth providers referenced in `requires_oauth` to `oauth/` if they don't exist.
+
+### Schema system
+
+`schema.json` defines the data model. Supports multi-table:
+
+```json
+{
+  "tables": {
+    "orders": { "fields": [...], "statuses": [...] },
+    "contacts": { "fields": [...] }
+  },
+  "primary": "orders",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "images_dir": "products"
+}
+```
+
+Field types: `text`, `integer`. Auto values: `increment`, `timestamp`. Roles: `owner`, `status`, `price`, `timestamp`. Ref: `"ref": "other_table"` (documentation only, not enforced).
+
+Profile schemas can use `"extend": true` to add fields/tables to a base schema.
+
+### Store backends
+
+- `local` — JSON files (1 per table), created at install time
+- `supabase` — Supabase REST API, credentials prompted at install
+- `api` — Generic REST API, customer provides endpoint + auth header
+
+`cli.js` uses `--table <name>` to target non-primary tables.
+
+### Profile system
+
+`clawkit install <skill> --profile <name>` overlays domain-specific files from `profiles/<name>/` onto the base skill:
+
+- `profile.yaml` — key-value pairs merged into template placeholders
+- `catalog.json` — product catalog override
+- `schema.json` — schema override (supports extend-merge)
+- Images directory — product images override
+- `workspace-overrides/` — agent persona override
 
 ### Adding an OAuth provider
 
@@ -57,25 +120,18 @@ Implement the `oauth.Provider` interface (`Name()`, `Display()`, `Authenticate()
 
 ### Cross-platform rules
 
-The binary targets Linux, macOS, and Windows. Follow these rules for any new code:
-
 | Concern | Do | Don't |
 |---|---|---|
 | File paths | `filepath.Join(a, b)` | `a + "/" + b` |
 | Temp directory | `os.TempDir()` | Hardcode `/tmp` |
 | Binary names | `name := "gog"; if goos == "windows" { name += ".exe" }` | Assume no `.exe` |
-| Open browser | `oauth.OpenBrowser(url)` (already handles all 3 platforms) | Call `open`/`xdg-open` directly |
+| Open browser | `oauth.OpenBrowser(url)` (handles all 3 platforms) | Call `open`/`xdg-open` directly |
 | Unix-only syscalls | Guard with `if goos != "windows"` | Call `chmod`, `sudo` unconditionally |
-| PATH update | Use `ensureInPath()` in `commands.go` | Write shell profile files directly |
 | Archive format | `.zip` on Windows, `.tar.gz` elsewhere | Assume tar.gz |
-
-Platform detection uses `runtime.GOOS` values `"darwin"`, `"linux"`, `"windows"` and `runtime.GOARCH` values `"amd64"`, `"arm64"`.
-
-The existing `installGog()` and `ensureInPath()` in `internal/installer/commands.go` are the canonical reference implementations for cross-platform binary installation.
 
 ### Zero external dependencies
 
-The module uses only the Go standard library. The YAML frontmatter parser in `cmd/gen-registry` is hand-written. Do not add external dependencies without discussion.
+The Go module uses only the standard library. The YAML frontmatter parser in `cmd/gen-registry` is hand-written. The Node.js `cli.js` uses only built-in modules. Do not add external dependencies without discussion.
 
 ### Release
 

@@ -1,0 +1,65 @@
+{
+  "tables": {
+    "orders": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "order_number", "type": "text"},
+        {"name": "contact_id", "type": "integer", "ref": "contacts"},
+        {"name": "channel", "type": "text"},
+        {"name": "status", "type": "text", "default": "pending", "role": "status"},
+        {"name": "subtotal", "type": "integer"},
+        {"name": "shipping_fee", "type": "integer", "default": "0"},
+        {"name": "discount_amount", "type": "integer", "default": "0"},
+        {"name": "total", "type": "integer", "role": "price"},
+        {"name": "shipping_address", "type": "text"},
+        {"name": "payment_method", "type": "text"},
+        {"name": "payment_status", "type": "text", "default": "pending"},
+        {"name": "notes", "type": "text"},
+        {"name": "sender_id", "type": "text", "role": "owner"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ],
+      "statuses": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
+    },
+    "order_items": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "order_id", "type": "integer", "ref": "orders"},
+        {"name": "product_name", "type": "text", "required": true},
+        {"name": "variant_name", "type": "text"},
+        {"name": "quantity", "type": "integer", "required": true},
+        {"name": "unit_price", "type": "integer", "role": "price", "required": true},
+        {"name": "line_total", "type": "integer"}
+      ]
+    },
+    "products": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "sku", "type": "text"},
+        {"name": "name", "type": "text", "required": true},
+        {"name": "category", "type": "text"},
+        {"name": "description", "type": "text"},
+        {"name": "base_price", "type": "integer", "role": "price"},
+        {"name": "cost_price", "type": "integer"},
+        {"name": "stock_qty", "type": "integer", "default": "0"},
+        {"name": "is_active", "type": "text", "default": "true"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ]
+    },
+    "contacts": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "full_name", "type": "text", "required": true},
+        {"name": "phone", "type": "text"},
+        {"name": "email", "type": "text"},
+        {"name": "address", "type": "text"},
+        {"name": "source", "type": "text"},
+        {"name": "status", "type": "text", "default": "customer", "role": "status"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ],
+      "statuses": ["lead", "prospect", "customer", "inactive"]
+    }
+  },
+  "primary": "orders",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "images_dir": "products"
+}

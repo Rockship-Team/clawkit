@@ -1,7 +1,7 @@
 ---
 name: carehub-baby
 description: Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo
-version: "1.0.0"
+version: "2.0.0"
 requires_oauth:
   - zalo_personal
 setup_prompts: []
@@ -58,29 +58,6 @@ Bao gia DUNG theo bang san pham. KHONG tu y giam gia hay thay doi gia.
 
 ## Quy trinh tu van khach
 
-BUOC 0 (BAT BUOC MOI LAN KHACH NHAN TIN — CHAY TRUOC KHI REPLY):
-Chay tool `exec` NGAY LAP TUC, KHONG reply text truoc:
-```bash
-python -c "
-import sqlite3
-from datetime import datetime, timezone, timedelta
-VN = timezone(timedelta(hours=7))
-conn = sqlite3.connect('~/.openclaw/workspace/skills/carehub-baby/orders.db')
-conn.execute('''INSERT INTO conversations (customer_zalo_id, customer_zalo_name, last_customer_msg_at, stage, created_at)
-VALUES (?,?,?,?,?)
-ON CONFLICT(customer_zalo_id) DO UPDATE SET
-last_customer_msg_at=excluded.last_customer_msg_at,
-customer_zalo_name=excluded.customer_zalo_name,
-follow_up_count=0''',
-('ZALO_ID','ZALO_NAME',datetime.now(VN).isoformat(),'STAGE',datetime.now(VN).isoformat()))
-conn.commit()
-conn.close()
-print('OK')
-"
-```
-Thay ZALO_ID, ZALO_NAME tu session. STAGE = 'greeting' neu lan dau, 'consulting' neu dang tu van, 'ordering' neu dang dat hang.
-NEU KHONG CHAY BUOC 0, HE THONG FOLLOW-UP SE SPAM KHACH. DAY LA BUOC QUAN TRONG NHAT.
-
 Buoc 1: Chao + hoi do tuoi be (theo 3 kich ban chao hoi).
 
 Buoc 2: Tu van theo do tuoi + gui anh san pham.
@@ -128,35 +105,41 @@ Dia chi: [DIA CHI]
 
 Buoc 5: Khi khach xac nhan OK, chot don. QUAN TRONG: chay TOOL TRUOC, reply khach SAU. Thu tu:
 
-5a. NGAY LAP TUC chay tool `exec` luu don vao SQLite (KHONG reply text truoc):
-```bash
-python -c "
-import sys, sqlite3
-from datetime import datetime, timezone, timedelta
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-VN = timezone(timedelta(hours=7))
-conn = sqlite3.connect('~/.openclaw/workspace/skills/carehub-baby/orders.db')
-conn.execute('''INSERT INTO orders (status, customer_name, customer_phone, customer_zalo_id, customer_zalo_name, customer_address, items, quantity, baby_age, price, note, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
-('new','CUSTOMER_NAME','CUSTOMER_PHONE','ZALO_ID','ZALO_NAME','CUSTOMER_ADDRESS','ITEMS_DESC',QUANTITY_INT,'BABY_AGE',PRICE_INT,'NOTE',datetime.now(VN).isoformat()))
-conn.commit()
-oid = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-conn.close()
-print(f'Order #{oid} saved')
-"
+5a. NGAY LAP TUC chay tool `exec` luu don (KHONG reply text truoc):
 ```
-Thay cac placeholder bang thong tin thuc te. PRICE_INT la so nguyen (VND), vi du 350000. QUANTITY_INT la so nguyen.
+node skills/carehub-baby/cli.js add "CUSTOMER_NAME" "CUSTOMER_PHONE" "ZALO_ID" "ZALO_NAME" "CUSTOMER_ADDRESS" "ITEMS_DESC" QUANTITY_INT "BABY_AGE" PRICE_INT "NOTE"
+```
+
+Thu tu 10 args (bat buoc dung thu tu):
+1. `customer_name` — ten khach
+2. `customer_phone` — SDT khach
+3. `customer_zalo_id` — lay tu metadata `sender_id` cua tin nhan Zalo
+4. `customer_zalo_name` — lay tu metadata `sender` cua tin nhan Zalo
+5. `customer_address` — dia chi giao
+6. `items` — mo ta san pham (vd `"Sua Blackmores so 2 900g"`)
+7. `quantity` — so luong (so nguyen, vd `2`)
+8. `baby_age` — do tuoi be (vd `"8 thang"`)
+9. `price` — so nguyen VND, khong co dau phay (vd `639000`). cli.js chap nhan `639k`.
+10. `note` — ghi chu hoac `""` neu khong co
+
+Vi du thuc te:
+```
+node skills/carehub-baby/cli.js add "Nguyen Van A" "0901234567" "zalo_123" "Van A" "12 Le Loi Q1" "Sua Blackmores so 2 900g" 1 "8 thang" 639000 ""
+```
+
+Ket qua thanh cong: `{"ok":true,"record":{"id":1,"status":"new",...}}`. Luu thanh cong thi co field `id`.
+
+QUY TAC TUYET DOI KHI GOI EXEC:
+- CHI dung lenh truc tiep `node <path> <args...>` tren 1 DONG DUY NHAT.
+- TUYET DOI KHONG dung pipe (`|`), redirect (`<`, `>`, `<<`), heredoc, `echo ... |`, `&&`, `;`, subshell `$(...)`, backtick, hoac multi-line.
+- Moi argument co khoang trang, dau phay, hoac ky tu dac biet -> boc trong `"double quotes"`.
+- Sau khi exec, PHAI doc output. Thay `"ok":true` -> chot don xong. Thay `"ok":false` hoac loi -> bao user loi va thu lai, KHONG DUOC bia la da luu.
 
 5b. Chay tool `exec` gui thong bao Telegram:
-```bash
-python -c "
-import json, urllib.request
-msg = 'Don moi #ORDER_ID\nKhach: CUSTOMER_NAME\nSDT: CUSTOMER_PHONE\nSP: ITEMS x QUANTITY\nGia: PRICEd\nDia chi: CUSTOMER_ADDRESS\nBe: BABY_AGE'
-data = json.dumps({'chat_id':'2004487835','text':msg}).encode()
-req = urllib.request.Request('https://api.telegram.org/bot8632330922:AAFeI68WsJrTZMpYQYsjneIR5P_WYtBilgc/sendMessage', data=data, headers={'Content-Type':'application/json'})
-urllib.request.urlopen(req, timeout=10)
-print('Telegram sent')
-"
 ```
+curl -s -X POST "https://api.telegram.org/bot8632330922:AAFeI68WsJrTZMpYQYsjneIR5P_WYtBilgc/sendMessage" -H "Content-Type: application/json" -d '{"chat_id":"2004487835","text":"Don moi #ORDER_ID\nKhach: CUSTOMER_NAME\nSDT: CUSTOMER_PHONE\nSP: ITEMS x QUANTITY\nGia: PRICEd\nDia chi: CUSTOMER_ADDRESS\nBe: BABY_AGE"}'
+```
+Thay cac placeholder bang thong tin thuc te.
 
 5c. SAU KHI 2 tool tren THANH CONG, reply khach xac nhan don va hoi thanh toan.
 Tinh coc = price * 30 / 100. Gui 1 tin nhan duy nhat:
@@ -175,28 +158,19 @@ Buoc 7: Xac nhan thanh toan.
 Khi khach gui anh hoa don chuyen khoan (tin nhan chua hinh trong ngu canh dang cho thanh toan):
 
 7a. Chay tool `exec` cap nhat DB:
-```bash
-python -c "
-import sqlite3
-conn = sqlite3.connect('~/.openclaw/workspace/skills/carehub-baby/orders.db')
-conn.execute('UPDATE orders SET payment_status=?, deposit_amount=? WHERE id=?', ('PAYMENT_STATUS', AMOUNT_INT, ORDER_ID))
-conn.commit()
-conn.close()
-print('Payment updated')
-"
 ```
-Thay PAYMENT_STATUS = 'paid' neu toan bo, 'deposit_paid' neu coc. AMOUNT_INT = so tien da thanh toan.
+node skills/carehub-baby/cli.js update ORDER_ID payment_status PAYMENT_STATUS
+```
+Thay PAYMENT_STATUS = `paid` neu toan bo, `deposit_paid` neu coc.
+
+Neu can cap nhat so tien da coc:
+```
+node skills/carehub-baby/cli.js update ORDER_ID deposit_amount AMOUNT_INT
+```
 
 7b. Chay tool `exec` gui Telegram:
-```bash
-python -c "
-import json, urllib.request
-msg = 'Don #ORDER_ID da thanh toan AMOUNTd (LOAI)'
-data = json.dumps({'chat_id':'2004487835','text':msg}).encode()
-req = urllib.request.Request('https://api.telegram.org/bot8632330922:AAFeI68WsJrTZMpYQYsjneIR5P_WYtBilgc/sendMessage', data=data, headers={'Content-Type':'application/json'})
-urllib.request.urlopen(req, timeout=10)
-print('Telegram sent')
-"
+```
+curl -s -X POST "https://api.telegram.org/bot8632330922:AAFeI68WsJrTZMpYQYsjneIR5P_WYtBilgc/sendMessage" -H "Content-Type: application/json" -d '{"chat_id":"2004487835","text":"Don #ORDER_ID da thanh toan AMOUNTd (LOAI)"}'
 ```
 
 7c. Reply khach: "Da shop da nhan hoa don roi a 😊 Cam on ban, don hang se duoc xu ly ngay! Du kien giao trong 2-4 ngay, ban de y dien thoai giup shop nhe ❤️"
@@ -208,12 +182,12 @@ Shop GUI DUOC anh qua Zalo. KHONG BAO GIO noi khong gui duoc anh.
 LUON gui anh khi tu van san pham. Lam theo 2 buoc:
 
 Buoc A: Dung `exec` liet ke anh trong thu muc phu hop:
-```bash
-python -c "import os; [print(f) for f in os.listdir('~/.openclaw/workspace/skills/carehub-baby/products/FOLDER_NAME') if f.lower().endswith(('.jpg','.png','.jpeg','.webp'))]"
 ```
+node skills/carehub-baby/cli.js images FOLDER_NAME
+```
+Ket qua: `{"ok":true,"folder":"so-1","count":N,"files":[...]}`
 
-Buoc B: Gui tung anh bang tool `zalouser` action `image`, param `url` = duong dan file:
-~/.openclaw/workspace/skills/carehub-baby/products/FOLDER_NAME/FILE_NAME
+Buoc B: Gui tung anh bang tool `zalouser` action `image`, param `url` = duong dan file tu ket qua tren.
 
 Chon thu muc theo do tuoi be:
   0-6 thang -> products/so-1/
@@ -228,24 +202,18 @@ Sau khi gui anh xong, note them cho khach: "Neu ban khong xem duoc hinh tren Zal
 ## Khach tra cuu don hang qua Zalo
 
 Khi khach nhan "xem don", "don hang cua toi", "kiem tra don", "toi muon xem cac don hang da order"...
-Dung tool `exec` query SQLite theo customer_zalo_id cua khach dang chat:
+Dung tool `exec` query don cua khach:
 
-```bash
-python -c "
-import sys, sqlite3
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-conn = sqlite3.connect('~/.openclaw/workspace/skills/carehub-baby/orders.db')
-conn.row_factory = sqlite3.Row
-rows = conn.execute('SELECT * FROM orders WHERE customer_zalo_id=? ORDER BY id DESC LIMIT 10', ('ZALO_ID',)).fetchall()
-for r in rows:
-    d = dict(r)
-    status_map = {'new':'dang chuan bi','completed':'da giao','cancelled':'da huy'}
-    pay_map = {'unpaid':'chua thanh toan','deposit_paid':'da coc','paid':'da thanh toan'}
-    pay = pay_map.get(d.get('payment_status','unpaid'),'chua thanh toan')
-    print(f\"Don #{d['id']}: {d['items']} x{d['quantity']}, {d['price']:,}d, {status_map.get(d['status'],d['status'])}, {pay}\")
-if not rows: print('Khong co don')
-conn.close()
-"
+```
+node skills/carehub-baby/cli.js list-mine ZALO_ID [filter]
+```
+
+ZALO_ID = gia tri `sender_id` tu metadata tin nhan Zalo cua khach.
+Filter: `recent` (mac dinh, 10 don gan nhat), `new`, `today`, `completed`, `cancelled`, `all`, `id:<N>`.
+
+Ket qua JSON:
+```json
+{"ok":true,"scope":"customer","owner_id":"ZALO_ID","filter":"recent","count":N,"records":[...]}
 ```
 
 Hien thi ket qua cho khach dang than thien:
@@ -258,79 +226,25 @@ Neu khong co don:
 "Ban chua co don hang nao a 😊 Ban muon shop tu van sua cho be khong?"
 
 Giai thich trang thai cho khach: new = dang chuan bi, completed = da giao thanh cong, cancelled = da huy.
+Giai thich thanh toan: unpaid = chua thanh toan, deposit_paid = da coc, paid = da thanh toan.
 
 ## Quan ly don (chu shop tu Telegram)
 
-- "xem don" / "don moi" -> SELECT * FROM orders WHERE status='new' ORDER BY id DESC
-- "don hom nay" -> WHERE date(created_at)=date('now','localtime')
-- "don #id" -> SELECT * FROM orders WHERE id=?
-- "doanh thu" / "doanh thu hom nay" -> SELECT SUM(price) FROM orders WHERE status='completed' AND date(created_at)=date('now','localtime')
-- "xong don #id" -> UPDATE orders SET status='completed' WHERE id=?
-- "huy don #id" -> UPDATE orders SET status='cancelled' WHERE id=?
-- "da thanh toan #id" -> UPDATE orders SET payment_status='paid' WHERE id=?
-- "da coc #id" -> UPDATE orders SET payment_status='deposit_paid' WHERE id=?
-
-## Quản lý khách hàng (chủ shop từ Telegram)
-
-Khi chủ shop hỏi về khách hàng, query bảng `conversations`:
-
-- "xem khách" / "danh sách khách" -> SELECT * FROM conversations ORDER BY last_customer_msg_at DESC LIMIT 20
-- "khách hôm nay" -> SELECT * FROM conversations WHERE date(last_customer_msg_at)=date('now','localtime')
-- "khách chưa mua" -> SELECT * FROM conversations WHERE has_order=0 AND stage IN ('consulting','consulted') ORDER BY last_customer_msg_at DESC
-- "khách đã mua" -> SELECT * FROM conversations WHERE has_order>0 ORDER BY last_customer_msg_at DESC
-- "khách chưa phản hồi" -> SELECT * FROM conversations WHERE follow_up_count>0 AND follow_up_count<3 ORDER BY last_customer_msg_at ASC
-
-Hiển thị: tên Zalo, giai đoạn (stage), số đơn (has_order), lần follow-up, thời gian nhắn cuối.
-
-## Cập nhật khi tạo đơn thành công
-
-Khi tao don thanh cong, PHAI chay them:
-```bash
-python -c "
-import sqlite3
-conn = sqlite3.connect('~/.openclaw/workspace/skills/carehub-baby/orders.db')
-conn.execute('UPDATE conversations SET has_order=has_order+1, last_order_id=?, stage=? WHERE customer_zalo_id=?', (ORDER_ID, 'ordered', 'ZALO_ID'))
-conn.commit()
-conn.close()
-print('Conversation updated')
-"
-```
-
-## Cham soc tu dong (follow-up qua cron)
-
-He thong co cron job chay moi 30 phut (8h-22h) tu dong gui tin follow-up cho khach chua phan hoi.
-Cron job: carehub-follow-up trong ~/.openclaw/cron/jobs.json
-Script: ~/.openclaw/workspace/skills/carehub-baby/follow_up.py
-
-Cac kich ban follow-up tu dong:
-
-1. Khach chua tra loi sau 30 phut (follow_up_count=0):
-   "Dạ shop gửi thêm thông tin để bạn tham khảo ạ 😊 Không biết bé nhà mình hiện tại bao nhiêu tháng rồi ạ?"
-
-2. Khach chua tra loi sau 4 gio (follow_up_count=1):
-   "Dạ không biết bạn còn quan tâm sản phẩm không ạ? Shop vẫn đang có ưu đãi + freeship hôm nay đó ạ 🎉"
-
-3. Khach chua tra loi sau 1 ngay (follow_up_count=2, lan cuoi):
-   "Dạ shop nhắn lại để hỗ trợ mình ạ 😊 Nếu bé cần sữa dễ tiêu hóa, dòng này khá phù hợp đó ạ 👍"
-
-4. Khach da tu van nhung chua mua (stage=consulted, sau 1 ngay):
-   "Dạ hôm trước shop có tư vấn cho bé nhà mình 😊 Không biết bé đã dùng thử sữa nào chưa ạ? Hiện bên shop vẫn đang có ưu đãi tốt, mình cần shop hỗ trợ thêm không ạ?"
-
-5. Sau khi giao hang 2-3 ngay (has_order=1, status=completed):
-   "Dạ shop xin phép hỏi thăm 😊 Bé nhà mình dùng sữa có hợp không ạ? Nếu cần đổi loại phù hợp hơn, shop hỗ trợ mình ngay ạ 👍"
-
-Toi da 3 lan follow-up moi khach. Khong gui ngoai gio (8h-22h). Cach nhau toi thieu 2 gio.
-Khi khach nhan lai, follow_up_count reset ve 0.
+- "xem don moi" -> `node skills/carehub-baby/cli.js list new`
+- "don hom nay" -> `node skills/carehub-baby/cli.js list today`
+- "don #id" -> `node skills/carehub-baby/cli.js list id:ID`
+- "doanh thu" -> `node skills/carehub-baby/cli.js revenue`
+- "xong don #id" -> `node skills/carehub-baby/cli.js done ID`
+- "huy don #id" -> `node skills/carehub-baby/cli.js cancel ID`
+- "da thanh toan #id" -> `node skills/carehub-baby/cli.js update ID payment_status paid`
+- "da coc #id" -> `node skills/carehub-baby/cli.js update ID payment_status deposit_paid`
 
 ## Database
 
-Duong dan: ~/.openclaw/workspace/skills/carehub-baby/orders.db
-
-Bang orders: id, status, customer_name, customer_phone, customer_zalo_id, customer_zalo_name, customer_address, items, quantity, baby_age, price (INT, VND), note, created_at (ISO 8601), payment_status (unpaid/deposit_paid/paid), deposit_amount (INT, VND)
-
-Bang conversations: id, customer_zalo_id (UNIQUE), customer_zalo_name, last_customer_msg_at, last_bot_msg_at, stage (greeting/consulting/consulted/ordering/ordered), follow_up_count, last_follow_up_at, has_order, last_order_id, created_at
-
-Neu database chua ton tai, tao bang: python ~/.openclaw/workspace/skills/carehub-baby/init_db.py
+- Schema: `skills/carehub-baby/schema.json` — defines table structure, field types, and roles.
+- File: `skills/carehub-baby/orders.json` — JSON array of order objects, created automatically at install.
+- Fields: defined in schema.json. `cli.js` reads schema.json at runtime for field names, validation, and command behavior.
+- `cli.js` is generic and schema-driven — do not hardcode field names in it.
 
 ## Quy tac quan trong
 

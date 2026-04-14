@@ -109,16 +109,17 @@ func TestGenerateCatalogSection(t *testing.T) {
 	}
 }
 
-func TestEnsureFlowerDirs(t *testing.T) {
+func TestEnsureImageDirs(t *testing.T) {
 	dir := t.TempDir()
 	catalog := `{"categories":[{"folder":"roses","label":"r"}],"price_tiers":[100000],"best_seller":true}`
 	os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(catalog), 0644)
 
-	if err := EnsureFlowerDirs(dir); err != nil {
+	if err := EnsureImageDirs(dir); err != nil {
 		t.Fatal(err)
 	}
 
-	dirs := []string{"flowers/roses", "flowers/price-100000", "flowers/best-seller"}
+	// No schema.json → defaults to "products" subdirectory.
+	dirs := []string{"products/roses", "products/price-100000", "products/best-seller"}
 	for _, d := range dirs {
 		t.Run(d, func(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(dir, d)); os.IsNotExist(err) {

@@ -60,23 +60,24 @@ func GenerateCatalogSection(skillDir string) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-// EnsureFlowerDirs creates directories under flowers/ matching catalog.json.
-func EnsureFlowerDirs(skillDir string) error {
+// EnsureImageDirs creates product image directories matching catalog.json.
+// The subdirectory name is read from schema.json images_dir field, defaulting to "products".
+func EnsureImageDirs(skillDir string) error {
 	cat, err := LoadCatalog(skillDir)
 	if err != nil {
 		return nil // no catalog = nothing to do
 	}
-	flowersDir := filepath.Join(skillDir, "flowers")
+	imagesDir := filepath.Join(skillDir, readImagesDir(skillDir))
 
 	dirs := make([]string, 0, len(cat.Categories)+len(cat.PriceTiers)+1)
 	for _, c := range cat.Categories {
-		dirs = append(dirs, filepath.Join(flowersDir, c.Folder))
+		dirs = append(dirs, filepath.Join(imagesDir, c.Folder))
 	}
 	for _, p := range cat.PriceTiers {
-		dirs = append(dirs, filepath.Join(flowersDir, fmt.Sprintf("price-%d", p)))
+		dirs = append(dirs, filepath.Join(imagesDir, fmt.Sprintf("price-%d", p)))
 	}
 	if cat.BestSeller {
-		dirs = append(dirs, filepath.Join(flowersDir, "best-seller"))
+		dirs = append(dirs, filepath.Join(imagesDir, "best-seller"))
 	}
 
 	for _, d := range dirs {
@@ -164,4 +165,20 @@ func ProcessTokens(skillDir string, tokens map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// readImagesDir reads the images_dir field from schema.json in skillDir.
+// Returns "products" if schema.json is absent or images_dir is not set.
+func readImagesDir(skillDir string) string {
+	data, err := os.ReadFile(filepath.Join(skillDir, "schema.json"))
+	if err != nil {
+		return "products"
+	}
+	var s struct {
+		ImagesDir string `json:"images_dir"`
+	}
+	if err := json.Unmarshal(data, &s); err != nil || s.ImagesDir == "" {
+		return "products"
+	}
+	return s.ImagesDir
 }

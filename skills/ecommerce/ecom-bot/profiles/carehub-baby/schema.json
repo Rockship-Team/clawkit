@@ -1,0 +1,37 @@
+{
+  "tables": {
+    "orders": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "status", "type": "text", "default": "new", "role": "status"},
+        {"name": "customer_name", "type": "text", "required": true},
+        {"name": "customer_phone", "type": "text"},
+        {"name": "customer_address", "type": "text"},
+        {"name": "items", "type": "text", "required": true},
+        {"name": "quantity", "type": "integer"},
+        {"name": "baby_age", "type": "text"},
+        {"name": "price", "type": "integer", "role": "price", "required": true},
+        {"name": "note", "type": "text"},
+        {"name": "sender_id", "type": "text", "role": "owner"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"},
+        {"name": "payment_status", "type": "text", "default": "unpaid"},
+        {"name": "deposit_amount", "type": "integer", "default": "0"}
+      ],
+      "statuses": ["new", "completed", "cancelled"]
+    },
+    "contacts": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "full_name", "type": "text", "required": true},
+        {"name": "phone", "type": "text"},
+        {"name": "email", "type": "text"},
+        {"name": "address", "type": "text"},
+        {"name": "source", "type": "text"},
+        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
+      ]
+    }
+  },
+  "primary": "orders",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "images_dir": "products"
+}

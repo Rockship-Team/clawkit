@@ -30,22 +30,38 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--skip-oauth]")
+			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>] [--skip-oauth]")
 			os.Exit(1)
 		}
 		skipOAuth := false
-		for _, arg := range os.Args[3:] {
-			if arg == "--skip-oauth" {
+		profileName := ""
+		for i := 3; i < len(os.Args); i++ {
+			switch os.Args[i] {
+			case "--skip-oauth":
 				skipOAuth = true
+			case "--profile":
+				if i+1 < len(os.Args) {
+					i++
+					profileName = os.Args[i]
+				} else {
+					fmt.Println("--profile requires a name")
+					os.Exit(1)
+				}
 			}
 		}
-		installer.CmdInstall(os.Args[2], skipOAuth)
+		installer.CmdInstall(os.Args[2], skipOAuth, profileName)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")
 			os.Exit(1)
 		}
 		installer.CmdUpdate(os.Args[2])
+	case "uninstall", "remove":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit uninstall <skill-name>")
+			os.Exit(1)
+		}
+		installer.CmdUninstall(os.Args[2])
 	case "status":
 		installer.CmdStatus()
 	case "package":
@@ -83,15 +99,22 @@ Usage:
 
 Commands:
   list                  List available skills
-  install <skill>       Install a skill + run OAuth setup
+  install <skill> [--profile <name>]
+                        Install a skill (locks workspace to its persona)
+  uninstall <skill>     Uninstall a skill (restores prior workspace files)
   update  <skill>       Update an installed skill
   status                Show installed skills
   dashboard             Start web dashboard (default port 7432)
   package <skill>       Package a skill for distribution (dev)
   version               Print version
 
+Note: clawkit enforces a 1-skill-at-a-time model. Installing a new skill
+will prompt to remove any previously installed skill first.
+
 Examples:
   clawkit list
   clawkit install shop-hoa
+  clawkit install ecommerce-bot --profile shop-hoa
+  clawkit uninstall shop-hoa
 `, version)
 }

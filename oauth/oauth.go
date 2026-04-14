@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
@@ -128,7 +129,10 @@ func OpenBrowser(url string) {
 	default:
 		return
 	}
-	cmd.Start()
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not open browser: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Open this URL manually: %s\n", url)
+	}
 }
 
 // PromptInput reads a line of input from the user. Thin wrapper to avoid

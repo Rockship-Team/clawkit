@@ -44,7 +44,7 @@ func CmdList() {
 }
 
 // CmdInstall installs a skill with OAuth setup and configuration.
-func CmdInstall(skillName string, skipOAuth bool) {
+func CmdInstall(skillName string, skipOAuth bool, profileName string) {
 	shouldSkipOAuth := skipOAuth
 
 	// Check platform is installed and get skills directory.
@@ -106,17 +106,33 @@ func CmdInstall(skillName string, skipOAuth bool) {
 			fmt.Println("  Cancelled.")
 			return
 		}
-		os.RemoveAll(targetDir)
+		if err := os.RemoveAll(targetDir); err != nil {
+			ui.Fatal("Failed to remove existing skill: %v", err)
+		}
 	}
 
 	// Download skill (remote) or copy (local dev).
-	os.MkdirAll(targetDir, 0755)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		ui.Fatal("Failed to create skill directory: %v", err)
+	}
 	err = downloadSkill(skillName, targetDir)
 	if err != nil {
 		os.RemoveAll(targetDir)
 		ui.Fatal("Failed to install: %v", err)
 	}
 	ui.Ok("Skill files installed to %s", targetDir)
+
+	// Apply profile overlay if specified.
+	var profileValues map[string]string
+	if profileName != "" {
+		var perr error
+		profileValues, perr = applyProfile(targetDir, profileName)
+		if perr != nil {
+			os.RemoveAll(targetDir)
+			ui.Fatal("Profile '%s': %v", profileName, perr)
+		}
+		ui.Ok("Applied profile '%s'", profileName)
+	}
 
 	// Install required CLI binaries.
 	if len(skill.RequiresBins) > 0 {
@@ -147,61 +163,64 @@ func CmdInstall(skillName string, skipOAuth bool) {
 		}
 	}
 
-	// Collect setup_prompts inputs from user (reuse shared stdinReader).
-	userInputs := collectUserInputs(skill.SetupPrompts, stdinReader)
+	// Lock down the workspace into this skill's persona:
+	//   1. Remove any previously installed skill (1-skill-at-a-time model)
+	//   2. Back up existing workspace MD files
+	//   3. Copy workspace-overrides/* from the new skill to workspace root
+	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
+	//   5. Reset prior conversation sessions
+	//   6. Set agents.defaults.skills = [<skillName>]
+	LockdownWorkspace(skillsDir, targetDir, skillName)
 
-	// Save config — load existing to preserve tokens written by runOAuth.
+	// Ensure image directories match catalog.
+	if err := template.EnsureImageDirs(targetDir); err != nil {
+		ui.Warn("Could not create image directories: %v", err)
+	}
+
+	// Load config early — schema init and profile merge both write to it.
 	cfg, _ := config.LoadSkillConfig(targetDir)
 	if cfg == nil {
 		cfg = &config.SkillConfig{}
 	}
 	cfg.SkillName = skillName
+	cfg.Profile = profileName
 	cfg.Version = skill.Version
 	cfg.OAuthDone = len(skill.RequiresOAuth) > 0
-	// Merge user inputs into tokens map.
-	if len(userInputs) > 0 {
-		if cfg.Tokens == nil {
-			cfg.Tokens = map[string]string{}
+
+	// Initialize database from schema.json.
+	if schemaErr := initSchema(targetDir, cfg, profileValues); schemaErr != nil {
+		ui.Warn("Database init: %v", schemaErr)
+	} else if cfg.DBTarget != "" {
+		ui.Ok("Database initialized (%s)", cfg.DBTarget)
+	}
+
+	// Merge profile values into UserInputs for template placeholder substitution.
+	if len(profileValues) > 0 {
+		if cfg.UserInputs == nil {
+			cfg.UserInputs = make(map[string]string)
 		}
-		for k, v := range userInputs {
-			if v != "" {
-				cfg.Tokens[k] = v
-			}
+		for k, v := range profileValues {
+			cfg.UserInputs[k] = v
 		}
 	}
+
 	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
 		ui.Fatal("Failed to save config: %v", err)
 	}
 
-	// Replace {key} placeholders in SKILL.md, IDENTITY.md, SOUL.md — while all
-	// files are still in skillDir (before moveWorkspaceFiles relocates them).
-	if len(cfg.Tokens) > 0 {
-		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
-			ui.Warn("Could not replace SKILL.md placeholders: %v", err)
+	// Replace {key} placeholders in SKILL.md with user/profile input values
+	// (e.g. {shop_name}, {emoji}) so the skill prompt is customized.
+	if len(cfg.UserInputs) > 0 {
+		if err := template.Process(targetDir, cfg.UserInputs); err != nil {
+			ui.Warn("Template processing failed: %v", err)
 		}
 	}
 
-	// Move IDENTITY.md and SOUL.md to ~/.openclaw/workspace if present.
-	moveWorkspaceFiles(targetDir)
-
-	// Ensure flower directories match catalog.
-	template.EnsureFlowerDirs(targetDir)
-
-	// Initialize database if init_db.py exists.
-	initDB := filepath.Join(targetDir, "init_db.py")
-	if _, err := os.Stat(initDB); err == nil {
-		pythonBin := findPython()
-		if pythonBin == "" {
-			ui.Warn("Python not found. Run manually: python3 %s", initDB)
-		} else {
-			cmd := exec.Command(pythonBin, initDB)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				ui.Warn("Database init failed: %v (you can run manually: %s %s)", err, pythonBin, initDB)
-			} else {
-				ui.Ok("Database initialized")
-			}
+	// Replace {key} placeholders in SKILL.md with OAuth token values
+	// (e.g. {spreadsheet_id}, {gmail_account}) so the skill prompt is ready to use.
+	if len(cfg.Tokens) > 0 {
+		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
+			ui.Warn("Could not replace SKILL.md placeholders: %v", err)
 		}
 	}
 
@@ -225,7 +244,7 @@ func CmdUpdate(skillName string) {
 	existingCfg, err := config.LoadSkillConfig(targetDir)
 	if err != nil {
 		ui.Info("No existing config found, doing fresh install")
-		CmdInstall(skillName, false)
+		CmdInstall(skillName, false, "")
 		return
 	}
 
@@ -242,6 +261,13 @@ func CmdUpdate(skillName string) {
 		ui.Fatal("Failed to update: %v", err)
 	}
 
+	// Re-apply profile overlay if the skill was installed with one.
+	if existingCfg.Profile != "" {
+		if _, err := applyProfile(targetDir, existingCfg.Profile); err != nil {
+			ui.Warn("Could not re-apply profile '%s': %v", existingCfg.Profile, err)
+		}
+	}
+
 	// Restore config.
 	if err := config.SaveSkillConfig(targetDir, existingCfg); err != nil {
 		ui.Warn("Could not restore config: %v", err)
@@ -249,7 +275,7 @@ func CmdUpdate(skillName string) {
 
 	// Re-process template with existing config values.
 	if existingCfg.UserInputs != nil {
-		template.EnsureFlowerDirs(targetDir)
+		template.EnsureImageDirs(targetDir)
 		if err := template.Process(targetDir, existingCfg.UserInputs); err != nil {
 			ui.Warn("Template processing failed: %v", err)
 		}
@@ -265,6 +291,69 @@ func CmdUpdate(skillName string) {
 
 	ui.Ok("'%s' updated to latest version", skillName)
 	ui.Info("Restart the gateway to pick up changes: openclaw gateway restart")
+}
+
+// CmdUninstall removes a skill and reverses the workspace lockdown applied
+// during install: restores backed-up workspace MD files, clears the skill
+// allowlist, resets sessions, and deletes the skill directory.
+//
+// After this runs, the user's OpenClaw returns to a generic-assistant state
+// (their pre-install workspace files are restored) and is ready to install
+// a different skill or run without any skill.
+func CmdUninstall(skillName string) {
+	skillsDir := config.Preflight()
+	fmt.Println()
+
+	targetDir := filepath.Join(skillsDir, skillName)
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		ui.Fatal("Skill '%s' is not installed.", skillName)
+	}
+
+	fmt.Printf("▸ Uninstalling %s\n", skillName)
+	fmt.Printf("  This will:\n")
+	fmt.Printf("    • Delete %s (including orders database and assets)\n", targetDir)
+	fmt.Printf("    • Restore your workspace files from the most recent backup\n")
+	fmt.Printf("    • Clear agents.defaults.skills config\n")
+	fmt.Printf("    • Archive all conversation sessions\n\n")
+	fmt.Print("  Continue? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimSpace(strings.ToLower(answer))
+	if answer != "y" && answer != "yes" {
+		fmt.Println("  Cancelled.")
+		return
+	}
+
+	workspaceDir := ResolveWorkspaceDir()
+
+	// Restore workspace MD files from the backup dir written at install time.
+	if err := RestoreWorkspaceFromBackup(workspaceDir); err != nil {
+		ui.Warn("Could not restore workspace from backup: %v", err)
+	}
+
+	// Clear the skill allowlist so the agent goes back to unrestricted mode.
+	if err := ClearSkillsAllowlist(); err != nil {
+		ui.Warn("Could not clear skill allowlist: %v", err)
+		ui.Info("Run manually: openclaw config unset agents.defaults.skills")
+	} else {
+		ui.Ok("Cleared agents.defaults.skills")
+	}
+
+	// Reset sessions so stale conversation history doesn't confuse the next
+	// install or plain-assistant usage.
+	if err := resetAgentSessions(workspaceDir); err != nil {
+		ui.Warn("Could not reset sessions: %v", err)
+	}
+
+	// Finally, remove the skill directory itself.
+	if err := os.RemoveAll(targetDir); err != nil {
+		ui.Fatal("Could not remove skill directory: %v", err)
+	}
+	ui.Ok("Removed %s", targetDir)
+
+	fmt.Println()
+	ui.Ok("'%s' uninstalled", skillName)
+	ui.Info("Restart the gateway to apply: openclaw gateway restart")
 }
 
 // CmdStatus shows all installed skills with version and OAuth status.
@@ -288,11 +377,15 @@ func CmdStatus() {
 			fmt.Printf("  %-25s (no config)\n", e.Name())
 			continue
 		}
+		profileInfo := ""
+		if cfg.Profile != "" {
+			profileInfo = fmt.Sprintf(" [profile: %s]", cfg.Profile)
+		}
 		oauthStatus := ""
 		if cfg.OAuthDone {
 			oauthStatus = " [oauth: connected]"
 		}
-		fmt.Printf("  %-25s v%s%s\n", cfg.SkillName, cfg.Version, oauthStatus)
+		fmt.Printf("  %-25s v%s%s%s\n", cfg.SkillName, cfg.Version, profileInfo, oauthStatus)
 	}
 }
 
@@ -303,7 +396,9 @@ func CmdPackage(skillName string) {
 		ui.Fatal("Skill '%s' not found in skills/ directory", skillName)
 	}
 
-	os.MkdirAll("dist", 0755)
+	if err := os.MkdirAll("dist", 0755); err != nil {
+		ui.Fatal("Failed to create dist directory: %v", err)
+	}
 	outputPath := filepath.Join("dist", skillName+".tar.gz")
 
 	ui.Info("Packaging %s...", skillName)
@@ -311,38 +406,16 @@ func CmdPackage(skillName string) {
 		ui.Fatal("Failed to package: %v", err)
 	}
 
-	fi, _ := os.Stat(outputPath)
+	fi, err := os.Stat(outputPath)
+	if err != nil {
+		ui.Fatal("Failed to stat output: %v", err)
+	}
 	sizeMB := float64(fi.Size()) / 1024 / 1024
 
 	ui.Ok("Packaged: %s (%.1f MB)", outputPath, sizeMB)
 	fmt.Println()
 	fmt.Println("  Upload this file to GitHub Releases:")
 	fmt.Printf("  gh release upload latest %s\n", outputPath)
-}
-
-// collectUserInputs prompts the user for each setup prompt.
-func collectUserInputs(prompts []Prompt, reader *bufio.Reader) map[string]string {
-	inputs := map[string]string{}
-	if len(prompts) == 0 {
-		return inputs
-	}
-
-	fmt.Println()
-	ui.Info("Skill configuration")
-	for _, prompt := range prompts {
-		label := prompt.Label
-		if prompt.Default != "" {
-			label = fmt.Sprintf("%s [%s]", label, prompt.Default)
-		}
-		fmt.Printf("  %s: ", label)
-		answer, _ := reader.ReadString('\n')
-		answer = strings.TrimSpace(answer)
-		if answer == "" && prompt.Default != "" {
-			answer = prompt.Default
-		}
-		inputs[prompt.Key] = answer
-	}
-	return inputs
 }
 
 // postOAuthGmail writes credential files and configures gog CLI.
@@ -460,7 +533,9 @@ func postOAuthGmail(skillDir string, tokens map[string]string) {
 	cmd.Env = gogEnv
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		ui.Warn("gog auth list failed: %v", err)
+	}
 
 	// 6. Install a gog wrapper in ~/.openclaw/bin that bakes in GOG_KEYRING_*
 	//    env vars. This removes the dependency on the user's shell profile,
@@ -556,8 +631,15 @@ func prependOpenclawBinToPath(binDir string) {
 		if err != nil {
 			continue
 		}
-		f.WriteString(block)
-		f.Close()
+		if _, err := f.WriteString(block); err != nil {
+			f.Close()
+			ui.Warn("Failed to write to %s: %v", p, err)
+			continue
+		}
+		if err := f.Close(); err != nil {
+			ui.Warn("Failed to close %s: %v", p, err)
+			continue
+		}
 		ui.Ok("Prepended %s to PATH in %s", binDir, p)
 		wrote = true
 	}
@@ -583,7 +665,9 @@ func writeGogEnvToShellProfile() {
 		}
 		for _, kv := range vars {
 			psCmd := fmt.Sprintf(`[Environment]::SetEnvironmentVariable('%s','%s','User')`, kv[0], kv[1])
-			exec.Command("powershell", "-NoProfile", "-Command", psCmd).Run()
+			if err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).Run(); err != nil {
+				ui.Warn("Failed to set %s: %v", kv[0], err)
+			}
 		}
 		ui.Ok("GOG_KEYRING_BACKEND and GOG_KEYRING_PASSWORD set in user environment (restart terminal)")
 		return
@@ -614,8 +698,15 @@ func writeGogEnvToShellProfile() {
 		if err != nil {
 			continue
 		}
-		f.WriteString(block)
-		f.Close()
+		if _, err := f.WriteString(block); err != nil {
+			f.Close()
+			ui.Warn("Failed to write to %s: %v", p, err)
+			continue
+		}
+		if err := f.Close(); err != nil {
+			ui.Warn("Failed to close %s: %v", p, err)
+			continue
+		}
 		ui.Ok("Added GOG_KEYRING vars to %s", p)
 		wrote = true
 	}
@@ -780,7 +871,9 @@ func installGogCLI() (string, error) {
 			if err := cmd.Run(); err != nil {
 				return "", fmt.Errorf("install gog to %s failed: %w", destPath, err)
 			}
-			exec.Command("sudo", "chmod", "+x", destPath).Run()
+			if err := exec.Command("sudo", "chmod", "+x", destPath).Run(); err != nil {
+				ui.Warn("chmod +x %s failed: %v", destPath, err)
+			}
 		} else {
 			return "", fmt.Errorf("install gog failed: %w", err)
 		}
@@ -862,65 +955,6 @@ func installBinDir() string {
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "bin")
-}
-
-// moveWorkspaceFiles moves IDENTITY.md and SOUL.md from the skill dir to
-// ~/.openclaw/workspace if they exist.
-func moveWorkspaceFiles(skillDir string) {
-	home, _ := os.UserHomeDir()
-	workspaceDir := filepath.Join(home, ".openclaw", "workspace")
-	files := []string{"IDENTITY.md", "SOUL.md"}
-	moved := false
-	for _, f := range files {
-		src := filepath.Join(skillDir, f)
-		if _, err := os.Stat(src); os.IsNotExist(err) {
-			continue
-		}
-		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-			ui.Warn("Could not create workspace dir: %v", err)
-			continue
-		}
-		dst := filepath.Join(workspaceDir, f)
-		if err := moveFile(src, dst); err != nil {
-			ui.Warn("Could not move %s to workspace: %v", f, err)
-			continue
-		}
-		ui.Ok("Moved %s → %s", f, dst)
-		moved = true
-	}
-	if moved {
-		ui.Info("Workspace files placed in %s", workspaceDir)
-	}
-}
-
-// moveFile moves src to dst, falling back to copy+delete if os.Rename fails
-// (e.g. cross-device on Linux, or dst already exists on Windows).
-func moveFile(src, dst string) error {
-	// Remove dst first so Windows rename doesn't fail on existing file.
-	os.Remove(dst)
-	if err := os.Rename(src, dst); err == nil {
-		return nil
-	}
-	// Fallback: copy then delete (handles cross-device / cross-drive moves).
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(dst, data, 0644); err != nil {
-		return err
-	}
-	return os.Remove(src)
-}
-
-// findPython returns the path to a Python 3 interpreter.
-// Tries "python3" first (macOS/Linux), falls back to "python" (Windows).
-func findPython() string {
-	for _, name := range []string{"python3", "python"} {
-		if path, err := exec.LookPath(name); err == nil {
-			return path
-		}
-	}
-	return ""
 }
 
 // runOAuth runs the OAuth flow for a provider and saves tokens.

@@ -132,17 +132,16 @@ func loadLocalRegistry() ([]byte, error) {
 //  3. Remote GitHub Releases (.tar.gz) — useful when the repo is public and
 //     we want to ship registry/skill updates without rebuilding the binary.
 func downloadSkill(skillName, targetDir string) error {
-	// 1. Local (dev mode).
-	localDir := filepath.Join("skills", skillName)
-	if _, err := os.Stat(localDir); err == nil {
+	// 1. Local (dev mode) — search skills/<name> or skills/<vertical>/<name>.
+	if localDir := findLocalSkill(skillName); localDir != "" {
 		ui.Info("Installing from local source")
 		return copyDir(localDir, targetDir)
 	}
 
-	// 2. Embedded — check the skill exists in the embedded FS.
-	if _, err := skills.FS.ReadDir(skillName); err == nil {
+	// 2. Embedded — search the skill across verticals in the embedded FS.
+	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
 		ui.Info("Installing from embedded skills")
-		return copyEmbeddedSkill(skillName, targetDir)
+		return copyEmbeddedSkill(embeddedPath, targetDir)
 	}
 
 	// 3. Remote GitHub Release.
@@ -180,6 +179,31 @@ func downloadSkill(skillName, targetDir string) error {
 	}
 
 	return archive.ExtractTarGz(tmpFile.Name(), targetDir)
+}
+
+// findLocalSkill searches for a skill in the local skills/ directory.
+// Supports both flat (skills/<name>) and grouped (skills/<vertical>/<name>) layouts.
+func findLocalSkill(skillName string) string {
+	// Try flat first.
+	flat := filepath.Join("skills", skillName)
+	if _, err := os.Stat(filepath.Join(flat, "SKILL.md")); err == nil {
+		return flat
+	}
+	// Search one level of nesting: skills/<vertical>/<name>.
+	entries, err := os.ReadDir("skills")
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		nested := filepath.Join("skills", e.Name(), skillName)
+		if _, err := os.Stat(filepath.Join(nested, "SKILL.md")); err == nil {
+			return nested
+		}
+	}
+	return ""
 }
 
 // copyEmbeddedSkill walks skills.FS under skillName and writes every file

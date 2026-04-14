@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// parseProfileYAML reads a simple key: value file and returns the values as a map.
-// Lines starting with # and blank lines are skipped. Only flat key-value pairs
-// are supported (no nesting, no lists).
+// parseProfileYAML reads a key: value file and returns the values as a map.
+// Supports single-line values and YAML block scalars (key: |).
+// Lines starting with # and blank lines are skipped (outside blocks).
 func parseProfileYAML(path string) (map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -17,25 +17,61 @@ func parseProfileYAML(path string) (map[string]string, error) {
 	}
 
 	values := make(map[string]string)
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
+	lines := strings.Split(string(data), "\n")
+
+	var blockKey string
+	var blockLines []string
+
+	flushBlock := func() {
+		if blockKey != "" {
+			values[blockKey] = strings.TrimRight(strings.Join(blockLines, "\n"), "\n")
+			blockKey = ""
+			blockLines = nil
+		}
+	}
+
+	for _, line := range lines {
+		// Inside a block scalar: collect indented lines.
+		if blockKey != "" {
+			if len(line) > 0 && (line[0] == ' ' || line[0] == '\t') {
+				blockLines = append(blockLines, strings.TrimSpace(line))
+				continue
+			}
+			// Non-indented line ends the block.
+			flushBlock()
+		}
+
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		idx := strings.Index(line, ":")
+
+		idx := strings.Index(trimmed, ":")
 		if idx < 0 {
 			continue
 		}
-		key := strings.TrimSpace(line[:idx])
-		val := strings.TrimSpace(line[idx+1:])
+
+		key := strings.TrimSpace(trimmed[:idx])
+		val := strings.TrimSpace(trimmed[idx+1:])
+
+		if key == "" {
+			continue
+		}
+
+		// Block scalar: "key: |"
+		if val == "|" {
+			blockKey = key
+			blockLines = nil
+			continue
+		}
+
 		// Strip surrounding quotes.
 		if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
 			val = val[1 : len(val)-1]
 		}
-		if key != "" {
-			values[key] = val
-		}
+		values[key] = val
 	}
+	flushBlock()
 	return values, nil
 }
 

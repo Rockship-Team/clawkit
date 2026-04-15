@@ -60,23 +60,24 @@ func GenerateCatalogSection(skillDir string) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-// EnsureFlowerDirs creates directories under flowers/ matching catalog.json.
-func EnsureFlowerDirs(skillDir string) error {
+// EnsureImageDirs creates product image directories matching catalog.json.
+// The subdirectory name is read from schema.json images_dir field, defaulting to "products".
+func EnsureImageDirs(skillDir string) error {
 	cat, err := LoadCatalog(skillDir)
 	if err != nil {
 		return nil // no catalog = nothing to do
 	}
-	flowersDir := filepath.Join(skillDir, "flowers")
+	imagesDir := filepath.Join(skillDir, readImagesDir(skillDir))
 
 	dirs := make([]string, 0, len(cat.Categories)+len(cat.PriceTiers)+1)
 	for _, c := range cat.Categories {
-		dirs = append(dirs, filepath.Join(flowersDir, c.Folder))
+		dirs = append(dirs, filepath.Join(imagesDir, c.Folder))
 	}
 	for _, p := range cat.PriceTiers {
-		dirs = append(dirs, filepath.Join(flowersDir, fmt.Sprintf("price-%d", p)))
+		dirs = append(dirs, filepath.Join(imagesDir, fmt.Sprintf("price-%d", p)))
 	}
 	if cat.BestSeller {
-		dirs = append(dirs, filepath.Join(flowersDir, "best-seller"))
+		dirs = append(dirs, filepath.Join(imagesDir, "best-seller"))
 	}
 
 	for _, d := range dirs {
@@ -122,23 +123,62 @@ func Process(skillDir string, userInputs map[string]string) error {
 	return nil
 }
 
-// ProcessTokens replaces {key} placeholders in SKILL.md with values from tokens.
-// Called after OAuth to substitute values like spreadsheet_id, gmail_account, etc.
-// Keys not present in the file are silently skipped.
+// snakeToCamel converts snake_case to camelCase (e.g. "agent_name" → "agentName").
+func snakeToCamel(s string) string {
+	parts := strings.Split(s, "_")
+	for i := 1; i < len(parts); i++ {
+		if len(parts[i]) > 0 {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// ProcessTokens replaces {key} placeholders in SKILL.md, IDENTITY.md, and SOUL.md
+// with values from tokens. Both snake_case and camelCase variants of each key are
+// substituted so skills can use either convention. Keys not present in the file
+// are silently skipped.
 func ProcessTokens(skillDir string, tokens map[string]string) error {
-	skillPath := filepath.Join(skillDir, "SKILL.md")
-	data, err := os.ReadFile(skillPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+	targets := []string{"SKILL.md", "IDENTITY.md", "SOUL.md"}
+	for _, fname := range targets {
+		fpath := filepath.Join(skillDir, fname)
+		data, err := os.ReadFile(fpath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("read %s: %w", fname, err)
 		}
-		return fmt.Errorf("read SKILL.md: %w", err)
-	}
-	content := string(data)
-	for key, value := range tokens {
-		if value != "" {
+		content := string(data)
+		for key, value := range tokens {
+			if value == "" {
+				continue
+			}
+			// Replace both {snake_case} and {camelCase} variants.
 			content = strings.ReplaceAll(content, "{"+key+"}", value)
+			if camel := snakeToCamel(key); camel != key {
+				content = strings.ReplaceAll(content, "{"+camel+"}", value)
+			}
+		}
+		if err := os.WriteFile(fpath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", fname, err)
 		}
 	}
-	return os.WriteFile(skillPath, []byte(content), 0644)
+	return nil
+}
+
+// readImagesDir reads the images_dir field from schema.json in skillDir.
+// Returns "products" if schema.json is absent or images_dir is not set.
+func readImagesDir(skillDir string) string {
+	data, err := os.ReadFile(filepath.Join(skillDir, "schema.json"))
+	if err != nil {
+		return "products"
+	}
+	var s struct {
+		ImagesDir string `json:"images_dir"`
+	}
+	if err := json.Unmarshal(data, &s); err != nil || s.ImagesDir == "" {
+		return "products"
+	}
+	return s.ImagesDir
 }

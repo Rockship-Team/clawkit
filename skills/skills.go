@@ -1,17 +1,41 @@
 // Package skills contains the skill files shipped with clawkit.
 //
 // The embedded FS is populated at build time from the subdirectories of
-// this package (one directory per skill). It lets the installer copy
-// skill files from the binary itself, so the globally-installed CLI
-// works without network access or a local skills/ directory.
+// this package. Skills are grouped by vertical:
 //
-// When adding a new skill, add an entry to the //go:embed directive.
+//	skills/ecommerce/shop-hoa/
+//	skills/ecommerce/carehub-baby/
+//	skills/utilities/finance-tracker/
+//	skills/tools/gog/
+//
+// The installer looks up skills by name (not path) using findEmbeddedSkill.
+//
+// When adding a new skill, add its vertical to the //go:embed directive.
 package skills
 
-import "embed"
+import (
+	"embed"
+	"io/fs"
+)
 
-// FS holds the embedded skill directories. Use FS.ReadDir("skill-name")
-// to enumerate a skill's files, and FS.ReadFile to read each one.
-//
-//go:embed all:finance-tracker all:gog all:shop-hoa all:carehub-baby
+//go:embed all:ecommerce all:utilities all:tools all:consulting
 var FS embed.FS
+
+// FindSkill searches the embedded FS for a skill by name across all verticals.
+// Returns the FS path prefix (e.g. "ecommerce/shop-hoa") or empty string.
+func FindSkill(name string) string {
+	verticals, err := fs.ReadDir(FS, ".")
+	if err != nil {
+		return ""
+	}
+	for _, v := range verticals {
+		if !v.IsDir() {
+			continue
+		}
+		candidate := v.Name() + "/" + name
+		if _, err := fs.Stat(FS, candidate); err == nil {
+			return candidate
+		}
+	}
+	return ""
+}

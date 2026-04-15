@@ -1,18 +1,29 @@
 {
   "skills": {
-    "carehub-baby": {
+    "bds-broker": {
+      "version": "4.0.0",
+      "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
+      "requires_oauth": null,
+      "setup_prompts": [
+        {
+          "key": "agent_name",
+          "label": "Tên nhân viên tư vấn"
+        },
+        {
+          "key": "admin_telegram_ids",
+          "label": "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)"
+        }
+      ]
+    },
+    "ecom-bot": {
       "version": "1.0.0",
-      "description": "Trợ lý tư vấn sữa Blackmores cho CareHub Baby & Family qua Zalo",
-      "requires_oauth": [
-        "zalo_personal"
-      ],
-      "setup_prompts": []
+      "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
+      "requires_oauth": null
     },
     "finance-tracker": {
       "version": "2.0.0",
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.",
-      "requires_oauth": null,
-      "setup_prompts": []
+      "requires_oauth": null
     },
     "gog": {
       "version": "1.0.0",
@@ -22,8 +33,7 @@
       ],
       "requires_bins": [
         "gog"
-      ],
-      "setup_prompts": []
+      ]
     },
     "shop-hoa": {
       "version": "3.1.0",
@@ -36,6 +46,11 @@
       "description": "Tro ly tai chinh ca nhan 24/7 — kien thuc dau tu, meo tiet kiem, toi uu the tin dung, theo doi chi tieu, gamification. Chay tren Telegram/Zalo, khong truy cap ngan hang.",
       "requires_oauth": null,
       "setup_prompts": []
+    },
+    "rockship-support": {
+      "version": "1.0.0",
+      "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\".",
+      "requires_oauth": null
     }
   }
 }

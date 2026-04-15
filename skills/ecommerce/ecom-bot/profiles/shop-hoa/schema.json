@@ -1,0 +1,14 @@
+{
+  "extend": true,
+  "images_dir": "flowers",
+  "tables": {
+    "orders": {
+      "fields": [
+        {"name": "recipient_name", "type": "text", "required": true},
+        {"name": "recipient_phone", "type": "text", "required": true},
+        {"name": "recipient_address", "type": "text", "required": true},
+        {"name": "delivery_time", "type": "text"}
+      ]
+    }
+  }
+}

@@ -8,16 +8,9 @@ import (
 	"os"
 
 	"github.com/rockship-co/clawkit/internal/installer"
-	"github.com/rockship-co/clawkit/internal/ui"
-	"github.com/rockship-co/clawkit/oauth"
 )
 
 var version = "0.1.0"
-
-func init() {
-	// Wire the promptInput function into the oauth package.
-	oauth.PromptInput = ui.PromptInput
-}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -30,16 +23,23 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--skip-oauth]")
+			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>]")
 			os.Exit(1)
 		}
-		skipOAuth := false
-		for _, arg := range os.Args[3:] {
-			if arg == "--skip-oauth" {
-				skipOAuth = true
+		profileName := ""
+		for i := 3; i < len(os.Args); i++ {
+			switch os.Args[i] {
+			case "--profile":
+				if i+1 < len(os.Args) {
+					i++
+					profileName = os.Args[i]
+				} else {
+					fmt.Println("--profile requires a name")
+					os.Exit(1)
+				}
 			}
 		}
-		installer.CmdInstall(os.Args[2], skipOAuth)
+		installer.CmdInstall(os.Args[2], profileName)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")
@@ -61,6 +61,17 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdPackage(os.Args[2])
+	case "dashboard":
+		port := 7432
+		for i, arg := range os.Args[2:] {
+			if arg == "--port" && i+1 < len(os.Args[2:]) {
+				if p, err := fmt.Sscan(os.Args[i+3], &port); p == 0 || err != nil {
+					fmt.Println("Usage: clawkit dashboard [--port <number>]")
+					os.Exit(1)
+				}
+			}
+		}
+		installer.CmdDashboard(port)
 	case "version", "--version", "-v":
 		fmt.Printf("clawkit v%s\n", version)
 	default:
@@ -78,10 +89,11 @@ Usage:
 
 Commands:
   list                  List available skills
-  install <skill>       Install a skill (locks workspace to its persona)
+  install <skill> [--profile <name>]  Install a skill (locks workspace to its persona)
   uninstall <skill>     Uninstall a skill (restores prior workspace files)
   update  <skill>       Update an installed skill
   status                Show installed skills
+  dashboard             Start web dashboard (default port 7432)
   package <skill>       Package a skill for distribution (dev)
   version               Print version
 
@@ -91,6 +103,7 @@ will prompt to remove any previously installed skill first.
 Examples:
   clawkit list
   clawkit install shop-hoa
+  clawkit install ecommerce-bot --profile shop-hoa
   clawkit uninstall shop-hoa
 `, version)
 }

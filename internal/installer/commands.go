@@ -107,14 +107,10 @@ func CmdInstall(skillName string, profileName string) {
 		installRequiredBins(skill.RequiresBins)
 	}
 
-	// Lock down the workspace into this skill's persona:
-	//   1. Remove any previously installed skill (1-skill-at-a-time model)
-	//   2. Back up existing workspace MD files
-	//   3. Copy bootstrap-files/* from the new skill to workspace root
-	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
-	//   5. Reset prior conversation sessions
-	//   6. Set agents.defaults.skills = [<skillName>]
-	LockdownWorkspace(skillsDir, targetDir, skillName)
+	// Set up the workspace for this skill:
+	//   - First skill: backup workspace files, apply persona, set allowlist
+	//   - Additional skills: append to allowlist, keep existing persona
+	SetupWorkspace(skillsDir, targetDir, skillName)
 
 	// Remove bootstrap-files from the installed skill directory — they've
 	// already been applied to the workspace root by LockdownWorkspace and
@@ -270,10 +266,8 @@ func CmdUninstall(skillName string) {
 
 	ui.Info("Uninstalling %s", skillName)
 	fmt.Printf("  This will:\n")
-	fmt.Printf("    • Delete %s (including orders database and assets)\n", targetDir)
-	fmt.Printf("    • Restore your workspace files from the most recent backup\n")
-	fmt.Printf("    • Clear agents.defaults.skills config\n")
-	fmt.Printf("    • Archive all conversation sessions\n\n")
+	fmt.Printf("    • Delete %s (including database and assets)\n", targetDir)
+	fmt.Printf("    • Remove '%s' from the skill allowlist\n\n", skillName)
 	fmt.Print("  Continue? [y/N]: ")
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
@@ -283,28 +277,10 @@ func CmdUninstall(skillName string) {
 		return
 	}
 
-	workspaceDir := ResolveWorkspaceDir()
+	// Update allowlist — if this is the last skill, also restores workspace.
+	RemoveFromWorkspace(skillsDir, skillName)
 
-	// Restore workspace MD files from the backup dir written at install time.
-	if err := RestoreWorkspaceFromBackup(workspaceDir); err != nil {
-		ui.Warn("Could not restore workspace from backup: %v", err)
-	}
-
-	// Clear the skill allowlist so the agent goes back to unrestricted mode.
-	if err := ClearSkillsAllowlist(); err != nil {
-		ui.Warn("Could not clear skill allowlist: %v", err)
-		ui.Info("Run manually: openclaw config unset agents.defaults.skills")
-	} else {
-		ui.Ok("Cleared agents.defaults.skills")
-	}
-
-	// Reset sessions so stale conversation history doesn't confuse the next
-	// install or plain-assistant usage.
-	if err := resetAgentSessions(workspaceDir); err != nil {
-		ui.Warn("Could not reset sessions: %v", err)
-	}
-
-	// Finally, remove the skill directory itself.
+	// Remove the skill directory itself.
 	if err := os.RemoveAll(targetDir); err != nil {
 		ui.Fatal("Could not remove skill directory: %v", err)
 	}

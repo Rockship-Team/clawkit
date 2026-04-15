@@ -145,7 +145,13 @@ func ExtractZip(archivePath, destDir string) error {
 }
 
 // CreateTarGz creates a .tar.gz archive from sourceDir.
-func CreateTarGz(sourceDir, outputPath string) error {
+// Files/dirs matching excludePatterns are omitted from the archive.
+func CreateTarGz(sourceDir, outputPath string, excludePatterns ...[]string) error {
+	var patterns []string
+	if len(excludePatterns) > 0 {
+		patterns = excludePatterns[0]
+	}
+
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("create output: %w", err)
@@ -165,12 +171,19 @@ func CreateTarGz(sourceDir, outputPath string) error {
 			return err
 		}
 
+		relPath, _ := filepath.Rel(sourceDir, path)
+		if shouldExclude(relPath, patterns) {
+			if fi.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
 		header, err := tar.FileInfoHeader(fi, "")
 		if err != nil {
 			return fmt.Errorf("file info header: %w", err)
 		}
 
-		relPath, _ := filepath.Rel(sourceDir, path)
 		// Use forward slashes in tar headers regardless of OS (tar format requires /).
 		header.Name = pathpkg.Join(baseName, filepath.ToSlash(relPath))
 
@@ -191,4 +204,60 @@ func CreateTarGz(sourceDir, outputPath string) error {
 		_, err = io.Copy(tw, f)
 		return err
 	})
+}
+
+// shouldExclude checks whether relPath matches any of the exclude patterns.
+// Supports tsconfig-style globs:
+//   - "cmd"           — matches the directory (and everything inside it)
+//   - "*.tmp"         — matches *.tmp at any depth
+//   - "**/*.test.go"  — matches *.test.go at any depth
+//   - "**/test"       — matches any path component named "test"
+//   - "tools/crawl"   — matches that exact prefix
+func shouldExclude(relPath string, patterns []string) bool {
+	if len(patterns) == 0 || relPath == "." {
+		return false
+	}
+	normalized := filepath.ToSlash(relPath)
+	for _, pattern := range patterns {
+		if matchGlob(normalized, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// matchGlob matches a path against a single glob pattern with ** support.
+func matchGlob(path, pattern string) bool {
+	// Handle ** prefix: "**/<rest>" matches <rest> against any suffix.
+	if strings.HasPrefix(pattern, "**/") {
+		suffix := pattern[3:]
+		parts := strings.Split(path, "/")
+		for i := range parts {
+			sub := strings.Join(parts[i:], "/")
+			if matched, _ := filepath.Match(suffix, sub); matched {
+				return true
+			}
+		}
+		return false
+	}
+
+	// No slash in pattern → treat as component-level match.
+	if !strings.Contains(pattern, "/") {
+		parts := strings.Split(path, "/")
+		for _, part := range parts {
+			if matched, _ := filepath.Match(pattern, part); matched {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Pattern has slashes → match against full path.
+	if matched, _ := filepath.Match(pattern, path); matched {
+		return true
+	}
+	if strings.HasPrefix(path, pattern+"/") {
+		return true
+	}
+	return false
 }

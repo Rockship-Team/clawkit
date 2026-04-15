@@ -1,0 +1,623 @@
+[
+  {
+    "id": "t01",
+    "category": "food",
+    "text": "Nau com mang di lam thay vi dat app — tiet kiem 50-80K/ngay, ~1.5 trieu/thang."
+  },
+  {
+    "id": "t02",
+    "category": "food",
+    "text": "Meal prep Chu nhat: nau san 5 hop com trua, tiet kiem ~300K/tuan so voi an ngoai."
+  },
+  {
+    "id": "t03",
+    "category": "food",
+    "text": "Mua thuc pham o cho thay vi sieu thi co the re hon 20-30%. Uu tien di cho buoi sang som."
+  },
+  {
+    "id": "t04",
+    "category": "food",
+    "text": "Dat do an qua app? Dung quen check voucher truoc khi dat. Shopee Coins, MoMo, ZaloPay thuong co giam 20-50K."
+  },
+  {
+    "id": "t05",
+    "category": "food",
+    "text": "Mang binh nuoc tu nha — 1 chai nuoc mua ngoai 10-15K x 22 ngay = 220-330K/thang bay mat."
+  },
+  {
+    "id": "t06",
+    "category": "food",
+    "text": "Dat tra sua 2-3 lan/tuan? Giam xuong 1 lan/tuan tiet kiem 200-400K/thang."
+  },
+  {
+    "id": "t07",
+    "category": "transport",
+    "text": "Dat Grab/Be sau 21h thuong re hon 20-30% nho it nguoi dat. Neu khong gap, doi toi muon."
+  },
+  {
+    "id": "t08",
+    "category": "transport",
+    "text": "Di xe buyt/metro cho cac tuyen co dinh — ve thang chi 200K so voi 50-80K/ngay xe may/Grab."
+  },
+  {
+    "id": "t09",
+    "category": "transport",
+    "text": "Carpool voi dong nghieu cung tuyen — chia doi tien xang, tiet kiem 500K-1tr/thang."
+  },
+  {
+    "id": "t10",
+    "category": "transport",
+    "text": "Bao duong xe dinh ky (thay nhot, bom lop) giup tiet kiem xang 10-15%."
+  },
+  {
+    "id": "t11",
+    "category": "shopping",
+    "text": "Ap dung quy tac 24h: muon mua gi tren 500K, doi 24h. 70% truong hop ban se khong mua nua."
+  },
+  {
+    "id": "t12",
+    "category": "shopping",
+    "text": "Flash sale Shopee/Lazada: dat lich nhac truoc, them vao gio hang san, thanh toan bang the co cashback."
+  },
+  {
+    "id": "t13",
+    "category": "shopping",
+    "text": "So sanh gia tren nhieu nen tang truoc khi mua. Dung web so sanh gia nhu websosanh.vn."
+  },
+  {
+    "id": "t14",
+    "category": "shopping",
+    "text": "Mua do second-hand chat luong cao (dien tu, noi that) o Cho Tot — tiet kiem 40-60% so voi mua moi."
+  },
+  {
+    "id": "t15",
+    "category": "shopping",
+    "text": "Unsubscribe email marketing tu cac shop — bot cam do, bot mua sam bo xung."
+  },
+  {
+    "id": "t16",
+    "category": "bills",
+    "text": "Tat dieu hoa khi ra khoi phong — 1 gio dieu hoa ton 1-2K dien, ca thang tiet kiem 300-600K."
+  },
+  {
+    "id": "t17",
+    "category": "bills",
+    "text": "Chuyen sang goi cuoc di dong re hon — nhieu nha mang co goi 77-99K/thang du data va goi."
+  },
+  {
+    "id": "t18",
+    "category": "bills",
+    "text": "Thanh toan hoa don dien/nuoc/internet qua vi dien tu thuong duoc hoan 1-5%."
+  },
+  {
+    "id": "t19",
+    "category": "bills",
+    "text": "Dung bong den LED thay bong soi dot — tiet kiem 75% dien chieu sang."
+  },
+  {
+    "id": "t20",
+    "category": "bills",
+    "text": "Rut phich cam sac dien thoai, laptop khi khong dung — dien tu 'ma' ton 5-10% hoa don dien."
+  },
+  {
+    "id": "t21",
+    "category": "entertainment",
+    "text": "Chia se tai khoan Netflix/Spotify/YouTube Premium voi ban be — chia 4 nguoi chi con 30-40K/nguoi/thang."
+  },
+  {
+    "id": "t22",
+    "category": "entertainment",
+    "text": "Tim su kien mien phi trong thanh pho: trien lam, hoa nhac, workshop — vui ma khong ton tien."
+  },
+  {
+    "id": "t23",
+    "category": "entertainment",
+    "text": "Doc sach qua thu vien hoac app doc mien phi (Waka trial, thu vien so) thay vi mua sach moi."
+  },
+  {
+    "id": "t24",
+    "category": "general",
+    "text": "Dat auto-transfer vao tai khoan tiet kiem moi ngay luong. Tien ban khong thay = tien ban khong tieu."
+  },
+  {
+    "id": "t25",
+    "category": "general",
+    "text": "Theo quy tac 50/30/20: 50% nhu cau, 30% mong muon, 20% tiet kiem. Dieu chinh theo thu nhap thuc te."
+  },
+  {
+    "id": "t26",
+    "category": "general",
+    "text": "Lap quy du phong = 6 thang chi tieu. Day la 'bao hiem' quan trong nhat truoc khi nghi den dau tu."
+  },
+  {
+    "id": "t27",
+    "category": "general",
+    "text": "Tra no lai cao truoc (the tin dung 2-4%/thang, vay tieu dung). Lai kep se 'an' tien cua ban nhanh hon ban tuong."
+  },
+  {
+    "id": "t28",
+    "category": "general",
+    "text": "Ghi chep chi tieu moi ngay — chi can 30 giay nhan tin cho bot. Biet minh tieu gi moi tiet kiem duoc."
+  },
+  {
+    "id": "t29",
+    "category": "general",
+    "text": "Moi khi duoc tang luong, tang tiet kiem truoc, tang chi tieu sau. Tranh 'lifestyle inflation'."
+  },
+  {
+    "id": "t30",
+    "category": "general",
+    "text": "Khong vay tien de dau tu. Chi dau tu bang tien nhan roi — tien mat di khong anh huong cuoc song."
+  },
+  {
+    "id": "t31",
+    "category": "food",
+    "text": "Uong ca phe pha tai nha — 1 goi ca phe 5-10K pha duoc 2-3 ly, so voi 40-60K/ly quan."
+  },
+  {
+    "id": "t32",
+    "category": "shopping",
+    "text": "Mua hang theo mua giam gia: Black Friday, 11.11, 12.12 — nhung chi mua thu THUC SU can."
+  },
+  {
+    "id": "t33",
+    "category": "transport",
+    "text": "Lam viec tu xa 1-2 ngay/tuan neu duoc — tiet kiem tien di lai + an trua."
+  },
+  {
+    "id": "t34",
+    "category": "bills",
+    "text": "Kiem tra lai suat gui tiet kiem online — thuong cao hon gui quay 0.5-1%/nam."
+  },
+  {
+    "id": "t35",
+    "category": "general",
+    "text": "No the tin dung? Luon tra toan bo du no truoc han — lai suat 2-4%/thang la rat cao."
+  },
+  {
+    "id": "t36",
+    "category": "food",
+    "text": "Mua combo thay vi mua le thuong re hon 15-20%. Ap dung cho ca phe, do an nhanh, sieu thi."
+  },
+  {
+    "id": "t37",
+    "category": "entertainment",
+    "text": "Xem phim ngay thuong (thu 2-5) re hon cuoi tuan 30-50%. Nhieu rap con co ngay hoi vien."
+  },
+  {
+    "id": "t38",
+    "category": "general",
+    "text": "Dat muc tieu tiet kiem cu the: '10 trieu trong 3 thang' thay vi 'tiet kiem nhieu hon'. Cu the = de thuc hien."
+  },
+  {
+    "id": "t39",
+    "category": "shopping",
+    "text": "Cashback apps (Shopback, Fundiin) hoan 1-10% khi mua sam online. It nhung tich lau thanh nhieu."
+  },
+  {
+    "id": "t40",
+    "category": "general",
+    "text": "Review chi tieu cuoi moi tuan — chi 5 phut nhin lai giup ban dieu chinh kip thoi."
+  },
+  {
+    "id": "t41",
+    "category": "food",
+    "text": "Mua gao, dau an, gia vi theo bao lon/can lon — re hon 15-25% so voi mua goi nho le."
+  },
+  {
+    "id": "t42",
+    "category": "food",
+    "text": "An sang o nha voi banh mi + trung/pho tu nau — chi 10-15K thay vi 30-50K an ngoai."
+  },
+  {
+    "id": "t43",
+    "category": "food",
+    "text": "Dong hop thuc an thua thanh bua trua hom sau thay vi bo di — tiet kiem 30-50K/lan."
+  },
+  {
+    "id": "t44",
+    "category": "food",
+    "text": "Lap thuc don ca tuan truoc khi di cho — tranh mua thua, giam lang phi thuc pham 20-30%."
+  },
+  {
+    "id": "t45",
+    "category": "food",
+    "text": "Tu lam nuoc ep/sinh to tai nha — 1 ly nuoc ep ngoai quan 35-60K, tu lam chi 10-15K."
+  },
+  {
+    "id": "t46",
+    "category": "food",
+    "text": "Mua thit ca o cho dau moi/cho si — re hon cho le 20-40%. Di nhom ban be mua chung de chia."
+  },
+  {
+    "id": "t47",
+    "category": "food",
+    "text": "Han che an vat van phong: snack + nuoc ngot 20-30K/ngay x 22 ngay = 440-660K/thang."
+  },
+  {
+    "id": "t48",
+    "category": "food",
+    "text": "Trong rau sach tai nha (rau muong, rau den, hanh la) — tiet kiem 200-400K/thang tien rau."
+  },
+  {
+    "id": "t49",
+    "category": "food",
+    "text": "Dung binh giu nhiet mang com/canh — khong can ham nong lai, tiet kiem dien va giu do tuoi ngon."
+  },
+  {
+    "id": "t50",
+    "category": "food",
+    "text": "Mua thuc pham can date (con 1-2 ngay) o sieu thi — thuong giam gia 30-50%, an ngay van tot."
+  },
+  {
+    "id": "t51",
+    "category": "food",
+    "text": "Thay vi dat do an qua app (phi ship 15-30K), tu di mua mang ve hoac nau — tiet kiem 500K-1tr/thang."
+  },
+  {
+    "id": "t52",
+    "category": "food",
+    "text": "Uong nuoc loc thay nuoc ngot/tra dong chai — tiet kiem 300-500K/thang va tot cho suc khoe."
+  },
+  {
+    "id": "t53",
+    "category": "food",
+    "text": "Mua trai cay theo mua — re hon 30-50% so voi trai cay trai mua hoac nhap khau."
+  },
+  {
+    "id": "t54",
+    "category": "food",
+    "text": "Dong nap tien truoc tai canteen/quan an gan cong ty — nhieu cho giam 5-10% khi nap truoc."
+  },
+  {
+    "id": "t55",
+    "category": "food",
+    "text": "Nau nuoc luoc rau/xuong lam nuoc dung — tan dung nguyen lieu, khong can mua pho/bun goi 10-20K."
+  },
+  {
+    "id": "t56",
+    "category": "transport",
+    "text": "Dung xe dap di lam neu duoi 5km — tiet kiem 100% tien xang/Grab va tot cho suc khoe."
+  },
+  {
+    "id": "t57",
+    "category": "transport",
+    "text": "Do xang o cay xang chinh hang (Petrolimex, PV Oil) — tranh cay xang gian lan do thieu 5-10%."
+  },
+  {
+    "id": "t58",
+    "category": "transport",
+    "text": "Dung GrabShare/Be Pool cho cac chuyen dai — re hon 20-40% so voi di rieng."
+  },
+  {
+    "id": "t59",
+    "category": "transport",
+    "text": "Tranh di xe gio cao diem (7-9h sang, 17-19h chieu) — ton xang gap 1.5-2 lan do ket xe."
+  },
+  {
+    "id": "t60",
+    "category": "transport",
+    "text": "Mua ve may bay som truoc 2-3 thang — re hon 30-50% so voi mua sat ngay."
+  },
+  {
+    "id": "t61",
+    "category": "transport",
+    "text": "Dang ky the thanh vien hang xe khach (Phuong Trang, Hoang Long) — tich diem doi ve mien phi."
+  },
+  {
+    "id": "t62",
+    "category": "transport",
+    "text": "Kiem tra ap suat lop xe thuong xuyen — lop non ton xang them 3-5%, ~100-200K/thang."
+  },
+  {
+    "id": "t63",
+    "category": "transport",
+    "text": "Dat Grab/Be tu diem don thuan tien (ngoai hem, khong ket xe) — cuoc phi re hon 10-20%."
+  },
+  {
+    "id": "t64",
+    "category": "transport",
+    "text": "Di tau hoa thay vi may bay cho cac tuyen ngan (SG-Nha Trang, HN-Hue) — re hon 40-60%."
+  },
+  {
+    "id": "t65",
+    "category": "transport",
+    "text": "Dung xe dien thay xe xang — tiet kiem 70-80% chi phi nhien lieu, sac dien chi 5-8K/lan."
+  },
+  {
+    "id": "t66",
+    "category": "shopping",
+    "text": "Mua quan ao cuoi mua (he mua do dong, dong mua do he) — giam gia 40-70% de don hang."
+  },
+  {
+    "id": "t67",
+    "category": "shopping",
+    "text": "Dung the tin dung co uu dai mua sam (0% tra gop, hoan tien) — nhung LUON tra du truoc han."
+  },
+  {
+    "id": "t68",
+    "category": "shopping",
+    "text": "Mua my pham/do dung ca nhan o cua hang chinh hang online (Hasaki, Guardian) — re hon cua hang 10-20%."
+  },
+  {
+    "id": "t69",
+    "category": "shopping",
+    "text": "Lap danh sach mua sam TRUOC khi vao sieu thi — tranh mua theo cam xuc, giam 20-30% hoa don."
+  },
+  {
+    "id": "t70",
+    "category": "shopping",
+    "text": "Doi san ma giam gia/voucher tren Shopee Live, TikTok Shop truoc khi dat hang — giam them 10-30%."
+  },
+  {
+    "id": "t71",
+    "category": "shopping",
+    "text": "Mua do dien tu (dien thoai, laptop) dip le lon (30/4, 2/9, Tet) — giam gia 10-25% + qua tang kem."
+  },
+  {
+    "id": "t72",
+    "category": "shopping",
+    "text": "Sua chua do cu thay vi mua moi — sua giay 50-100K thay vi mua moi 500K-1tr."
+  },
+  {
+    "id": "t73",
+    "category": "shopping",
+    "text": "Mua sach cu/sach da doc o cac hoi nhom Facebook/Cho Tot — re hon 50-70% so voi sach moi."
+  },
+  {
+    "id": "t74",
+    "category": "shopping",
+    "text": "Muon/thue do thay vi mua cho nhung thu dung 1-2 lan (vay cuoi, dung cu sua chua, may chieu)."
+  },
+  {
+    "id": "t75",
+    "category": "shopping",
+    "text": "Mua hang refurbished (tai nghe, dien thoai) tu nguon uy tin — tiet kiem 30-50% ma chat luong 90%."
+  },
+  {
+    "id": "t76",
+    "category": "bills",
+    "text": "Dat dieu hoa 26-27 do thay vi 20-22 do — moi do tang tiet kiem 3-5% dien, ~100-200K/thang mua he."
+  },
+  {
+    "id": "t77",
+    "category": "bills",
+    "text": "Giat quan ao bang nuoc lanh — tiet kiem 80-90% dien nang luong lam nong nuoc cua may giat."
+  },
+  {
+    "id": "t78",
+    "category": "bills",
+    "text": "Dung quat thay dieu hoa khi nhiet do duoi 30 do — quat ton chi 50-100 dong/gio, dieu hoa ton 1-2K/gio."
+  },
+  {
+    "id": "t79",
+    "category": "bills",
+    "text": "Lap dinh thoi (timer) cho binh nong lanh — chi bat truoc khi tam 15-20 phut, tiet kiem 200-400K/thang."
+  },
+  {
+    "id": "t80",
+    "category": "bills",
+    "text": "Kiem tra va ve sinh dieu hoa 3-6 thang/lan — dieu hoa sach mat nhanh hon, tiet kiem dien 10-15%."
+  },
+  {
+    "id": "t81",
+    "category": "bills",
+    "text": "Dang ky goi internet/truyen hinh combo — re hon 15-25% so voi dang ky rieng le."
+  },
+  {
+    "id": "t82",
+    "category": "bills",
+    "text": "Dung may giat vao ban dem (gio thap diem) — gia dien re hon 50% so voi gio binh thuong."
+  },
+  {
+    "id": "t83",
+    "category": "bills",
+    "text": "Lap dien mat troi ap mai neu o nha rieng — hoa don dien giam 50-80%, hoan von sau 5-7 nam."
+  },
+  {
+    "id": "t84",
+    "category": "bills",
+    "text": "Huy cac goi dich vu khong dung (data 4G phu, truyen hinh cap, app subscription) — kiem tra ngay."
+  },
+  {
+    "id": "t85",
+    "category": "bills",
+    "text": "Dung voi sen tiet kiem nuoc — giam 30-50% luong nuoc, tiet kiem 50-150K/thang tien nuoc."
+  },
+  {
+    "id": "t86",
+    "category": "entertainment",
+    "text": "Tap the duc ngoai troi (chay bo, tap cong vien) thay vi gym — tiet kiem 300K-1tr/thang phi gym."
+  },
+  {
+    "id": "t87",
+    "category": "entertainment",
+    "text": "To chuc tiec tai nha thay vi nha hang — nau an cho 6-8 nguoi chi 300-500K, nha hang ton 1.5-3tr."
+  },
+  {
+    "id": "t88",
+    "category": "entertainment",
+    "text": "Dung thu vien sach online mien phi (Ebook, PDF) — tiet kiem 100-300K/thang tien mua sach."
+  },
+  {
+    "id": "t89",
+    "category": "entertainment",
+    "text": "Di du lich ngay thuong (thu 2-5) — gia khach san, ve may bay re hon 20-40% so voi cuoi tuan."
+  },
+  {
+    "id": "t90",
+    "category": "entertainment",
+    "text": "Hoc ki nang moi qua YouTube/Coursera mien phi thay vi khoa hoc tra phi 2-5 trieu."
+  },
+  {
+    "id": "t91",
+    "category": "entertainment",
+    "text": "Choi board game/card game o nha voi ban be — vui, re, chi ton 100-300K mua game choi duoc mai."
+  },
+  {
+    "id": "t92",
+    "category": "entertainment",
+    "text": "Dat phong karaoke gio off-peak (truoc 17h) — re hon 30-50%, nhieu noi con tang them gio."
+  },
+  {
+    "id": "t93",
+    "category": "entertainment",
+    "text": "Tham gia cau lac bo/nhom so thich mien phi (chay bo, yoga, nhiep anh) thay vi lop hoc tra phi."
+  },
+  {
+    "id": "t94",
+    "category": "entertainment",
+    "text": "Mua ve du lich/su kien early bird — thuong re hon 20-40% so voi mua sat ngay."
+  },
+  {
+    "id": "t95",
+    "category": "entertainment",
+    "text": "Xem phim o nha voi may chieu mini (1-2tr) thay vi di rap thuong xuyen — hoan von sau 10-15 lan xem."
+  },
+  {
+    "id": "t96",
+    "category": "general",
+    "text": "Mo tai khoan tiet kiem ky han 6-12 thang — lai suat 5-7%/nam, cao hon gui khong ky han (0.5-1%)."
+  },
+  {
+    "id": "t97",
+    "category": "general",
+    "text": "Dung de tien nhan roi trong tai khoan thanh toan — chuyen sang tiet kiem online lien ket, rut bat ky luc nao."
+  },
+  {
+    "id": "t98",
+    "category": "general",
+    "text": "Mua bao hiem y te/bao hiem xa hoi day du — 1 lan nhap vien co the ton 10-50 trieu neu khong co bao hiem."
+  },
+  {
+    "id": "t99",
+    "category": "general",
+    "text": "Dat 'ngay khong tieu tien' 1-2 lan/tuan — tiet kiem 100-200K moi ngay, ~800K-1.5tr/thang."
+  },
+  {
+    "id": "t100",
+    "category": "general",
+    "text": "Tao nhieu tai khoan ngan hang cho cac muc dich khac nhau: chi tieu, tiet kiem, dau tu — de quan ly."
+  },
+  {
+    "id": "t101",
+    "category": "general",
+    "text": "Hoc cach doc bao cao tai chinh ca nhan — biet minh co bao nhieu tai san, no, dong tien moi thang."
+  },
+  {
+    "id": "t102",
+    "category": "general",
+    "text": "Tranh vay tieu dung lai suat cao (20-40%/nam). Neu can tien gap, uu tien vay nguoi than hoac ngan hang."
+  },
+  {
+    "id": "t103",
+    "category": "general",
+    "text": "Ap dung quy tac 72: lai suat 8%/nam thi tien gap doi sau 72/8 = 9 nam. Gui tiet kiem som = loi nhuan kep."
+  },
+  {
+    "id": "t104",
+    "category": "general",
+    "text": "Dung bao gio tra chi phi co dinh (tien nha, internet, bao hiem) tre han — phi phat thuong 5-10%/thang."
+  },
+  {
+    "id": "t105",
+    "category": "general",
+    "text": "Thue nha xa trung tam hon 2-3km co the re hon 2-4 trieu/thang — can nhac neu chi phi di lai thap."
+  },
+  {
+    "id": "t41s",
+    "category": "food",
+    "season": "tet",
+    "text": "Dat banh chung/banh tet som truoc Tet 2-3 tuan — gia re hon 20-30% va duoc chon lo dep."
+  },
+  {
+    "id": "t42s",
+    "category": "shopping",
+    "season": "tet",
+    "text": "Mua do Tet (quan ao, do trang tri) truoc 1 thang — sat Tet gia tang 30-50%."
+  },
+  {
+    "id": "t43s",
+    "category": "general",
+    "season": "tet",
+    "text": "Dat ngan sach li xi truoc Tet — trung binh 1-3 trieu. Lap danh sach nguoi can li xi de khong bi vuot."
+  },
+  {
+    "id": "t44s",
+    "category": "transport",
+    "season": "tet",
+    "text": "Dat ve xe/may bay ve que Tet truoc 1-2 thang — re hon 40-60% va khong so het ve."
+  },
+  {
+    "id": "t45s",
+    "category": "food",
+    "season": "tet",
+    "text": "Tu lam mut Tet, hat dua rang tai nha — tiet kiem 50-70% so voi mua san, 1kg mut tu lam chi 50-80K."
+  },
+  {
+    "id": "t46s",
+    "category": "shopping",
+    "season": "tet",
+    "text": "Mua hoa Tet vao chieu 30 Tet — nhieu nguoi ban giam gia 50-70% de don hang, hoa van dep."
+  },
+  {
+    "id": "t47s",
+    "category": "general",
+    "season": "tet",
+    "text": "Tranh vay muon tien de chi tieu Tet — lai suat app vay nhanh len toi 40-60%/nam."
+  },
+  {
+    "id": "t48s",
+    "category": "shopping",
+    "season": "back-to-school",
+    "text": "Mua do dung hoc tap (ba lo, giay dep) vao thang 7 truoc mua — re hon 15-25% so voi thang 8."
+  },
+  {
+    "id": "t49s",
+    "category": "shopping",
+    "season": "back-to-school",
+    "text": "Tan dung sach giao khoa cu tu anh chi — tiet kiem 200-500K/bo sach moi nam hoc."
+  },
+  {
+    "id": "t50s",
+    "category": "general",
+    "season": "back-to-school",
+    "text": "Dang ky hoc them/lop ngoai khoa som (thang 6-7) — nhieu trung tam giam 10-20% cho hoc vien som."
+  },
+  {
+    "id": "t51s",
+    "category": "shopping",
+    "season": "back-to-school",
+    "text": "Mua dong phuc hoc sinh o cho/tiem nho — re hon cua hang truong 30-50%, chat luong tuong duong."
+  },
+  {
+    "id": "t52s",
+    "category": "shopping",
+    "season": "sale-season",
+    "text": "Ngay 11/11, 12/12: chi mua do da co trong wishlist tu truoc — khong mua vi 'gia tot qua'."
+  },
+  {
+    "id": "t53s",
+    "category": "shopping",
+    "season": "sale-season",
+    "text": "Kiem tra gia goc truoc mua sale 1-2 tuan — nhieu shop tang gia roi giam ao, gia that khong re hon."
+  },
+  {
+    "id": "t54s",
+    "category": "shopping",
+    "season": "sale-season",
+    "text": "San freeship va voucher giam gia cong don ngay sale — co the tiet kiem them 50-150K/don hang."
+  },
+  {
+    "id": "t55s",
+    "category": "shopping",
+    "season": "sale-season",
+    "text": "Black Friday mua do cong nghe (tai nghe, o cung, phu kien) — giam that 20-40% tu cac hang chinh hang."
+  },
+  {
+    "id": "t56s",
+    "category": "general",
+    "season": "sale-season",
+    "text": "Dat gioi han chi tieu truoc mua sale — viet ra so tien toi da, khong vuot qua du voucher hap dan."
+  }
+]

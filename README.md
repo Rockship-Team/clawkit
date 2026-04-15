@@ -142,7 +142,7 @@ clawkit install ecom-bot --profile shop-hoa   # Flower shop
 clawkit install ecom-bot --profile bakery     # Bakery
 ```
 
-Each profile overrides: `catalog.json`, product images, `workspace-overrides/`, `schema.json` (with extend support), and template placeholders via `profile.yaml`.
+Each profile overrides: `catalog.json`, product images, `bootstrap-files/`, `schema.json` (with extend support), and template placeholders via `profile.yaml`.
 
 ---
 

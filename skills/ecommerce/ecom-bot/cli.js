@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generic schema-driven CLI for clawkit skills.
-// Reads schema.json for field definitions and config.json for storage target.
+// Reads schema.json for field definitions and clawkit.json for storage target.
 // Supports local JSON file storage and Supabase REST API.
 //
 // Commands:
@@ -31,7 +31,7 @@ const SKILL_DIR = __dirname;
 const rawSchema = JSON.parse(fs.readFileSync(path.join(SKILL_DIR, 'schema.json'), 'utf8'));
 let skillConfig = {};
 try {
-  skillConfig = JSON.parse(fs.readFileSync(path.join(SKILL_DIR, 'config.json'), 'utf8'));
+  skillConfig = JSON.parse(fs.readFileSync(path.join(SKILL_DIR, 'clawkit.json'), 'utf8'));
 } catch (_) { /* config may not exist yet during dev */ }
 
 // Normalize schema: support both legacy single-table and multi-table format.
@@ -189,7 +189,7 @@ function createJsonStore() {
 //   POST <baseURL>       → created record (with server-assigned id)
 //   PATCH <baseURL>/<id> → updated record
 //
-// Config (from config.json tokens):
+// Config (from clawkit.json tokens):
 //   db_url     — full endpoint URL
 //   db_key     — API key (sets apikey + Authorization: Bearer headers)
 //   db_headers — JSON object of extra headers
@@ -198,7 +198,7 @@ function createJsonStore() {
 function createRemoteStore() {
   const tokens = skillConfig.tokens || {};
   const dbURL = tokens.db_url;
-  if (!dbURL) throw new Error('db_url missing in config.json tokens');
+  if (!dbURL) throw new Error('db_url missing in clawkit.json tokens');
 
   // Build base URL per table.
   // Supabase: <project_url>/rest/v1/<table>

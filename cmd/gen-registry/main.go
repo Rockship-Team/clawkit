@@ -1,6 +1,10 @@
-// Command gen-registry scans skills/*/SKILL.md frontmatter and generates
-// registry.json. This is the canonical way to keep the registry in sync
-// with skill definitions.
+// Command gen-registry scans skills/*/SKILL.md and skills/*/config.json
+// to generate registry.json. This is the canonical way to keep the registry
+// in sync with skill definitions.
+//
+// SKILL.md provides OpenClaw-native fields: name, description.
+// config.json provides clawkit-specific fields: version, requires_bins,
+// setup_prompts, exclude.
 //
 // Usage:
 //
@@ -19,23 +23,37 @@ import (
 	"strings"
 )
 
-// SkillFrontmatter mirrors the YAML frontmatter in SKILL.md.
-type SkillFrontmatter struct {
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	Version        string   `json:"version"`
-	RequiresOAuth  []string `json:"requires_oauth"`
-	RequiresBins   []string `json:"requires_bins"`
-	RequiresSkills []string `json:"requires_skills"`
+// SkillConfig is the per-skill config.json file containing clawkit-specific
+// metadata that does not belong in OpenClaw's SKILL.md frontmatter.
+type SkillConfig struct {
+	Version      string        `json:"version"`
+	RequiresBins []string      `json:"requires_bins,omitempty"`
+	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
+	Exclude []string      `json:"exclude,omitempty"`
+}
+
+// SetupPrompt defines an interactive prompt shown during clawkit install.
+type SetupPrompt struct {
+	Key         string `json:"key"`
+	Label       string `json:"label"`
+	Placeholder string `json:"placeholder,omitempty"`
+}
+
+// SkillEntry combines data from SKILL.md (name, description) and
+// config.json (everything else) for a single skill.
+type SkillEntry struct {
+	Name        string
+	Description string
+	Config      SkillConfig
 }
 
 // RegistrySkill is the per-skill entry in registry.json.
 type RegistrySkill struct {
-	Version        string   `json:"version"`
-	Description    string   `json:"description"`
-	RequiresOAuth  []string `json:"requires_oauth"`
-	RequiresBins   []string `json:"requires_bins,omitempty"`
-	RequiresSkills []string `json:"requires_skills,omitempty"`
+	Version      string        `json:"version"`
+	Description  string        `json:"description"`
+	RequiresBins []string      `json:"requires_bins,omitempty"`
+	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
+	Exclude []string      `json:"exclude,omitempty"`
 }
 
 // Registry is the top-level structure of registry.json.
@@ -61,11 +79,11 @@ func main() {
 	reg := Registry{Skills: make(map[string]RegistrySkill, len(skills))}
 	for _, s := range skills {
 		reg.Skills[s.Name] = RegistrySkill{
-			Version:        s.Version,
-			Description:    s.Description,
-			RequiresOAuth:  s.RequiresOAuth,
-			RequiresBins:   s.RequiresBins,
-			RequiresSkills: s.RequiresSkills,
+			Version:      s.Config.Version,
+			Description:  s.Description,
+			RequiresBins: s.Config.RequiresBins,
+			SetupPrompts: s.Config.SetupPrompts,
+			Exclude: s.Config.Exclude,
 		}
 	}
 
@@ -97,11 +115,10 @@ func main() {
 	fmt.Printf("%s generated with %d skills.\n", registryPath, len(reg.Skills))
 }
 
-// scanSkills reads all SKILL.md files under the skills directory.
-// Supports both flat (skills/<name>/SKILL.md) and grouped
-// (skills/<vertical>/<name>/SKILL.md) layouts.
-func scanSkills(dir string) ([]SkillFrontmatter, error) {
-	var skills []SkillFrontmatter
+// scanSkills reads all SKILL.md + config.json files under the skills directory.
+// Supports both flat (skills/<name>/) and grouped (skills/<vertical>/<name>/) layouts.
+func scanSkills(dir string) ([]SkillEntry, error) {
+	var skills []SkillEntry
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -110,14 +127,18 @@ func scanSkills(dir string) ([]SkillFrontmatter, error) {
 		if info.IsDir() || info.Name() != "SKILL.md" {
 			return nil
 		}
+		// Skip SKILL.md files inside profiles/ subdirectories.
+		if strings.Contains(path, string(filepath.Separator)+"profiles"+string(filepath.Separator)) {
+			return nil
+		}
 		skillDir := filepath.Dir(path)
 		skillName := filepath.Base(skillDir)
 
-		fm, err := parseFrontmatter(path, skillName)
+		entry, err := loadSkillEntry(skillDir, skillName)
 		if err != nil {
-			return fmt.Errorf("parse %s: %w", path, err)
+			return fmt.Errorf("load %s: %w", path, err)
 		}
-		skills = append(skills, fm)
+		skills = append(skills, entry)
 		return nil
 	})
 	if err != nil {
@@ -131,81 +152,81 @@ func scanSkills(dir string) ([]SkillFrontmatter, error) {
 	return skills, nil
 }
 
-// parseFrontmatter extracts YAML frontmatter from a SKILL.md file.
-// We parse manually to avoid adding a YAML dependency (keeping deps at zero).
-func parseFrontmatter(path, dirName string) (SkillFrontmatter, error) {
+// loadSkillEntry reads name+description from SKILL.md frontmatter and
+// clawkit-specific config from config.json.
+func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
+	// Parse SKILL.md for name and description only.
+	name, desc, err := parseFrontmatter(filepath.Join(skillDir, "SKILL.md"), dirName)
+	if err != nil {
+		return SkillEntry{}, err
+	}
+
+	// Load config.json for clawkit-specific fields.
+	cfg, err := loadSkillConfig(filepath.Join(skillDir, "config.json"))
+	if err != nil {
+		return SkillEntry{}, fmt.Errorf("config.json: %w", err)
+	}
+
+	return SkillEntry{
+		Name:        name,
+		Description: desc,
+		Config:      cfg,
+	}, nil
+}
+
+// loadSkillConfig reads and parses a config.json file.
+func loadSkillConfig(path string) (SkillConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return SkillFrontmatter{}, err
+		return SkillConfig{}, fmt.Errorf("read %s: %w", path, err)
+	}
+	var cfg SkillConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return SkillConfig{}, fmt.Errorf("parse %s: %w", path, err)
+	}
+	if cfg.Version == "" {
+		return cfg, fmt.Errorf("missing version in %s", path)
+	}
+	return cfg, nil
+}
+
+// parseFrontmatter extracts name and description from SKILL.md YAML frontmatter.
+// Only these two OpenClaw-native fields are read from frontmatter; all
+// clawkit-specific fields come from config.json instead.
+func parseFrontmatter(path, dirName string) (name, description string, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", "", err
 	}
 
 	content := string(data)
 	if !strings.HasPrefix(content, "---\n") {
-		return SkillFrontmatter{}, fmt.Errorf("no frontmatter found")
+		return "", "", fmt.Errorf("no frontmatter found")
 	}
 
 	end := strings.Index(content[4:], "\n---")
 	if end == -1 {
-		return SkillFrontmatter{}, fmt.Errorf("unterminated frontmatter")
+		return "", "", fmt.Errorf("unterminated frontmatter")
 	}
 	fmBlock := content[4 : 4+end]
 
-	fm := SkillFrontmatter{
-		Name: dirName, // default to directory name
-	}
-
-	lines := strings.Split(fmBlock, "\n")
-	for i := 0; i < len(lines); i++ {
-		line := lines[i]
+	name = dirName // default to directory name
+	for _, line := range strings.Split(fmBlock, "\n") {
 		if strings.HasPrefix(line, "name:") {
-			fm.Name = trimYAMLValue(line)
+			name = trimYAMLValue(line)
 		} else if strings.HasPrefix(line, "description:") {
-			fm.Description = trimYAMLValue(line)
-		} else if strings.HasPrefix(line, "version:") {
-			fm.Version = trimYAMLValue(line)
-		} else if strings.HasPrefix(line, "requires_oauth:") {
-			fm.RequiresOAuth, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
-		} else if strings.HasPrefix(line, "requires_bins:") {
-			fm.RequiresBins, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
-		} else if strings.HasPrefix(line, "requires_skills:") {
-			fm.RequiresSkills, i = parseYAMLStringList(lines, i, trimYAMLValue(line))
+			description = trimYAMLValue(line)
 		}
 	}
 
-	// Use directory name as skill name for registry key
-	fm.Name = dirName
+	// Use directory name as registry key.
+	name = dirName
 
-	if fm.Version == "" {
-		return fm, fmt.Errorf("missing version in frontmatter")
-	}
-	if fm.Description == "" {
-		return fm, fmt.Errorf("missing description in frontmatter")
+	if description == "" {
+		return "", "", fmt.Errorf("missing description in frontmatter")
 	}
 
-	return fm, nil
-}
-
-// parseYAMLStringList parses a YAML string list field, supporting both inline
-// ([val1, val2]) and block list (  - val) forms. Returns the parsed values and
-// the updated line index.
-func parseYAMLStringList(lines []string, i int, inline string) ([]string, int) {
-	if inline == "" || inline == "[]" {
-		// Block list: read subsequent "  - value" lines.
-		var result []string
-		for i+1 < len(lines) && strings.HasPrefix(lines[i+1], "  - ") {
-			i++
-			result = append(result, strings.TrimSpace(strings.TrimPrefix(lines[i], "  - ")))
-		}
-		return result, i
-	}
-	// Inline: [val1, val2]
-	var result []string
-	for _, v := range strings.Split(strings.Trim(inline, "[]"), ",") {
-		if v = strings.TrimSpace(v); v != "" {
-			result = append(result, v)
-		}
-	}
-	return result, i
+	return name, description, nil
 }
 
 // trimYAMLValue extracts the value after "key: value", handling quoted strings.
@@ -215,7 +236,7 @@ func trimYAMLValue(line string) string {
 		return ""
 	}
 	val := strings.TrimSpace(line[idx+1:])
-	// Remove surrounding quotes
+	// Remove surrounding quotes.
 	if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
 		val = val[1 : len(val)-1]
 	}
@@ -224,14 +245,12 @@ func trimYAMLValue(line string) string {
 
 // marshalRegistry produces deterministic JSON output with sorted keys.
 func marshalRegistry(reg Registry) ([]byte, error) {
-	// Sort skill names for deterministic output.
 	names := make([]string, 0, len(reg.Skills))
 	for name := range reg.Skills {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 
-	// Build ordered map for deterministic output.
 	ordered := make([]struct {
 		Name  string
 		Skill RegistrySkill
@@ -252,7 +271,6 @@ func marshalRegistry(reg Registry) ([]byte, error) {
 		if err := enc.Encode(entry.Skill); err != nil {
 			return nil, err
 		}
-		// Encoder adds trailing newline — trim it.
 		skillJSON := bytes.TrimRight(skillBuf.Bytes(), "\n")
 		buf.WriteString(fmt.Sprintf("    %q: %s", entry.Name, string(skillJSON)))
 		if i < len(ordered)-1 {

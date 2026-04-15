@@ -66,8 +66,8 @@ func TestApplyProfile(t *testing.T) {
 	// Profile values.
 	os.WriteFile(filepath.Join(profileDir, "profile.yaml"), []byte("shop_name: Test Shop\n"), 0644)
 
-	// Profile workspace-overrides.
-	overridesDir := filepath.Join(profileDir, "workspace-overrides")
+	// Profile bootstrap-files.
+	overridesDir := filepath.Join(profileDir, "bootstrap-files")
 	os.MkdirAll(overridesDir, 0755)
 	os.WriteFile(filepath.Join(overridesDir, "IDENTITY.md"), []byte("# Test Shop"), 0644)
 
@@ -91,8 +91,8 @@ func TestApplyProfile(t *testing.T) {
 		t.Errorf("catalog.json not overlaid: got %q", string(data))
 	}
 
-	// Check workspace-overrides was overlaid.
-	data, err = os.ReadFile(filepath.Join(skillDir, "workspace-overrides", "IDENTITY.md"))
+	// Check bootstrap-files was overlaid.
+	data, err = os.ReadFile(filepath.Join(skillDir, "bootstrap-files", "IDENTITY.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -161,3 +161,102 @@ func TestExtractZip(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldExclude(t *testing.T) {
+	tests := []struct {
+		relPath  string
+		patterns []string
+		want     bool
+	}{
+		// No patterns → never exclude.
+		{"anything.go", nil, false},
+		{"anything.go", []string{}, false},
+		{".", []string{"*"}, false},
+
+		// Exact file name (no slash → component match).
+		{"PRD.md", []string{"PRD.md"}, true},
+		{"SKILL.md", []string{"PRD.md"}, false},
+
+		// Directory name as component match.
+		{"cmd/main.go", []string{"cmd"}, true},
+		{"cmd/sub/deep.go", []string{"cmd"}, true},
+		{"tools/crawl/main.go", []string{"tools"}, true},
+		{"data/tips.json", []string{"cmd"}, false},
+		{"crawl", []string{"crawl"}, true},
+		{"tools/crawl/main.go", []string{"crawl"}, true},
+
+		// Wildcard component match (like tsconfig).
+		{"store_test.go", []string{"*_test.go"}, true},
+		{"cmd/simulator_test.go", []string{"*_test.go"}, true},
+		{"cmd/store.go", []string{"*_test.go"}, false},
+
+		// Multiple patterns.
+		{"PRD.md", []string{"cmd", "PRD.md"}, true},
+		{"cmd/main.go", []string{"cmd", "PRD.md"}, true},
+		{"data/tips.json", []string{"cmd", "PRD.md"}, false},
+
+		// ** glob patterns.
+		{"src/utils/helper.go", []string{"**/*.go"}, true},
+		{"main.go", []string{"**/*.go"}, true},
+		{"src/utils/helper.ts", []string{"**/*.go"}, false},
+		{"a/b/test", []string{"**/test"}, true},
+		{"test", []string{"**/test"}, true},
+		{"a/testing", []string{"**/test"}, false},
+
+		// Path with slash → prefix match.
+		{"tools/crawl/main.go", []string{"tools/crawl"}, true},
+		{"tools/crawl", []string{"tools/crawl"}, true},
+		{"tools/other/main.go", []string{"tools/crawl"}, false},
+	}
+
+	for _, tt := range tests {
+		got := shouldExclude(tt.relPath, tt.patterns)
+		if got != tt.want {
+			t.Errorf("shouldExclude(%q, %v) = %v, want %v", tt.relPath, tt.patterns, got, tt.want)
+		}
+	}
+}
+
+func TestCreateTarGzWithExclude(t *testing.T) {
+	srcDir := filepath.Join(t.TempDir(), "test-skill")
+	files := map[string]string{
+		"SKILL.md":             "# Skill",
+		"data/tips.json":       `[{"id":"t1"}]`,
+		"cmd/main.go":          "package main",
+		"cmd/store_test.go":    "package main",
+		"tools/crawl/fetch.go": "package crawl",
+		"PRD.md":               "# PRD",
+		"CHECKLIST.md":         "# Checklist",
+		"sol-cli":              "binary",
+	}
+	for relPath, content := range files {
+		fullPath := filepath.Join(srcDir, relPath)
+		os.MkdirAll(filepath.Dir(fullPath), 0755)
+		os.WriteFile(fullPath, []byte(content), 0644)
+	}
+
+	excludePatterns := []string{"cmd", "tools", "PRD.md", "CHECKLIST.md", "*_test.go"}
+
+	archivePath := filepath.Join(t.TempDir(), "test.tar.gz")
+	if err := CreateTarGz(srcDir, archivePath, excludePatterns); err != nil {
+		t.Fatalf("CreateTarGz with exclude: %v", err)
+	}
+
+	destDir := filepath.Join(t.TempDir(), "extracted")
+	os.MkdirAll(destDir, 0755)
+	if err := ExtractTarGz(archivePath, destDir); err != nil {
+		t.Fatalf("ExtractTarGz: %v", err)
+	}
+
+	for _, want := range []string{"SKILL.md", "data/tips.json", "sol-cli"} {
+		if _, err := os.Stat(filepath.Join(destDir, want)); err != nil {
+			t.Errorf("expected %s to be included, but missing", want)
+		}
+	}
+
+	for _, excluded := range []string{"cmd/main.go", "cmd/store_test.go", "tools/crawl/fetch.go", "PRD.md", "CHECKLIST.md"} {
+		if _, err := os.Stat(filepath.Join(destDir, excluded)); err == nil {
+			t.Errorf("expected %s to be excluded, but found", excluded)
+		}
+	}
+}

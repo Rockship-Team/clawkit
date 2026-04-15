@@ -1,0 +1,16 @@
+{
+  "tables": {
+    "transactions": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "place", "type": "text", "required": true},
+        {"name": "amount", "type": "integer", "role": "price", "required": true},
+        {"name": "category", "type": "text", "required": true},
+        {"name": "note", "type": "text"},
+        {"name": "date", "type": "text", "role": "timestamp"}
+      ]
+    }
+  },
+  "primary": "transactions",
+  "timezone": "Asia/Ho_Chi_Minh"
+}

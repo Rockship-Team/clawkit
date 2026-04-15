@@ -32,15 +32,15 @@ Go (installer) + Node.js (runtime) + schema.json (data model). No Python.
 ### Data flow
 
 1. `registry.json` is generated from `skills/**/SKILL.md` YAML frontmatter by `cmd/gen-registry`. Never edit it by hand.
-2. At install time, `internal/installer` fetches the registry, downloads the skill package, applies profile overlay, runs OAuth, initializes DB from `schema.json`, processes templates, and saves `config.json` per skill.
-3. At runtime, `cli.js` (generic, schema-driven) reads `schema.json` + `config.json` and performs CRUD operations against the configured store backend (local JSON, Supabase, or custom API).
+2. At install time, `internal/installer` fetches the registry, downloads the skill package, applies profile overlay, runs OAuth, initializes DB from `schema.json`, processes templates, and saves `clawkit.json` per installed skill.
+3. At runtime, `cli.js` (generic, schema-driven) reads `schema.json` + `clawkit.json` and performs CRUD operations against the configured store backend (local JSON, Supabase, or custom API).
 
 ### Key packages
 
 - **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, uninstall, status, package, version)
 - **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → profile overlay → OAuth → lockdown → schema init → config save → template processing
 - **`internal/installer/schema.go`** — Schema parsing, validation, multi-table merge, DB initialization, credential collection. Constants: `DBTargetLocal`, `DBTargetSupabase`, `DBTargetAPI`
-- **`internal/installer/profile.go`** — Profile overlay: catalog, schema (with extend-merge), images, workspace-overrides
+- **`internal/installer/profile.go`** — Profile overlay: catalog, schema (with extend-merge), images, bootstrap-files
 - **`internal/installer/registry.go`** — Registry loading (remote + embedded + local) and skill package downloading. Supports nested vertical dirs via `findLocalSkill()`
 - **`internal/installer/lockdown.go`** — 1-skill-at-a-time workspace lockdown: remove prior, backup, override, reset sessions, set allowlist
 - **`internal/archive/`** — tar.gz / zip extraction and creation; strips top-level directory from archives
@@ -71,10 +71,31 @@ The registry generator (`cmd/gen-registry`) scans recursively. The installer (`f
 ### Adding a skill
 
 1. Pick a vertical or create a new one under `skills/`.
-2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `schema.json` + copy `templates/cli.js`.
+2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `config.json` + `schema.json` + copy `templates/cli.js`.
 3. Run `make generate`.
 4. Update the `//go:embed` directive in `skills/skills.go` if adding a new vertical.
-5. Add any OAuth providers referenced in `requires_oauth` to `oauth/` if they don't exist.
+5. Add any OAuth providers to `oauth/` if they don't exist.
+
+### Skill metadata split
+
+Skill metadata is split between two files:
+
+- **`SKILL.md` frontmatter** — OpenClaw-native fields only: `name`, `description`, `metadata` (including `metadata.openclaw.emoji`, `metadata.openclaw.requires.bins`, etc.)
+- **`config.json`** (dev source) — Clawkit-specific fields: `version`, `requires_bins`, `setup_prompts`, `exclude`. After installation, this becomes `clawkit.json` in the installed skill directory.
+
+`registry.json` is generated from both sources by `cmd/gen-registry`. The `name` and `description` come from SKILL.md; everything else comes from `config.json`.
+
+Example `config.json`:
+```json
+{
+  "version": "1.0.0",
+  "requires_bins": ["gog"],
+  "setup_prompts": [{"key": "name", "label": "Your name"}],
+  "exclude": ["cmd", "tools", "*.tmp"]
+}
+```
+
+The `exclude` patterns use `filepath.Match` syntax and are applied during `clawkit install` (copyDir, copyEmbeddedSkill) and `clawkit package` (CreateTarGz). Patterns match against both full relative paths and individual path components.
 
 ### Schema system
 
@@ -112,11 +133,11 @@ Profile schemas can use `"extend": true` to add fields/tables to a base schema.
 - `catalog.json` — product catalog override
 - `schema.json` — schema override (supports extend-merge)
 - Images directory — product images override
-- `workspace-overrides/` — agent persona override
+- `bootstrap-files/` — agent persona override
 
 ### Adding an OAuth provider
 
-Implement the `oauth.Provider` interface (`Name()`, `Display()`, `Authenticate() (map[string]string, error)`) and call `oauth.Register(yourProvider{})` in `init()`. The returned map is merged into the skill's `config.json` tokens.
+Implement the `oauth.Provider` interface (`Name()`, `Display()`, `Authenticate() (map[string]string, error)`) and call `oauth.Register(yourProvider{})` in `init()`. The returned map is merged into the skill's `clawkit.json` tokens.
 
 ### Cross-platform rules
 

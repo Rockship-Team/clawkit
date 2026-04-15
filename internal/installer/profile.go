@@ -76,7 +76,7 @@ func parseProfileYAML(path string) (map[string]string, error) {
 }
 
 // applyProfile overlays a profile's files onto the base skill directory.
-// It copies catalog.json, product images, and workspace-overrides from
+// It copies catalog.json, product images, and bootstrap-files from
 // profiles/<profileName>/ over the base skill's files, then removes the
 // profiles/ directory (only the selected profile's data is needed at runtime).
 // Returns the profile's key-value pairs for template placeholder substitution.
@@ -123,18 +123,18 @@ func applyProfile(skillDir, profileName string) (map[string]string, error) {
 		src := filepath.Join(profileDir, imgDir)
 		if dirExists(src) {
 			dst := filepath.Join(skillDir, imgDir)
-			if err := copyDir(src, dst); err != nil {
+			if err := copyDir(src, dst, nil); err != nil {
 				return nil, fmt.Errorf("overlay %s/: %w", imgDir, err)
 			}
 			break
 		}
 	}
 
-	// Overlay workspace overrides.
-	if src := filepath.Join(profileDir, "workspace-overrides"); dirExists(src) {
-		dst := filepath.Join(skillDir, "workspace-overrides")
-		if err := copyDir(src, dst); err != nil {
-			return nil, fmt.Errorf("overlay workspace-overrides/: %w", err)
+	// Overlay bootstrap files.
+	if src := filepath.Join(profileDir, "bootstrap-files"); dirExists(src) {
+		dst := filepath.Join(skillDir, "bootstrap-files")
+		if err := copyDir(src, dst, nil); err != nil {
+			return nil, fmt.Errorf("overlay bootstrap-files/: %w", err)
 		}
 	}
 

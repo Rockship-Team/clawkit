@@ -35,14 +35,12 @@ clawkit install <skill> [--profile <name>]
   │
   ├── 1. Preflight: detect OpenClaw
   ├── 2. Registry lookup: load skill metadata
-  ├── 3. Dependency check: verify requires_skills installed
-  ├── 4. Download: local dev → embedded → GitHub Releases
-  ├── 5. Profile overlay: catalog, schema, images, workspace-overrides
-  ├── 6. Install bins: download required CLIs (e.g. gog)
-  ├── 7. OAuth: run each provider in requires_oauth
+  ├── 3. Download: local dev → embedded → GitHub Releases
+  ├── 4. Profile overlay: catalog, schema, images, bootstrap-files
+  ├── 5. Install bins: download required CLIs (e.g. gog)
   ├── 8. Lockdown: backup workspace → apply overrides → reset sessions → set allowlist
   ├── 9. Schema init: load schema.json → validate → create DB (local/supabase/api)
-  ├── 10. Save config.json: skill_name, profile, version, db_target, tokens
+  ├── 10. Save clawkit.json: skill_name, profile, version, db_target, tokens
   └── 11. Template processing: replace {placeholders} in SKILL.md
 ```
 
@@ -105,10 +103,10 @@ skills/<vertical>/<skill>/
       catalog.json            Overrides base catalog
       schema.json             Extends or replaces base schema
       products/               Product images
-      workspace-overrides/    Agent persona files
+      bootstrap-files/    Agent persona files
 ```
 
-Profile overlay order: catalog → schema (with extend-merge) → images → workspace-overrides → cleanup.
+Profile overlay order: catalog → schema (with extend-merge) → images → bootstrap-files → cleanup.
 
 Schema extend: profile schema with `"extend": true` appends new fields/tables to base. Without extend, full replace.
 
@@ -120,7 +118,7 @@ clawkit enforces a 1-skill-at-a-time model:
 
 1. **Remove prior skills** — prompt user to confirm
 2. **Backup workspace files** — AGENTS.md, SOUL.md, etc. to `.clawkit-backup/<timestamp>/`
-3. **Apply workspace overrides** — copy skill's persona files to workspace root
+3. **Apply bootstrap files** — copy skill's persona files to workspace root
 4. **Delete generic files** — BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md
 5. **Reset sessions** — archive existing .jsonl, empty sessions.json
 6. **Set allowlist** — `openclaw config set agents.defaults.skills '["<skill>"]'`
@@ -142,7 +140,7 @@ func (p myProvider) Authenticate() (map[string]string, error) { ... }
 func init() { Register(myProvider{}) }
 ```
 
-Tokens are saved to `config.json` and used for template placeholder substitution in SKILL.md.
+Tokens are saved to `clawkit.json` (installed skill) and used for template placeholder substitution in SKILL.md.
 
 ---
 

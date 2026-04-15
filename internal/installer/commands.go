@@ -35,9 +35,6 @@ func CmdList() {
 			installed = " [installed]"
 		}
 		fmt.Printf("  %-25s %s%s\n", name, skill.Description, installed)
-		if len(skill.RequiresOAuth) > 0 {
-			fmt.Printf("  %-25s requires: %s\n", "", strings.Join(skill.RequiresOAuth, ", "))
-		}
 	}
 }
 
@@ -59,33 +56,6 @@ func CmdInstall(skillName string, profileName string) {
 
 	ui.Info("Installing %s v%s", skillName, skill.Version)
 	fmt.Printf("  %s\n\n", skill.Description)
-
-	// Check required skills — dependencies must be installed manually first.
-	// We intentionally do not auto-install them so each skill's OAuth flow
-	// stays isolated and the user has explicit control over what's installed.
-	for _, depSkill := range skill.RequiresSkills {
-		depDir := filepath.Join(skillsDir, depSkill)
-		if _, err := os.Stat(depDir); os.IsNotExist(err) {
-			fmt.Println()
-			ui.Fatal(`Skill '%s' requires '%s' to be installed first.
-
-  Install the dependency:
-    clawkit install %s
-
-  Then retry:
-    clawkit install %s`, skillName, depSkill, depSkill, skillName)
-		}
-		// Verify the dependency completed its install — config.json is written
-		// only at the end of a successful CmdInstall run.
-		if _, err := config.LoadSkillConfig(depDir); err != nil {
-			fmt.Println()
-			ui.Fatal(`Skill '%s' is required but its installation is incomplete.
-
-  Reinstall it:
-    clawkit install %s`, depSkill, depSkill)
-		}
-		ui.Ok("Dependency '%s' is installed", depSkill)
-	}
 
 	// Shared stdin reader — must be created once and reused throughout CmdInstall
 	// so bufio buffering doesn't silently consume lines meant for later prompts.
@@ -111,7 +81,7 @@ func CmdInstall(skillName string, profileName string) {
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
-	err = downloadSkill(skillName, targetDir)
+	err = downloadSkill(skillName, targetDir, skill.Exclude)
 	if err != nil {
 		os.RemoveAll(targetDir)
 		ui.Fatal("Failed to install: %v", err)
@@ -140,11 +110,16 @@ func CmdInstall(skillName string, profileName string) {
 	// Lock down the workspace into this skill's persona:
 	//   1. Remove any previously installed skill (1-skill-at-a-time model)
 	//   2. Back up existing workspace MD files
-	//   3. Copy workspace-overrides/* from the new skill to workspace root
+	//   3. Copy bootstrap-files/* from the new skill to workspace root
 	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
 	//   5. Reset prior conversation sessions
 	//   6. Set agents.defaults.skills = [<skillName>]
 	LockdownWorkspace(skillsDir, targetDir, skillName)
+
+	// Remove bootstrap-files from the installed skill directory — they've
+	// already been applied to the workspace root by LockdownWorkspace and
+	// are no longer needed inside the skill dir.
+	os.RemoveAll(filepath.Join(targetDir, BootstrapFilesDirName))
 
 	// Ensure image directories match catalog.
 	if err := template.EnsureImageDirs(targetDir); err != nil {
@@ -224,7 +199,7 @@ func CmdUpdate(skillName string) {
 		return
 	}
 
-	// Remove old files except config.json.
+	// Remove old files except clawkit.json (installed config).
 	entries, _ := os.ReadDir(targetDir)
 	for _, e := range entries {
 		if e.Name() != config.ConfigFileName {
@@ -232,8 +207,16 @@ func CmdUpdate(skillName string) {
 		}
 	}
 
+	// Load registry to get exclude patterns.
+	var excludePatterns []string
+	if reg, regErr := loadRegistry(); regErr == nil {
+		if skill, ok := reg.GetSkill(skillName); ok {
+			excludePatterns = skill.Exclude
+		}
+	}
+
 	// Download new skill files.
-	if err := downloadSkill(skillName, targetDir); err != nil {
+	if err := downloadSkill(skillName, targetDir, excludePatterns); err != nil {
 		ui.Fatal("Failed to update: %v", err)
 	}
 
@@ -372,13 +355,24 @@ func CmdPackage(skillName string) {
 		ui.Fatal("Skill '%s' not found in skills/ directory", skillName)
 	}
 
+	// Load exclude patterns from registry if available.
+	var excludePatterns []string
+	if reg, regErr := loadRegistry(); regErr == nil {
+		if skill, ok := reg.GetSkill(skillName); ok {
+			excludePatterns = skill.Exclude
+		}
+	}
+
 	if err := os.MkdirAll("dist", 0755); err != nil {
 		ui.Fatal("Failed to create dist directory: %v", err)
 	}
 	outputPath := filepath.Join("dist", skillName+".tar.gz")
 
 	ui.Info("Packaging %s...", skillName)
-	if err := archive.CreateTarGz(sourceDir, outputPath); err != nil {
+	if len(excludePatterns) > 0 {
+		ui.Info("Excluding: %s", strings.Join(excludePatterns, ", "))
+	}
+	if err := archive.CreateTarGz(sourceDir, outputPath, excludePatterns); err != nil {
 		ui.Fatal("Failed to package: %v", err)
 	}
 

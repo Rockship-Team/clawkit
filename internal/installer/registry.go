@@ -131,10 +131,17 @@ func loadLocalRegistry() ([]byte, error) {
 //  2. Embedded skills shipped with the binary (works for npm-installed CLI).
 //  3. Remote GitHub Releases (.tar.gz) — useful when the repo is public and
 //     we want to ship registry/skill updates without rebuilding the binary.
+// alwaysExclude are files that should never be copied to the installed skill
+// directory. config.json is the dev-time metadata (the installer writes its
+// own clawkit.json instead).
+// Note: bootstrap-files/ IS copied (needed by LockdownWorkspace) then
+// deleted by CmdInstall after lockdown applies them to workspace root.
+var alwaysExclude = []string{"config.json"}
+
 func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) error {
-	var patterns []string
+	patterns := append([]string{}, alwaysExclude...)
 	if len(excludePatterns) > 0 {
-		patterns = excludePatterns[0]
+		patterns = append(patterns, excludePatterns[0]...)
 	}
 
 	// 1. Local (dev mode) — search skills/<name> or skills/<vertical>/<name>.

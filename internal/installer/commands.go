@@ -87,13 +87,16 @@ func CmdInstall(skillName string, profileName string) {
 		ui.Ok("Dependency '%s' is installed", depSkill)
 	}
 
+	// Shared stdin reader — must be created once and reused throughout CmdInstall
+	// so bufio buffering doesn't silently consume lines meant for later prompts.
+	stdinReader := bufio.NewReader(os.Stdin)
+
 	// Check if already installed.
 	targetDir := filepath.Join(skillsDir, skillName)
 	if _, err := os.Stat(targetDir); err == nil {
 		fmt.Printf("  Skill already installed at %s\n", targetDir)
 		fmt.Print("  Overwrite? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
-		answer, _ := reader.ReadString('\n')
+		answer, _ := stdinReader.ReadString('\n')
 		answer = strings.TrimSpace(strings.ToLower(answer))
 		if answer != "y" && answer != "yes" {
 			fmt.Println("  Cancelled.")

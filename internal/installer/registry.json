@@ -1,5 +1,20 @@
 {
   "skills": {
+    "bds-broker": {
+      "version": "4.0.0",
+      "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
+      "requires_oauth": null,
+      "setup_prompts": [
+        {
+          "key": "agent_name",
+          "label": "Tên nhân viên tư vấn"
+        },
+        {
+          "key": "admin_telegram_ids",
+          "label": "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)"
+        }
+      ]
+    },
     "ecom-bot": {
       "version": "1.0.0",
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",

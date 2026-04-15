@@ -45,7 +45,6 @@ jobs:
       - name: Package skills
         run: |
           ./dist/clawkit-linux-amd64 package shop-hoa
-          ./dist/clawkit-linux-amd64 package carehub-baby
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

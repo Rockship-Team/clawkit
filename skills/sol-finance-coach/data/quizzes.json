@@ -1,0 +1,242 @@
+[
+  {
+    "id": "q01",
+    "text": "Quy du phong nen bang bao nhieu thang chi tieu?",
+    "choices": ["A. 1 thang", "B. 3 thang", "C. 6 thang", "D. 12 thang"],
+    "answer": "C",
+    "explanation": "6 thang la khuyen nghi pho bien. Du de trang trai khi mat viec hoac gap su co bat ngo, trong khi khong giu qua nhieu tien nhan roi.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q02",
+    "text": "Lai suat 12%/nam tra hang thang thi lai suat thang la bao nhieu?",
+    "choices": ["A. 12%", "B. 1%", "C. 1.2%", "D. 0.1%"],
+    "answer": "B",
+    "explanation": "Lai suat thang = lai suat nam / 12. 12% / 12 = 1%/thang. Chu y day la lai suat don gian, lai suat kep se khac.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q03",
+    "text": "ETF la gi?",
+    "choices": [
+      "A. Loai co phieu dac biet",
+      "B. Quy dau tu mo phong chi so",
+      "C. Tai khoan tiet kiem",
+      "D. Trai phieu chinh phu"
+    ],
+    "answer": "B",
+    "explanation": "ETF (Exchange-Traded Fund) la quy dau tu mo phong chi so, giao dich nhu co phieu. Vi du VFMVN30 mo phong 30 co phieu lon nhat san HOSE.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q04",
+    "text": "Theo quy tac 50/30/20, 20% thu nhap dung de lam gi?",
+    "choices": [
+      "A. An uong",
+      "B. Giai tri",
+      "C. Tiet kiem va dau tu",
+      "D. Di chuyen"
+    ],
+    "answer": "C",
+    "explanation": "50% cho nhu cau (nha, an, di lai), 30% cho mong muon (giai tri, mua sam), 20% cho tiet kiem va dau tu.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q05",
+    "text": "Nen tra no nao truoc?",
+    "choices": [
+      "A. No lon nhat",
+      "B. No cu nhat",
+      "C. No lai suat cao nhat",
+      "D. No moi nhat"
+    ],
+    "answer": "C",
+    "explanation": "Tra no lai suat cao nhat truoc (VD: the tin dung 2-4%/thang) se giam tong tien lai phai tra. Day la phuong phap 'Avalanche'.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q06",
+    "text": "Lam phat 4%/nam co nghia la gi?",
+    "choices": [
+      "A. Luong tang 4%",
+      "B. Gia ca tang trung binh 4%",
+      "C. Lai suat ngan hang 4%",
+      "D. Thue tang 4%"
+    ],
+    "answer": "B",
+    "explanation": "Lam phat la muc tang gia chung cua hang hoa. 4%/nam nghia la 1 trieu dong nam nay chi mua duoc hang tri gia ~960K nam truoc.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q07",
+    "text": "P/E ratio cua co phieu la gi?",
+    "choices": [
+      "A. Gia / Thu nhap moi co phieu",
+      "B. Loi nhuan / Von",
+      "C. Doanh thu / Chi phi",
+      "D. Co tuc / Gia co phieu"
+    ],
+    "answer": "A",
+    "explanation": "P/E = Price / Earnings per share. P/E cao co the la co phieu dat (hoac ky vong tang truong cao), P/E thap co the la re (hoac it tang truong).",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q08",
+    "text": "Diversification (da dang hoa) giup gi?",
+    "choices": [
+      "A. Tang loi nhuan toi da",
+      "B. Giam rui ro tong the",
+      "C. Giam thue",
+      "D. Tang lai suat"
+    ],
+    "answer": "B",
+    "explanation": "Khong bo tat ca trung vao 1 gio. Da dang hoa kenh dau tu giup khi 1 kenh giam, cac kenh khac co the bu lai.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q09",
+    "text": "Lai suat kep (compound interest) dac biet o cho nao?",
+    "choices": [
+      "A. Lai suat cao hon",
+      "B. Tinh lai tren ca goc va lai truoc do",
+      "C. Khong phai dong thue",
+      "D. Chi ap dung cho ngan hang"
+    ],
+    "answer": "B",
+    "explanation": "Lai kep = tinh lai tren goc + lai da tich luy. Vi du: 100tr lai 10%/nam, nam 1 duoc 10tr, nam 2 duoc 11tr (10% cua 110tr). Thoi gian cang dai, hieu qua cang lon.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q10",
+    "text": "Gui tiet kiem 10 trieu/thang voi lai 7%/nam, sau 10 nam duoc khoang bao nhieu?",
+    "choices": ["A. 1.2 ty", "B. 1.5 ty", "C. 1.73 ty", "D. 2 ty"],
+    "answer": "C",
+    "explanation": "Voi lai kep hang thang, 10tr/thang x 120 thang + lai = khoang 1.73 ty. Trong do goc la 1.2 ty, lai la ~530 trieu. Suc manh cua lai kep!",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q11",
+    "text": "The tin dung co lai suat 3%/THANG. Quy ra nam la bao nhieu?",
+    "choices": ["A. 3%/nam", "B. 12%/nam", "C. 36%/nam", "D. 42.6%/nam"],
+    "answer": "D",
+    "explanation": "Lai kep: (1+0.03)^12 - 1 = 42.6%/nam. Khong phai don gian 3x12=36%. Day la ly do tra no the tin dung la uu tien so 1!",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q12",
+    "text": "Chung chi quy (fund certificate) khac co phieu o diem nao?",
+    "choices": [
+      "A. Khong the mua ban",
+      "B. Dau tu vao nhieu tai san, co chuyen gia quan ly",
+      "C. Lai suat co dinh",
+      "D. Khong co rui ro"
+    ],
+    "answer": "B",
+    "explanation": "Chung chi quy la gop tien voi nhieu nguoi, chuyen gia quan ly dau tu vao nhieu co phieu/trai phieu. Phu hop nguoi moi, khong co thoi gian tu nghien cuu.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q13",
+    "text": "ROI la gi?",
+    "choices": [
+      "A. Rui ro dau tu",
+      "B. Ty suat sinh loi tren von dau tu",
+      "C. Lai suat ngan hang",
+      "D. Chi so chung khoan"
+    ],
+    "answer": "B",
+    "explanation": "ROI = Return on Investment = (Loi nhuan - Chi phi) / Chi phi x 100%. Vi du: dau tu 100tr, loi 120tr → ROI = 20%.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q14",
+    "text": "Nen bat dau dau tu khi nao?",
+    "choices": [
+      "A. Khi co 100 trieu",
+      "B. Khi da co quy du phong va het no lai cao",
+      "C. Khi thi truong tang",
+      "D. Khi duoc 30 tuoi"
+    ],
+    "answer": "B",
+    "explanation": "Dieu kien tien quyet: co quy du phong 6 thang + het no lai cao (the tin dung, vay tieu dung). Sau do bat dau voi so nho, hoc dan.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q15",
+    "text": "Trai phieu chinh phu duoc coi la?",
+    "choices": [
+      "A. Rui ro cao, loi nhuan cao",
+      "B. Rui ro thap, loi nhuan thap",
+      "C. Khong co rui ro",
+      "D. Chi danh cho ngan hang"
+    ],
+    "answer": "B",
+    "explanation": "Trai phieu chinh phu co rui ro thap nhat (duoc chinh phu bao lanh) nhung lai suat cung thap hon co phieu hay quy. Phu hop nguoi khong chap nhan rui ro.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q16",
+    "text": "Cashback 1% tren the tin dung nghia la gi?",
+    "choices": [
+      "A. Duoc giam gia 1% khi mua",
+      "B. Duoc hoan 1% so tien chi tieu ve tai khoan",
+      "C. Lai suat giam 1%",
+      "D. Phi thuong nien giam 1%"
+    ],
+    "answer": "B",
+    "explanation": "Cashback = hoan tien. Chi tieu 10 trieu → duoc hoan 100K. Nhung dung vi cashback ma chi tieu nhieu hon binh thuong!",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q17",
+    "text": "DCA (Dollar Cost Averaging) la gi?",
+    "choices": [
+      "A. Mua nhieu khi gia thap",
+      "B. Dau tu deu dan hang thang bat ke gia",
+      "C. Chi dau tu khi thi truong tot",
+      "D. Rut loi nhuan hang thang"
+    ],
+    "answer": "B",
+    "explanation": "DCA = dau tu so tien co dinh deu dan (VD: 5tr/thang vao quy). Khi gia cao mua it don vi, gia thap mua nhieu — trung binh hoa gia mua.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q18",
+    "text": "Bao hiem nhan tho co phai la dau tu khong?",
+    "choices": [
+      "A. Co, la dau tu tot",
+      "B. Khong, la san pham bao ve",
+      "C. Chi la dau tu neu mua loai lien ket",
+      "D. Tuy ngan hang"
+    ],
+    "answer": "B",
+    "explanation": "Bao hiem nhan tho la san pham BAO VE (rui ro tu vong, benh tat), KHONG phai dau tu. San pham lien ket dau tu co yeu to dau tu nhung phi cao, loi nhuan khong dam bao.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q19",
+    "text": "Vay tra gop mua dien thoai 0% co thuc su mien phi?",
+    "choices": [
+      "A. Co, hoan toan mien phi",
+      "B. Thuong co phi xu ly hoac gia san pham cao hon",
+      "C. Chi mien phi neu tra dung han",
+      "D. Luon mien phi"
+    ],
+    "answer": "B",
+    "explanation": "Tra gop 0% thuong co phi xu ly ho so (1-3%), hoac gia san pham da duoc nang len so voi tra thang. Luon so sanh gia tra thang vs tra gop.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q20",
+    "text": "Khi nao nen xem xet mua vang?",
+    "choices": [
+      "A. Khi gia vang dang tang",
+      "B. De da dang hoa, phan bo 5-10% danh muc",
+      "C. Khi thi truong chung khoan giam",
+      "D. Khong nen mua vang"
+    ],
+    "answer": "B",
+    "explanation": "Vang la tai san phong ve lam phat va bat on. Nen phan bo 5-10% danh muc vao vang (vang mieng hoac ETF vang). Khong nen 'all-in' vao vang.",
+    "difficulty": "hard"
+  }
+]

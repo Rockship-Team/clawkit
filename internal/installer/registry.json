@@ -30,6 +30,12 @@
       "description": "Bot bán hoa cho OpenClaw — tư vấn, báo giá, gửi ảnh sản phẩm trực tiếp qua Telegram API, chốt đơn, tra cứu đơn hàng theo từng khách. Chạy trên Telegram (primary), không cần OAuth. Dùng Node.js thao tác dữ liệu và upload ảnh qua curl.",
       "requires_oauth": null,
       "setup_prompts": []
+    },
+    "sol-finance-coach": {
+      "version": "1.0.0",
+      "description": "Tro ly tai chinh ca nhan 24/7 — kien thuc dau tu, meo tiet kiem, toi uu the tin dung, theo doi chi tieu, gamification. Chay tren Telegram/Zalo, khong truy cap ngan hang.",
+      "requires_oauth": null,
+      "setup_prompts": []
     }
   }
 }

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "no-trasua-7d",
+    "name": "7 ngay khong tra sua",
+    "description": "Khong mua tra sua, nuoc ngot dat tien trong 7 ngay. Uong nuoc loc hoac ca phe pha tai nha.",
+    "duration_days": 7,
+    "est_savings": "200K-400K",
+    "category": "food"
+  },
+  {
+    "id": "no-grabfood-7d",
+    "name": "7 ngay khong dat GrabFood",
+    "description": "Khong dat do an qua app trong 7 ngay. Nau com hoac an tai cho.",
+    "duration_days": 7,
+    "est_savings": "300K-500K",
+    "category": "food"
+  },
+  {
+    "id": "save-100k-daily-30d",
+    "name": "30 ngay tiet kiem 100K/ngay",
+    "description": "Moi ngay bo 100K vao quy tiet kiem. Cuoi thang co 3 trieu!",
+    "duration_days": 30,
+    "est_savings": "3,000K",
+    "category": "savings"
+  },
+  {
+    "id": "no-spend-weekend",
+    "name": "Cuoi tuan khong chi tieu",
+    "description": "Khong chi tieu ngoai nhu cau thiet yeu (an uong co ban) trong 2 ngay cuoi tuan.",
+    "duration_days": 2,
+    "est_savings": "200K-500K",
+    "category": "general"
+  },
+  {
+    "id": "meal-prep-week",
+    "name": "1 tuan meal prep",
+    "description": "Nau san com trua 5 ngay di lam. Chu nhat chuan bi, ca tuan tiet kiem.",
+    "duration_days": 5,
+    "est_savings": "300K-500K",
+    "category": "food"
+  },
+  {
+    "id": "walk-instead-7d",
+    "name": "7 ngay di bo thay Grab",
+    "description": "Nhung quang duong duoi 2km, di bo thay vi dat xe. Tot cho suc khoe va vi tien.",
+    "duration_days": 7,
+    "est_savings": "150K-300K",
+    "category": "transport"
+  },
+  {
+    "id": "no-shopping-14d",
+    "name": "14 ngay khong mua sam",
+    "description": "Khong mua bat ky do gi ngoai thuc pham va nhu yeu pham trong 14 ngay.",
+    "duration_days": 14,
+    "est_savings": "500K-2,000K",
+    "category": "shopping"
+  },
+  {
+    "id": "track-every-dong-7d",
+    "name": "7 ngay ghi moi khoan chi",
+    "description": "Ghi lai MOI khoan chi tieu trong 7 ngay, du la 5K mua nuoc. Nhan tin cho bot moi khi chi tieu.",
+    "duration_days": 7,
+    "est_savings": "0 (nhung se biet minh tieu gi!)",
+    "category": "general"
+  },
+  {
+    "id": "homemade-coffee-14d",
+    "name": "14 ngay cafe tu pha",
+    "description": "Pha ca phe tai nha thay vi mua quan. 1 goi 5-10K pha 2-3 ly vs 40-60K/ly quan.",
+    "duration_days": 14,
+    "est_savings": "400K-800K",
+    "category": "food"
+  },
+  {
+    "id": "cash-only-week",
+    "name": "1 tuan chi dung tien mat",
+    "description": "Khong quet the, khong chuyen khoan, khong vi dien tu. Chi tieu bang tien mat de cam nhan tung dong.",
+    "duration_days": 7,
+    "est_savings": "Thay doi hanh vi chi tieu",
+    "category": "general"
+  }
+]

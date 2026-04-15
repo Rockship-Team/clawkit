@@ -1,0 +1,202 @@
+[
+  {
+    "id": "t01",
+    "category": "food",
+    "text": "Nau com mang di lam thay vi dat app — tiet kiem 50-80K/ngay, ~1.5 trieu/thang."
+  },
+  {
+    "id": "t02",
+    "category": "food",
+    "text": "Meal prep Chu nhat: nau san 5 hop com trua, tiet kiem ~300K/tuan so voi an ngoai."
+  },
+  {
+    "id": "t03",
+    "category": "food",
+    "text": "Mua thuc pham o cho thay vi sieu thi co the re hon 20-30%. Uu tien di cho buoi sang som."
+  },
+  {
+    "id": "t04",
+    "category": "food",
+    "text": "Dat do an qua app? Dung quen check voucher truoc khi dat. Shopee Coins, MoMo, ZaloPay thuong co giam 20-50K."
+  },
+  {
+    "id": "t05",
+    "category": "food",
+    "text": "Mang binh nuoc tu nha — 1 chai nuoc mua ngoai 10-15K x 22 ngay = 220-330K/thang bay mat."
+  },
+  {
+    "id": "t06",
+    "category": "food",
+    "text": "Dat tra sua 2-3 lan/tuan? Giam xuong 1 lan/tuan tiet kiem 200-400K/thang."
+  },
+  {
+    "id": "t07",
+    "category": "transport",
+    "text": "Dat Grab/Be sau 21h thuong re hon 20-30% nho it nguoi dat. Neu khong gap, doi toi muon."
+  },
+  {
+    "id": "t08",
+    "category": "transport",
+    "text": "Di xe buyt/metro cho cac tuyen co dinh — ve thang chi 200K so voi 50-80K/ngay xe may/Grab."
+  },
+  {
+    "id": "t09",
+    "category": "transport",
+    "text": "Carpool voi dong nghieu cung tuyen — chia doi tien xang, tiet kiem 500K-1tr/thang."
+  },
+  {
+    "id": "t10",
+    "category": "transport",
+    "text": "Bao duong xe dinh ky (thay nhot, bom lop) giup tiet kiem xang 10-15%."
+  },
+  {
+    "id": "t11",
+    "category": "shopping",
+    "text": "Ap dung quy tac 24h: muon mua gi tren 500K, doi 24h. 70% truong hop ban se khong mua nua."
+  },
+  {
+    "id": "t12",
+    "category": "shopping",
+    "text": "Flash sale Shopee/Lazada: dat lich nhac truoc, them vao gio hang san, thanh toan bang the co cashback."
+  },
+  {
+    "id": "t13",
+    "category": "shopping",
+    "text": "So sanh gia tren nhieu nen tang truoc khi mua. Dung web so sanh gia nhu websosanh.vn."
+  },
+  {
+    "id": "t14",
+    "category": "shopping",
+    "text": "Mua do second-hand chat luong cao (dien tu, noi that) o Cho Tot — tiet kiem 40-60% so voi mua moi."
+  },
+  {
+    "id": "t15",
+    "category": "shopping",
+    "text": "Unsubscribe email marketing tu cac shop — bot cam do, bot mua sam bo xung."
+  },
+  {
+    "id": "t16",
+    "category": "bills",
+    "text": "Tat dieu hoa khi ra khoi phong — 1 gio dieu hoa ton 1-2K dien, ca thang tiet kiem 300-600K."
+  },
+  {
+    "id": "t17",
+    "category": "bills",
+    "text": "Chuyen sang goi cuoc di dong re hon — nhieu nha mang co goi 77-99K/thang du data va goi."
+  },
+  {
+    "id": "t18",
+    "category": "bills",
+    "text": "Thanh toan hoa don dien/nuoc/internet qua vi dien tu thuong duoc hoan 1-5%."
+  },
+  {
+    "id": "t19",
+    "category": "bills",
+    "text": "Dung bong den LED thay bong soi dot — tiet kiem 75% dien chieu sang."
+  },
+  {
+    "id": "t20",
+    "category": "bills",
+    "text": "Rut phich cam sac dien thoai, laptop khi khong dung — dien tu 'ma' ton 5-10% hoa don dien."
+  },
+  {
+    "id": "t21",
+    "category": "entertainment",
+    "text": "Chia se tai khoan Netflix/Spotify/YouTube Premium voi ban be — chia 4 nguoi chi con 30-40K/nguoi/thang."
+  },
+  {
+    "id": "t22",
+    "category": "entertainment",
+    "text": "Tim su kien mien phi trong thanh pho: trien lam, hoa nhac, workshop — vui ma khong ton tien."
+  },
+  {
+    "id": "t23",
+    "category": "entertainment",
+    "text": "Doc sach qua thu vien hoac app doc mien phi (Waka trial, thu vien so) thay vi mua sach moi."
+  },
+  {
+    "id": "t24",
+    "category": "general",
+    "text": "Dat auto-transfer vao tai khoan tiet kiem moi ngay luong. Tien ban khong thay = tien ban khong tieu."
+  },
+  {
+    "id": "t25",
+    "category": "general",
+    "text": "Theo quy tac 50/30/20: 50% nhu cau, 30% mong muon, 20% tiet kiem. Dieu chinh theo thu nhap thuc te."
+  },
+  {
+    "id": "t26",
+    "category": "general",
+    "text": "Lap quy du phong = 6 thang chi tieu. Day la 'bao hiem' quan trong nhat truoc khi nghi den dau tu."
+  },
+  {
+    "id": "t27",
+    "category": "general",
+    "text": "Tra no lai cao truoc (the tin dung 2-4%/thang, vay tieu dung). Lai kep se 'an' tien cua ban nhanh hon ban tuong."
+  },
+  {
+    "id": "t28",
+    "category": "general",
+    "text": "Ghi chep chi tieu moi ngay — chi can 30 giay nhan tin cho bot. Biet minh tieu gi moi tiet kiem duoc."
+  },
+  {
+    "id": "t29",
+    "category": "general",
+    "text": "Moi khi duoc tang luong, tang tiet kiem truoc, tang chi tieu sau. Tranh 'lifestyle inflation'."
+  },
+  {
+    "id": "t30",
+    "category": "general",
+    "text": "Khong vay tien de dau tu. Chi dau tu bang tien nhan roi — tien mat di khong anh huong cuoc song."
+  },
+  {
+    "id": "t31",
+    "category": "food",
+    "text": "Uong ca phe pha tai nha — 1 goi ca phe 5-10K pha duoc 2-3 ly, so voi 40-60K/ly quan."
+  },
+  {
+    "id": "t32",
+    "category": "shopping",
+    "text": "Mua hang theo mua giam gia: Black Friday, 11.11, 12.12 — nhung chi mua thu THUC SU can."
+  },
+  {
+    "id": "t33",
+    "category": "transport",
+    "text": "Lam viec tu xa 1-2 ngay/tuan neu duoc — tiet kiem tien di lai + an trua."
+  },
+  {
+    "id": "t34",
+    "category": "bills",
+    "text": "Kiem tra lai suat gui tiet kiem online — thuong cao hon gui quay 0.5-1%/nam."
+  },
+  {
+    "id": "t35",
+    "category": "general",
+    "text": "No the tin dung? Luon tra toan bo du no truoc han — lai suat 2-4%/thang la rat cao."
+  },
+  {
+    "id": "t36",
+    "category": "food",
+    "text": "Mua combo thay vi mua le thuong re hon 15-20%. Ap dung cho ca phe, do an nhanh, sieu thi."
+  },
+  {
+    "id": "t37",
+    "category": "entertainment",
+    "text": "Xem phim ngay thuong (thu 2-5) re hon cuoi tuan 30-50%. Nhieu rap con co ngay hoi vien."
+  },
+  {
+    "id": "t38",
+    "category": "general",
+    "text": "Dat muc tieu tiet kiem cu the: '10 trieu trong 3 thang' thay vi 'tiet kiem nhieu hon'. Cu the = de thuc hien."
+  },
+  {
+    "id": "t39",
+    "category": "shopping",
+    "text": "Cashback apps (Shopback, Fundiin) hoan 1-10% khi mua sam online. It nhung tich lau thanh nhieu."
+  },
+  {
+    "id": "t40",
+    "category": "general",
+    "text": "Review chi tieu cuoi moi tuan — chi 5 phut nhin lai giup ban dieu chinh kip thoi."
+  }
+]

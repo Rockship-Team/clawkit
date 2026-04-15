@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "requires_bins": ["sme-cli"],
+  "setup_prompts": [
+    {
+      "key": "company_name",
+      "label": "Ten doanh nghiep",
+      "placeholder": "Cong ty TNHH ABC"
+    },
+    { "key": "tax_code", "label": "Ma so thue", "placeholder": "0123456789" }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

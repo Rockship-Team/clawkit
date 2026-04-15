@@ -1,5 +1,28 @@
 {
   "skills": {
+    "accounting": {
+      "version": "1.0.0",
+      "description": "Ke toan SME Viet Nam — hoa don, cong no, doi soat ngan hang, du bao dong tien, chi phi. Ket noi MISA AMIS.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "tax_code",
+          "label": "Ma so thue",
+          "placeholder": "0123456789"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "bds-broker": {
       "version": "4.0.0",
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
@@ -14,6 +37,17 @@
           "label": "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)",
           "placeholder": "123456789,987654321"
         }
+      ]
+    },
+    "bi": {
+      "version": "1.0.0",
+      "description": "Dashboard & bao cao SME Viet Nam — tong quan CEO, P&L, dong tien, cong no, xu huong doanh thu.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
       ]
     },
     "ecom-bot": {
@@ -31,9 +65,64 @@
         "gog"
       ]
     },
+    "hr": {
+      "version": "1.0.0",
+      "description": "Nhan su SME Viet Nam — quan ly nhan vien, tinh luong BHXH/TNCN, nghi phep, hop dong lao dong.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
+    "legal": {
+      "version": "1.0.0",
+      "description": "Phap ly SME Viet Nam — tra cuu luat doanh nghiep, theo doi giay phep, hop dong lao dong, luat thue.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
+    "marketing": {
+      "version": "1.0.0",
+      "description": "Marketing SME Viet Nam — tao noi dung, quan ly mang xa hoi, email campaign, theo doi hieu qua.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
+    "ops": {
+      "version": "1.0.0",
+      "description": "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "rockship-support": {
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."
+    },
+    "sales": {
+      "version": "1.0.0",
+      "description": "Ban hang & CRM cho SME Viet Nam — quan ly khach hang, pipeline, bao gia, don hang.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
     },
     "sol-finance-coach": {
       "version": "1.0.0",
@@ -47,6 +136,17 @@
         "IMPLEMENTATION.md",
         "TEST-SCENARIOS.md",
         "*_test.go"
+      ]
+    },
+    "tax": {
+      "version": "1.0.0",
+      "description": "Thue SME Viet Nam — lich nop thue, tinh TNCN, VAT, TNDN, nhac han. Xuat XML cho HTKK.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
       ]
     }
   }

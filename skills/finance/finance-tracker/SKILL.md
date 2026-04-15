@@ -1,8 +1,6 @@
 ---
 name: finance-tracker
 description: Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.
-version: "2.0.0"
-requires_oauth: []
 metadata: {"openclaw":{"emoji":"💰"}}
 ---
 

@@ -1,13 +1,7 @@
 ---
 name: gog
 description: Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs
-version: "1.0.0"
-requires_oauth:
-  - gmail
-requires_bins:
-  - gog
-homepage: https://gogcli.sh
-metadata: {"clawdbot":{"emoji":"🎮","install":[{"id":"brew","kind":"brew","formula":"steipete/tap/gogcli","bins":["gog"],"label":"Install gog (macOS/brew)"},{"id":"clawkit","kind":"clawkit","label":"Install via clawkit (Linux/Windows — auto-installed during setup)"}]}}
+metadata: {"openclaw":{"requires":{"bins":["gog"]}},"clawdbot":{"emoji":"🎮","install":[{"id":"brew","kind":"brew","formula":"steipete/tap/gogcli","bins":["gog"],"label":"Install gog (macOS/brew)"},{"id":"clawkit","kind":"clawkit","label":"Install via clawkit (Linux/Windows — auto-installed during setup)"}]}}
 ---
 
 # gog

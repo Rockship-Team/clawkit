@@ -11,7 +11,11 @@ import (
 )
 
 // skillDir returns ~/.openclaw/workspace/skills/sol-finance-coach
+// Override with SOL_DATA_DIR env var for testing.
 func skillDir() string {
+	if dir := os.Getenv("SOL_DATA_DIR"); dir != "" {
+		return dir
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		errOut("cannot find home directory: " + err.Error())

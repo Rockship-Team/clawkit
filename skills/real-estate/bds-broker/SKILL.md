@@ -1,16 +1,6 @@
 ---
 name: bds-broker
 description: Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà
-version: "4.0.0"
-requires_oauth: []
-requires_skills: []
-setup_prompts:
-  - key: agent_name
-    label: "Tên nhân viên tư vấn"
-    placeholder: "BDS"
-  - key: admin_telegram_ids
-    label: "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)"
-    placeholder: "123456789,987654321"
 metadata: {"openclaw":{"emoji":"🏠"}}
 ---
 

@@ -1,0 +1,12 @@
+{
+  "id": "sol-deal-alerts",
+  "schedule": {
+    "type": "Cron",
+    "expression": "0 8,12,18 * * *",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "execution": {
+    "style": "main",
+    "prompt": "Chay: skills/sol-finance-coach/sol-cli deals match\nNeu co deal phu hop (count > 0), format top 1-2 deal thanh tin nhan ngan. Neu khong co match thi khong gui gi.\nDong thoi chay: skills/sol-finance-coach/sol-cli loyalty expiring\nNeu co diem sap het han, them nhac nho vao tin nhan."
+  }
+}

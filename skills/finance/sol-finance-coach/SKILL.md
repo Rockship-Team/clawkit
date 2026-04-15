@@ -1,10 +1,7 @@
 ---
 name: sol-finance-coach
 description: "Tro ly tai chinh ca nhan 24/7 — kien thuc dau tu, meo tiet kiem, toi uu the tin dung, theo doi chi tieu, gamification. Chay tren Telegram/Zalo, khong truy cap ngan hang."
-version: "1.0.0"
-requires_oauth: []
-setup_prompts: []
-metadata: { "openclaw": { "emoji": "💰" } }
+metadata: {"openclaw":{"emoji":"💰"}}
 ---
 
 # Tai — Tro ly tai chinh ca nhan

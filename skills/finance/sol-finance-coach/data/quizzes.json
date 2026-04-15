@@ -238,5 +238,200 @@
     "answer": "B",
     "explanation": "Vang la tai san phong ve lam phat va bat on. Nen phan bo 5-10% danh muc vao vang (vang mieng hoac ETF vang). Khong nen 'all-in' vao vang.",
     "difficulty": "hard"
+  },
+  {
+    "id": "q21",
+    "text": "Muc giam tru gia canh ban than khi tinh thue TNCN tai Viet Nam la bao nhieu?",
+    "choices": [
+      "A. 9 trieu/thang",
+      "B. 11 trieu/thang",
+      "C. 15 trieu/thang",
+      "D. 20 trieu/thang"
+    ],
+    "answer": "B",
+    "explanation": "Muc giam tru gia canh ban than la 11 trieu dong/thang (132 trieu/nam). Thu nhap duoi muc nay khong phai dong thue TNCN tu tien luong.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q22",
+    "text": "Muc giam tru gia canh cho moi nguoi phu thuoc khi tinh thue TNCN la bao nhieu?",
+    "choices": [
+      "A. 2.4 trieu/thang",
+      "B. 3.6 trieu/thang",
+      "C. 4.4 trieu/thang",
+      "D. 5.5 trieu/thang"
+    ],
+    "answer": "C",
+    "explanation": "Moi nguoi phu thuoc (con cai, bo me khong co thu nhap) duoc giam tru 4.4 trieu/thang. Can dang ky nguoi phu thuoc voi co quan thue de duoc giam tru.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q23",
+    "text": "Nguoi lao dong dong bao hiem xa hoi (BHXH) bat buoc bao nhieu phan tram luong?",
+    "choices": [
+      "A. 6%",
+      "B. 8%",
+      "C. 10.5%",
+      "D. 14%"
+    ],
+    "answer": "C",
+    "explanation": "Nguoi lao dong dong 10.5% luong: 8% BHXH + 1.5% BHYT + 1% BHTN. Ngoai ra, nguoi su dung lao dong dong them 21.5%. Tong cong 32% luong dong bao hiem.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q24",
+    "text": "The BHYT (bao hiem y te) chi tra bao nhieu phan tram chi phi kham chua benh dung tuyen?",
+    "choices": [
+      "A. 50%",
+      "B. 60%",
+      "C. 80%",
+      "D. 100%"
+    ],
+    "answer": "C",
+    "explanation": "BHYT chi tra 80% chi phi kham chua benh khi kham dung tuyen. Kham trai tuyen chi duoc 40-60% tuy cap benh vien. Vi vay luon nen kham dung tuyen de tiet kiem.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q25",
+    "text": "Vi dien tu nhu MoMo, ZaloPay co duoc bao hiem tien gui nhu ngan hang khong?",
+    "choices": [
+      "A. Co, duoc bao hiem nhu ngan hang",
+      "B. Khong, tien trong vi dien tu khong duoc bao hiem tien gui",
+      "C. Chi duoc bao hiem neu so du duoi 50 trieu",
+      "D. Tuy loai vi dien tu"
+    ],
+    "answer": "B",
+    "explanation": "Vi dien tu KHONG phai ngan hang nen khong duoc Bao hiem tien gui Viet Nam bao ve. Chi nen giu so tien vua du chi tieu trong vi, khong nen de so lon.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q26",
+    "text": "Diem tin dung (credit score) tai Viet Nam duoc su dung chu yeu boi to chuc nao?",
+    "choices": [
+      "A. Co quan thue",
+      "B. Trung tam Thong tin Tin dung Quoc gia (CIC)",
+      "C. Ngan hang Nha nuoc",
+      "D. Cong ty bao hiem"
+    ],
+    "answer": "B",
+    "explanation": "CIC (Credit Information Center) thuoc Ngan hang Nha nuoc quan ly du lieu tin dung ca nhan. Diem CIC tu 300-900. Ngan hang tra cuu CIC truoc khi duyet vay.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q27",
+    "text": "Dau hieu nao cho thay ban co the dang gap lua dao tai chinh?",
+    "choices": [
+      "A. Lai suat cao hon gui tiet kiem ngan hang",
+      "B. Hua loi nhuan co dinh 20-30%/nam, khong rui ro",
+      "C. Can phai mo tai khoan tai ngan hang",
+      "D. Co hop dong va giay to phap ly"
+    ],
+    "answer": "B",
+    "explanation": "Hua loi nhuan co dinh rat cao (20-30%/nam) va 'khong rui ro' la dau hieu kinh dien cua lua dao Ponzi. Khong co dau tu nao vua loi nhuan cao vua khong rui ro.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q28",
+    "text": "De bao ve tien truoc lam phat, cach nao sau day la KHONG hieu qua?",
+    "choices": [
+      "A. Gui tiet kiem lai suat cao hon lam phat",
+      "B. Dau tu vao co phieu hoac quy",
+      "C. Giu tien mat o nha",
+      "D. Mua bat dong san"
+    ],
+    "answer": "C",
+    "explanation": "Giu tien mat o nha se mat gia theo lam phat. Neu lam phat 4%/nam, 100 trieu tien mat sau 5 nam chi con suc mua tuong duong ~82 trieu. Can dau tu de tien sinh loi.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q29",
+    "text": "Nguoi doc than khong co nguoi phu thuoc nen co quy du phong bang bao nhieu thang chi tieu?",
+    "choices": [
+      "A. 1-2 thang",
+      "B. 3-4 thang",
+      "C. 6-8 thang",
+      "D. 12 thang"
+    ],
+    "answer": "B",
+    "explanation": "Nguoi doc than, khong nguoi phu thuoc, cong viec on dinh chi can 3-4 thang. Nguoi co gia dinh, con nho, thu nhap khong on dinh nen co 6-12 thang.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q30",
+    "text": "Ty le no tren thu nhap (DTI - Debt-to-Income) an toan la bao nhieu?",
+    "choices": [
+      "A. Duoi 20%",
+      "B. Duoi 40%",
+      "C. Duoi 60%",
+      "D. Duoi 80%"
+    ],
+    "answer": "B",
+    "explanation": "DTI = tong tien tra no hang thang / thu nhap hang thang. DTI duoi 40% la an toan. Tren 50% la nguy hiem — ban dang dung qua nhieu thu nhap de tra no.",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q31",
+    "text": "So sanh gui tiet kiem co ky han va khong ky han, dieu nao dung?",
+    "choices": [
+      "A. Khong ky han luon co lai suat cao hon",
+      "B. Co ky han co lai suat cao hon nhung khong rut truoc han duoc",
+      "C. Co ky han co lai suat cao hon, rut truoc han duoc nhung huong lai khong ky han",
+      "D. Hai loai co lai suat nhu nhau"
+    ],
+    "answer": "C",
+    "explanation": "Gui co ky han lai suat cao hon (5-7%/nam vs 0.1-0.5% khong ky han). Rut truoc han van duoc nhung chi huong lai suat khong ky han. Nen chia nho de gui nhieu so.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q32",
+    "text": "Khi mua nha, ngan hang thuong cho vay toi da bao nhieu phan tram gia tri nha?",
+    "choices": [
+      "A. 50%",
+      "B. 60%",
+      "C. 70%",
+      "D. 90%"
+    ],
+    "answer": "C",
+    "explanation": "Ngan hang thuong cho vay 60-70% gia tri nha. Ban can co 30-40% von tu co. Ngoai ra con phi cong chung, thue truoc ba, phi sang ten (~2-3% gia nha).",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q33",
+    "text": "Dieu gi xay ra neu ban chi tra muc toi thieu (minimum payment) the tin dung moi thang?",
+    "choices": [
+      "A. Khong bi tinh lai",
+      "B. Bi tinh lai tren TOAN BO so du, khong chi phan chua tra",
+      "C. Lai suat giam dan",
+      "D. Khong anh huong gi"
+    ],
+    "answer": "B",
+    "explanation": "Tra toi thieu (thuong 5% so du) giup khong bi phat nhung VAN bi tinh lai tren toan bo so du goc. Voi lai 2-4%/thang, no se tang rat nhanh nhu cau tuyet.",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q34",
+    "text": "App gia mao ngan hang thuong lua nan nhan bang cach nao?",
+    "choices": [
+      "A. Gui email chinh thuc tu ngan hang",
+      "B. Gui link gia mao yeu cau nhap OTP, mat khau",
+      "C. Goi dien tu tong dai ngan hang",
+      "D. Gui thu bao dam qua buu dien"
+    ],
+    "answer": "B",
+    "explanation": "Lua dao phishing gui link/app gia mao giong ngan hang de lay OTP va mat khau. Ngan hang KHONG BAO GIO yeu cau cung cap OTP qua link. Luon truy cap app/web chinh thuc.",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q35",
+    "text": "Khi lam phat tang cao, nen dieu chinh danh muc dau tu nhu the nao?",
+    "choices": [
+      "A. Ban het co phieu, giu tien mat",
+      "B. Tang ty trong tai san thuc (vang, bat dong san) va co phieu nganh thiet yeu",
+      "C. Gui tat ca vao tiet kiem",
+      "D. Vay nhieu hon de dau tu"
+    ],
+    "answer": "B",
+    "explanation": "Khi lam phat cao, tai san thuc (vang, BDS) thuong tang gia theo. Co phieu nganh thiet yeu (thuc pham, nang luong) on dinh hon. Tien mat va tiet kiem lai thap se mat gia.",
+    "difficulty": "hard"
   }
 ]

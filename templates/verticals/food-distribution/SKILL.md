@@ -1,9 +1,6 @@
 ---
 name: my-ecommerce-bot
 description: E-commerce sales bot — product consultation, ordering, order tracking
-version: "1.0.0"
-requires_oauth: []
-setup_prompts: []
 metadata: {"openclaw":{"emoji":"🛒"}}
 ---
 

@@ -35,11 +35,9 @@ clawkit install <skill> [--profile <name>]
   │
   ├── 1. Preflight: detect OpenClaw
   ├── 2. Registry lookup: load skill metadata
-  ├── 3. Dependency check: verify requires_skills installed
-  ├── 4. Download: local dev → embedded → GitHub Releases
-  ├── 5. Profile overlay: catalog, schema, images, workspace-overrides
-  ├── 6. Install bins: download required CLIs (e.g. gog)
-  ├── 7. OAuth: run each provider in requires_oauth
+  ├── 3. Download: local dev → embedded → GitHub Releases
+  ├── 4. Profile overlay: catalog, schema, images, workspace-overrides
+  ├── 5. Install bins: download required CLIs (e.g. gog)
   ├── 8. Lockdown: backup workspace → apply overrides → reset sessions → set allowlist
   ├── 9. Schema init: load schema.json → validate → create DB (local/supabase/api)
   ├── 10. Save config.json: skill_name, profile, version, db_target, tokens

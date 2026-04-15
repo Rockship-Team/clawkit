@@ -19,19 +19,17 @@ import (
 
 // SkillEntry is the JSON shape returned by /api/skills.
 type SkillEntry struct {
-	Name          string   `json:"name"`
-	Description   string   `json:"description"`
-	Version       string   `json:"version"`
-	Installed     bool     `json:"installed"`
-	OAuthDone     bool     `json:"oauth_done"`
-	RequiresOAuth []string `json:"requires_oauth,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	Installed   bool   `json:"installed"`
+	OAuthDone   bool   `json:"oauth_done"`
 }
 
 // RegistrySkill is a minimal struct for deserialising registry.json.
 type RegistrySkill struct {
-	Version       string   `json:"version"`
-	Description   string   `json:"description"`
-	RequiresOAuth []string `json:"requires_oauth,omitempty"`
+	Version     string `json:"version"`
+	Description string `json:"description"`
 }
 
 // Registry is a minimal struct for deserialising registry.json.
@@ -286,11 +284,10 @@ func buildEntries(registryData []byte) ([]SkillEntry, error) {
 	for _, name := range names {
 		info := reg.Skills[name]
 		entry := SkillEntry{
-			Name:          name,
-			Description:   info.Description,
-			Version:       info.Version,
-			RequiresOAuth: info.RequiresOAuth,
-			Installed:     true,
+			Name:        name,
+			Description: info.Description,
+			Version:     info.Version,
+			Installed:   true,
 		}
 		skillDir := filepath.Join(skillsDir, name)
 		if cfg, err := config.LoadSkillConfig(skillDir); err == nil {

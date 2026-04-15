@@ -71,10 +71,31 @@ The registry generator (`cmd/gen-registry`) scans recursively. The installer (`f
 ### Adding a skill
 
 1. Pick a vertical or create a new one under `skills/`.
-2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `schema.json` + copy `templates/cli.js`.
+2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `clawkit.json` + `schema.json` + copy `templates/cli.js`.
 3. Run `make generate`.
 4. Update the `//go:embed` directive in `skills/skills.go` if adding a new vertical.
-5. Add any OAuth providers referenced in `requires_oauth` to `oauth/` if they don't exist.
+5. Add any OAuth providers to `oauth/` if they don't exist.
+
+### Skill metadata split
+
+Skill metadata is split between two files:
+
+- **`SKILL.md` frontmatter** — OpenClaw-native fields only: `name`, `description`, `metadata` (including `metadata.openclaw.emoji`, `metadata.openclaw.requires.bins`, etc.)
+- **`clawkit.json`** — Clawkit-specific fields: `version`, `requires_bins`, `setup_prompts`, `exclude`
+
+`registry.json` is generated from both sources by `cmd/gen-registry`. The `name` and `description` come from SKILL.md; everything else comes from `clawkit.json`.
+
+Example `clawkit.json`:
+```json
+{
+  "version": "1.0.0",
+  "requires_bins": ["gog"],
+  "setup_prompts": [{"key": "name", "label": "Your name"}],
+  "exclude": ["cmd", "tools", "*.tmp"]
+}
+```
+
+The `exclude` patterns use `filepath.Match` syntax and are applied during `clawkit install` (copyDir, copyEmbeddedSkill) and `clawkit package` (CreateTarGz). Patterns match against both full relative paths and individual path components.
 
 ### Schema system
 

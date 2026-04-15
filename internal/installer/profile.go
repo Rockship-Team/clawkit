@@ -123,7 +123,7 @@ func applyProfile(skillDir, profileName string) (map[string]string, error) {
 		src := filepath.Join(profileDir, imgDir)
 		if dirExists(src) {
 			dst := filepath.Join(skillDir, imgDir)
-			if err := copyDir(src, dst); err != nil {
+			if err := copyDir(src, dst, nil); err != nil {
 				return nil, fmt.Errorf("overlay %s/: %w", imgDir, err)
 			}
 			break
@@ -133,7 +133,7 @@ func applyProfile(skillDir, profileName string) (map[string]string, error) {
 	// Overlay workspace overrides.
 	if src := filepath.Join(profileDir, "workspace-overrides"); dirExists(src) {
 		dst := filepath.Join(skillDir, "workspace-overrides")
-		if err := copyDir(src, dst); err != nil {
+		if err := copyDir(src, dst, nil); err != nil {
 			return nil, fmt.Errorf("overlay workspace-overrides/: %w", err)
 		}
 	}

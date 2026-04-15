@@ -8,16 +8,9 @@ import (
 	"os"
 
 	"github.com/rockship-co/clawkit/internal/installer"
-	"github.com/rockship-co/clawkit/internal/ui"
-	"github.com/rockship-co/clawkit/oauth"
 )
 
 var version = "0.1.0"
-
-func init() {
-	// Wire the promptInput function into the oauth package.
-	oauth.PromptInput = ui.PromptInput
-}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -30,15 +23,12 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>] [--skip-oauth]")
+			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>]")
 			os.Exit(1)
 		}
-		skipOAuth := false
 		profileName := ""
 		for i := 3; i < len(os.Args); i++ {
 			switch os.Args[i] {
-			case "--skip-oauth":
-				skipOAuth = true
 			case "--profile":
 				if i+1 < len(os.Args) {
 					i++
@@ -49,7 +39,7 @@ func main() {
 				}
 			}
 		}
-		installer.CmdInstall(os.Args[2], skipOAuth, profileName)
+		installer.CmdInstall(os.Args[2], profileName)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")
@@ -99,8 +89,7 @@ Usage:
 
 Commands:
   list                  List available skills
-  install <skill> [--profile <name>]
-                        Install a skill (locks workspace to its persona)
+  install <skill> [--profile <name>]  Install a skill (locks workspace to its persona)
   uninstall <skill>     Uninstall a skill (restores prior workspace files)
   update  <skill>       Update an installed skill
   status                Show installed skills

@@ -41,14 +41,6 @@ type SkillInfo struct {
 	RequiresOAuth  []string `json:"requires_oauth"`
 	RequiresBins   []string `json:"requires_bins,omitempty"`
 	RequiresSkills []string `json:"requires_skills,omitempty"`
-	SetupPrompts   []Prompt `json:"setup_prompts,omitempty"`
-}
-
-// Prompt defines a setup question asked during installation.
-type Prompt struct {
-	Key     string `json:"key"`
-	Label   string `json:"label"`
-	Default string `json:"default,omitempty"`
 }
 
 // Registry holds the available skills manifest.

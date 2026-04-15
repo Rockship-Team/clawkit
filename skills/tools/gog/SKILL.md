@@ -6,7 +6,6 @@ requires_oauth:
   - gmail
 requires_bins:
   - gog
-setup_prompts: []
 homepage: https://gogcli.sh
 metadata: {"clawdbot":{"emoji":"🎮","install":[{"id":"brew","kind":"brew","formula":"steipete/tap/gogcli","bins":["gog"],"label":"Install gog (macOS/brew)"},{"id":"clawkit","kind":"clawkit","label":"Install via clawkit (Linux/Windows — auto-installed during setup)"}]}}
 ---

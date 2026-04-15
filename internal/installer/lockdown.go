@@ -30,11 +30,11 @@ import (
 	"github.com/rockship-co/clawkit/internal/ui"
 )
 
-// WorkspaceOverridesDirName is the subdirectory inside a skill package that
+// BootstrapFilesDirName is the subdirectory inside a skill package that
 // contains files to be copied into the user's workspace root on install.
 // Files here replace the user's default workspace persona files (AGENTS.md,
 // SOUL.md, IDENTITY.md, USER.md) so the agent adopts the skill's character.
-const WorkspaceOverridesDirName = "workspace-overrides"
+const BootstrapFilesDirName = "bootstrap-files"
 
 // genericWorkspaceFiles are the default OpenClaw assistant files that ship
 // with a fresh `openclaw onboard` setup. They turn the agent into a
@@ -50,7 +50,7 @@ var genericWorkspaceFiles = []string{
 // LockdownWorkspace performs the full 1-skill-at-a-time lockdown:
 //  1. Detects and removes any previously installed skill (with user prompt).
 //  2. Backs up existing workspace MD files to .clawkit-backup/<timestamp>/.
-//  3. Copies workspace-overrides/* from the new skill to workspace root.
+//  3. Copies bootstrap-files/* from the new skill to workspace root.
 //  4. Deletes generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md).
 //  5. Resets existing conversation sessions.
 //  6. Sets agents.defaults.skills = [<skillName>] via openclaw config.
@@ -77,15 +77,15 @@ func LockdownWorkspace(skillsDir, skillDir, skillName string) {
 		ui.Info("Backed up workspace files to %s", backupDir)
 	}
 
-	// Step 3: copy workspace-overrides/* from the skill into workspace root.
+	// Step 3: copy bootstrap-files/* from the skill into workspace root.
 	// This is how the skill stamps its persona onto the agent's system prompt.
-	overridesDir := filepath.Join(skillDir, WorkspaceOverridesDirName)
+	overridesDir := filepath.Join(skillDir, BootstrapFilesDirName)
 	if _, err := os.Stat(overridesDir); err == nil {
-		count, err := applyWorkspaceOverrides(overridesDir, workspaceDir)
+		count, err := applyBootstrapFiles(overridesDir, workspaceDir)
 		if err != nil {
-			ui.Warn("Could not apply workspace overrides: %v", err)
+			ui.Warn("Could not apply bootstrap files: %v", err)
 		} else if count > 0 {
-			ui.Ok("Applied %d workspace override file(s) from skill", count)
+			ui.Ok("Applied %d bootstrap file(s) from skill", count)
 		}
 	}
 
@@ -208,10 +208,10 @@ func backupWorkspaceFiles(workspaceDir string) (string, error) {
 	return backupDir, nil
 }
 
-// applyWorkspaceOverrides copies every file directly inside overridesDir
+// applyBootstrapFiles copies every file directly inside overridesDir
 // into workspaceDir, overwriting existing files. It does not recurse into
 // subdirectories — only top-level files.
-func applyWorkspaceOverrides(overridesDir, workspaceDir string) (int, error) {
+func applyBootstrapFiles(overridesDir, workspaceDir string) (int, error) {
 	entries, err := os.ReadDir(overridesDir)
 	if err != nil {
 		return 0, err
@@ -384,7 +384,7 @@ func RestoreWorkspaceFromBackup(workspaceDir string) error {
 		return err
 	}
 
-	// Remove the current workspace-override files first so restoration is
+	// Remove the current bootstrap files first so restoration is
 	// clean (no orphan files from the skill we're uninstalling).
 	overrideNames := []string{"AGENTS.md", "SOUL.md", "IDENTITY.md", "USER.md"}
 	for _, f := range overrideNames {

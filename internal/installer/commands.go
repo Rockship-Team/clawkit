@@ -110,11 +110,16 @@ func CmdInstall(skillName string, profileName string) {
 	// Lock down the workspace into this skill's persona:
 	//   1. Remove any previously installed skill (1-skill-at-a-time model)
 	//   2. Back up existing workspace MD files
-	//   3. Copy workspace-overrides/* from the new skill to workspace root
+	//   3. Copy bootstrap-files/* from the new skill to workspace root
 	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
 	//   5. Reset prior conversation sessions
 	//   6. Set agents.defaults.skills = [<skillName>]
 	LockdownWorkspace(skillsDir, targetDir, skillName)
+
+	// Remove bootstrap-files from the installed skill directory — they've
+	// already been applied to the workspace root by LockdownWorkspace and
+	// are no longer needed inside the skill dir.
+	os.RemoveAll(filepath.Join(targetDir, BootstrapFilesDirName))
 
 	// Ensure image directories match catalog.
 	if err := template.EnsureImageDirs(targetDir); err != nil {

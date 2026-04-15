@@ -56,7 +56,7 @@ skills/my-skill/
   schema.json           Required  Database schema (tables, fields, roles)
   cli.js                Required  Generic CLI (copy from templates/cli.js)
   catalog.json          Optional  Product categories for image directories
-  workspace-overrides/  Optional  MD files to override agent persona
+  bootstrap-files/      Optional  MD files to override agent persona
   products/             Optional  Product images organized by folder
   profiles/             Optional  Domain-specific overrides
 ```

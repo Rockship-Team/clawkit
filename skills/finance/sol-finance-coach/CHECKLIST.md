@@ -135,7 +135,7 @@
 - [x] Integration with OpenClaw `make generate` / registry.json
 - [x] Moved to skills/utilities/ vertical for embed
 - [x] SOL_DATA_DIR env override for testability
-- [x] Standing orders (workspace-overrides/AGENTS.md)
+- [x] Standing orders (bootstrap-files/AGENTS.md)
 
 ### Cron Jobs
 - [x] `cron/daily-digest.json` — 7:30 AM daily (OpenClaw cron format)

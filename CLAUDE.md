@@ -40,7 +40,7 @@ Go (installer) + Node.js (runtime) + schema.json (data model). No Python.
 - **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, uninstall, status, package, version)
 - **`internal/installer/commands.go`** — All command implementations; install flow: preflight → download → profile overlay → OAuth → lockdown → schema init → config save → template processing
 - **`internal/installer/schema.go`** — Schema parsing, validation, multi-table merge, DB initialization, credential collection. Constants: `DBTargetLocal`, `DBTargetSupabase`, `DBTargetAPI`
-- **`internal/installer/profile.go`** — Profile overlay: catalog, schema (with extend-merge), images, workspace-overrides
+- **`internal/installer/profile.go`** — Profile overlay: catalog, schema (with extend-merge), images, bootstrap-files
 - **`internal/installer/registry.go`** — Registry loading (remote + embedded + local) and skill package downloading. Supports nested vertical dirs via `findLocalSkill()`
 - **`internal/installer/lockdown.go`** — 1-skill-at-a-time workspace lockdown: remove prior, backup, override, reset sessions, set allowlist
 - **`internal/archive/`** — tar.gz / zip extraction and creation; strips top-level directory from archives
@@ -133,7 +133,7 @@ Profile schemas can use `"extend": true` to add fields/tables to a base schema.
 - `catalog.json` — product catalog override
 - `schema.json` — schema override (supports extend-merge)
 - Images directory — product images override
-- `workspace-overrides/` — agent persona override
+- `bootstrap-files/` — agent persona override
 
 ### Adding an OAuth provider
 

@@ -13,7 +13,9 @@ import (
 )
 
 // ConfigFileName is the per-skill config file written after installation.
-const ConfigFileName = "config.json"
+// Named "clawkit.json" in the installed skill directory (user view) to
+// distinguish it from the source "config.json" used during development.
+const ConfigFileName = "clawkit.json"
 
 // SkillConfig is the per-skill config saved after installation.
 type SkillConfig struct {
@@ -26,7 +28,7 @@ type SkillConfig struct {
 	UserInputs map[string]string `json:"user_inputs,omitempty"`
 }
 
-// LoadSkillConfig reads the config.json from a skill directory.
+// LoadSkillConfig reads the clawkit.json from an installed skill directory.
 func LoadSkillConfig(skillDir string) (*SkillConfig, error) {
 	data, err := os.ReadFile(filepath.Join(skillDir, ConfigFileName))
 	if err != nil {
@@ -37,7 +39,7 @@ func LoadSkillConfig(skillDir string) (*SkillConfig, error) {
 	return &cfg, err
 }
 
-// SaveSkillConfig writes the config.json to a skill directory.
+// SaveSkillConfig writes the clawkit.json to an installed skill directory.
 func SaveSkillConfig(skillDir string, cfg *SkillConfig) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {

@@ -40,7 +40,7 @@ clawkit install <skill> [--profile <name>]
   ├── 5. Install bins: download required CLIs (e.g. gog)
   ├── 8. Lockdown: backup workspace → apply overrides → reset sessions → set allowlist
   ├── 9. Schema init: load schema.json → validate → create DB (local/supabase/api)
-  ├── 10. Save config.json: skill_name, profile, version, db_target, tokens
+  ├── 10. Save clawkit.json: skill_name, profile, version, db_target, tokens
   └── 11. Template processing: replace {placeholders} in SKILL.md
 ```
 
@@ -140,7 +140,7 @@ func (p myProvider) Authenticate() (map[string]string, error) { ... }
 func init() { Register(myProvider{}) }
 ```
 
-Tokens are saved to `config.json` and used for template placeholder substitution in SKILL.md.
+Tokens are saved to `clawkit.json` (installed skill) and used for template placeholder substitution in SKILL.md.
 
 ---
 

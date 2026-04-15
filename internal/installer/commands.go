@@ -199,7 +199,7 @@ func CmdUpdate(skillName string) {
 		return
 	}
 
-	// Remove old files except config.json.
+	// Remove old files except clawkit.json (installed config).
 	entries, _ := os.ReadDir(targetDir)
 	for _, e := range entries {
 		if e.Name() != config.ConfigFileName {

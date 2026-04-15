@@ -1,9 +1,9 @@
-// Command gen-registry scans skills/*/SKILL.md and skills/*/clawkit.json
+// Command gen-registry scans skills/*/SKILL.md and skills/*/config.json
 // to generate registry.json. This is the canonical way to keep the registry
 // in sync with skill definitions.
 //
 // SKILL.md provides OpenClaw-native fields: name, description.
-// clawkit.json provides clawkit-specific fields: version, requires_bins,
+// config.json provides clawkit-specific fields: version, requires_bins,
 // setup_prompts, exclude.
 //
 // Usage:
@@ -23,9 +23,9 @@ import (
 	"strings"
 )
 
-// ClawkitConfig is the per-skill clawkit.json file containing clawkit-specific
+// SkillConfig is the per-skill config.json file containing clawkit-specific
 // metadata that does not belong in OpenClaw's SKILL.md frontmatter.
-type ClawkitConfig struct {
+type SkillConfig struct {
 	Version      string        `json:"version"`
 	RequiresBins []string      `json:"requires_bins,omitempty"`
 	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
@@ -40,11 +40,11 @@ type SetupPrompt struct {
 }
 
 // SkillEntry combines data from SKILL.md (name, description) and
-// clawkit.json (everything else) for a single skill.
+// config.json (everything else) for a single skill.
 type SkillEntry struct {
 	Name        string
 	Description string
-	Config      ClawkitConfig
+	Config      SkillConfig
 }
 
 // RegistrySkill is the per-skill entry in registry.json.
@@ -115,7 +115,7 @@ func main() {
 	fmt.Printf("%s generated with %d skills.\n", registryPath, len(reg.Skills))
 }
 
-// scanSkills reads all SKILL.md + clawkit.json files under the skills directory.
+// scanSkills reads all SKILL.md + config.json files under the skills directory.
 // Supports both flat (skills/<name>/) and grouped (skills/<vertical>/<name>/) layouts.
 func scanSkills(dir string) ([]SkillEntry, error) {
 	var skills []SkillEntry
@@ -153,7 +153,7 @@ func scanSkills(dir string) ([]SkillEntry, error) {
 }
 
 // loadSkillEntry reads name+description from SKILL.md frontmatter and
-// clawkit-specific config from clawkit.json.
+// clawkit-specific config from config.json.
 func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
 	// Parse SKILL.md for name and description only.
 	name, desc, err := parseFrontmatter(filepath.Join(skillDir, "SKILL.md"), dirName)
@@ -161,10 +161,10 @@ func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
 		return SkillEntry{}, err
 	}
 
-	// Load clawkit.json for clawkit-specific fields.
-	cfg, err := loadClawkitConfig(filepath.Join(skillDir, "clawkit.json"))
+	// Load config.json for clawkit-specific fields.
+	cfg, err := loadSkillConfig(filepath.Join(skillDir, "config.json"))
 	if err != nil {
-		return SkillEntry{}, fmt.Errorf("clawkit.json: %w", err)
+		return SkillEntry{}, fmt.Errorf("config.json: %w", err)
 	}
 
 	return SkillEntry{
@@ -174,15 +174,15 @@ func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
 	}, nil
 }
 
-// loadClawkitConfig reads and parses a clawkit.json file.
-func loadClawkitConfig(path string) (ClawkitConfig, error) {
+// loadSkillConfig reads and parses a config.json file.
+func loadSkillConfig(path string) (SkillConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ClawkitConfig{}, fmt.Errorf("read %s: %w", path, err)
+		return SkillConfig{}, fmt.Errorf("read %s: %w", path, err)
 	}
-	var cfg ClawkitConfig
+	var cfg SkillConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return ClawkitConfig{}, fmt.Errorf("parse %s: %w", path, err)
+		return SkillConfig{}, fmt.Errorf("parse %s: %w", path, err)
 	}
 	if cfg.Version == "" {
 		return cfg, fmt.Errorf("missing version in %s", path)
@@ -192,7 +192,7 @@ func loadClawkitConfig(path string) (ClawkitConfig, error) {
 
 // parseFrontmatter extracts name and description from SKILL.md YAML frontmatter.
 // Only these two OpenClaw-native fields are read from frontmatter; all
-// clawkit-specific fields come from clawkit.json instead.
+// clawkit-specific fields come from config.json instead.
 func parseFrontmatter(path, dirName string) (name, description string, err error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

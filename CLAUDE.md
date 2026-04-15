@@ -32,8 +32,8 @@ Go (installer) + Node.js (runtime) + schema.json (data model). No Python.
 ### Data flow
 
 1. `registry.json` is generated from `skills/**/SKILL.md` YAML frontmatter by `cmd/gen-registry`. Never edit it by hand.
-2. At install time, `internal/installer` fetches the registry, downloads the skill package, applies profile overlay, runs OAuth, initializes DB from `schema.json`, processes templates, and saves `config.json` per skill.
-3. At runtime, `cli.js` (generic, schema-driven) reads `schema.json` + `config.json` and performs CRUD operations against the configured store backend (local JSON, Supabase, or custom API).
+2. At install time, `internal/installer` fetches the registry, downloads the skill package, applies profile overlay, runs OAuth, initializes DB from `schema.json`, processes templates, and saves `clawkit.json` per installed skill.
+3. At runtime, `cli.js` (generic, schema-driven) reads `schema.json` + `clawkit.json` and performs CRUD operations against the configured store backend (local JSON, Supabase, or custom API).
 
 ### Key packages
 
@@ -71,7 +71,7 @@ The registry generator (`cmd/gen-registry`) scans recursively. The installer (`f
 ### Adding a skill
 
 1. Pick a vertical or create a new one under `skills/`.
-2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `clawkit.json` + `schema.json` + copy `templates/cli.js`.
+2. Copy from `templates/verticals/<vertical>/` or create `SKILL.md` + `config.json` + `schema.json` + copy `templates/cli.js`.
 3. Run `make generate`.
 4. Update the `//go:embed` directive in `skills/skills.go` if adding a new vertical.
 5. Add any OAuth providers to `oauth/` if they don't exist.
@@ -81,11 +81,11 @@ The registry generator (`cmd/gen-registry`) scans recursively. The installer (`f
 Skill metadata is split between two files:
 
 - **`SKILL.md` frontmatter** — OpenClaw-native fields only: `name`, `description`, `metadata` (including `metadata.openclaw.emoji`, `metadata.openclaw.requires.bins`, etc.)
-- **`clawkit.json`** — Clawkit-specific fields: `version`, `requires_bins`, `setup_prompts`, `exclude`
+- **`config.json`** (dev source) — Clawkit-specific fields: `version`, `requires_bins`, `setup_prompts`, `exclude`. After installation, this becomes `clawkit.json` in the installed skill directory.
 
-`registry.json` is generated from both sources by `cmd/gen-registry`. The `name` and `description` come from SKILL.md; everything else comes from `clawkit.json`.
+`registry.json` is generated from both sources by `cmd/gen-registry`. The `name` and `description` come from SKILL.md; everything else comes from `config.json`.
 
-Example `clawkit.json`:
+Example `config.json`:
 ```json
 {
   "version": "1.0.0",
@@ -137,7 +137,7 @@ Profile schemas can use `"extend": true` to add fields/tables to a base schema.
 
 ### Adding an OAuth provider
 
-Implement the `oauth.Provider` interface (`Name()`, `Display()`, `Authenticate() (map[string]string, error)`) and call `oauth.Register(yourProvider{})` in `init()`. The returned map is merged into the skill's `config.json` tokens.
+Implement the `oauth.Provider` interface (`Name()`, `Display()`, `Authenticate() (map[string]string, error)`) and call `oauth.Register(yourProvider{})` in `init()`. The returned map is merged into the skill's `clawkit.json` tokens.
 
 ### Cross-platform rules
 

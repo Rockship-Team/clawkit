@@ -9,6 +9,7 @@ import (
 
 type Transaction struct {
 	ID          int    `json:"id"`
+	UserID      string `json:"user_id,omitempty"`
 	Date        string `json:"date"`
 	Place       string `json:"place"`
 	Amount      int64  `json:"amount"`
@@ -25,13 +26,44 @@ var validCategories = map[string]bool{
 }
 
 func loadTransactions() []Transaction {
+	uid := currentUserID()
+	all := loadAllTransactions()
+	filtered := make([]Transaction, 0, len(all))
+	for _, t := range all {
+		if t.UserID == uid {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func loadAllTransactions() []Transaction {
 	var txs []Transaction
 	readJSON(userPath("transactions.json"), &txs)
+	for i := range txs {
+		if txs[i].UserID == "" {
+			txs[i].UserID = "default"
+		}
+	}
 	return txs
 }
 
 func saveTransactions(txs []Transaction) error {
-	return writeJSON(userPath("transactions.json"), txs)
+	uid := currentUserID()
+	all := loadAllTransactions()
+	merged := make([]Transaction, 0, len(all)+len(txs))
+	for _, t := range all {
+		if t.UserID != uid {
+			merged = append(merged, t)
+		}
+	}
+	for i := range txs {
+		if txs[i].UserID == "" {
+			txs[i].UserID = uid
+		}
+		merged = append(merged, txs[i])
+	}
+	return writeJSON(userPath("transactions.json"), merged)
 }
 
 func cmdSpend(args []string) {
@@ -118,6 +150,7 @@ func spendAdd(args []string) {
 
 	tx := Transaction{
 		ID:        maxID + 1,
+		UserID:    currentUserID(),
 		Date:      date,
 		Place:     place,
 		Amount:    amount,

@@ -192,7 +192,6 @@ func ensureInit() {
 		"profile.json",
 		"transactions.json",
 		"loyalty.json",
-		"user_deals.json",
 	}
 	for _, name := range legacyUserFiles {
 		migrateFileIfNeeded(filepath.Join(skillDir(), name), userPath(name))

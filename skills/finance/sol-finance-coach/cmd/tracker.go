@@ -8,6 +8,7 @@ import (
 
 // LoyaltyProgram tracks a user's loyalty membership.
 type LoyaltyProgram struct {
+	UserID     string `json:"user_id,omitempty"`
 	Program    string `json:"program"`
 	Display    string `json:"display"`
 	Points     int64  `json:"points"`
@@ -34,42 +35,50 @@ type Deal struct {
 }
 
 func loadLoyalty() []LoyaltyProgram {
+	uid := currentUserID()
+	all := loadAllLoyalty()
+	filtered := make([]LoyaltyProgram, 0, len(all))
+	for _, p := range all {
+		if p.UserID == uid {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func loadAllLoyalty() []LoyaltyProgram {
 	var lp []LoyaltyProgram
 	readJSON(userPath("loyalty.json"), &lp)
+	for i := range lp {
+		if lp[i].UserID == "" {
+			lp[i].UserID = "default"
+		}
+	}
 	return lp
 }
 
 func saveLoyalty(lp []LoyaltyProgram) error {
-	return writeJSON(userPath("loyalty.json"), lp)
+	uid := currentUserID()
+	all := loadAllLoyalty()
+	merged := make([]LoyaltyProgram, 0, len(all)+len(lp))
+	for _, p := range all {
+		if p.UserID != uid {
+			merged = append(merged, p)
+		}
+	}
+	for i := range lp {
+		if lp[i].UserID == "" {
+			lp[i].UserID = uid
+		}
+		merged = append(merged, lp[i])
+	}
+	return writeJSON(userPath("loyalty.json"), merged)
 }
 
 func loadDeals() []Deal {
 	var seeded []Deal
-	var userDeals []Deal
-
 	readJSON(dataPath("deals.json"), &seeded)
-	readJSON(userPath("user_deals.json"), &userDeals)
-
-	all := make([]Deal, 0, len(seeded)+len(userDeals))
-	all = append(all, seeded...)
-	all = append(all, userDeals...)
-
-	seen := map[string]bool{}
-	merged := make([]Deal, 0, len(all))
-	for _, d := range all {
-		key := strings.ToLower(strings.TrimSpace(d.Source + "|" + d.Description + "|" + d.Category + "|" + d.Expiry))
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		merged = append(merged, d)
-	}
-
-	return merged
-}
-
-func saveDeals(deals []Deal) error {
-	return writeJSON(userPath("user_deals.json"), deals)
+	return seeded
 }
 
 func cmdLoyalty(args []string) {
@@ -110,6 +119,7 @@ func cmdLoyalty(args []string) {
 		}
 		if !found {
 			lp = append(lp, LoyaltyProgram{
+				UserID:    currentUserID(),
 				Program:   args[1],
 				Display:   args[2],
 				Points:    points,
@@ -212,44 +222,11 @@ func cmdLoyalty(args []string) {
 func cmdDeals(args []string) {
 	ensureInit()
 	if len(args) == 0 {
-		errOut("usage: deals add|list|match")
+		errOut("usage: deals list|match")
 		os.Exit(1)
 	}
 
 	switch args[0] {
-	case "add":
-		// deals add <source> <description> <category> [expiry]
-		if len(args) < 4 {
-			errOut("usage: deals add <source> <description> <category> [expiry]")
-			os.Exit(1)
-		}
-		expiry := ""
-		if len(args) > 4 {
-			expiry = args[4]
-		}
-		deals := loadDeals()
-		maxID := 0
-		for _, d := range deals {
-			if d.ID > maxID {
-				maxID = d.ID
-			}
-		}
-		deal := Deal{
-			ID:          maxID + 1,
-			Source:      args[1],
-			Description: args[2],
-			Category:    args[3],
-			Expiry:      expiry,
-			Used:        false,
-			CreatedAt:   vnNow().Format("2006-01-02T15:04:05-07:00"),
-		}
-		deals = append(deals, deal)
-		if err := saveDeals(deals); err != nil {
-			errOut("failed to save: " + err.Error())
-			os.Exit(1)
-		}
-		okOut(map[string]interface{}{"deal": deal})
-
 	case "list":
 		category := ""
 		if len(args) > 1 {

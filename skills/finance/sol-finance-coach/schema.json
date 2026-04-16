@@ -1,0 +1,119 @@
+{
+  "tables": {
+    "knowledge_base": {
+      "fields": [
+        {"name": "row_id", "type": "integer", "auto": "increment"},
+        {"name": "id", "type": "text", "required": true},
+        {"name": "topic", "type": "text", "required": true},
+        {"name": "category", "type": "text", "required": true},
+        {"name": "level", "type": "text"},
+        {"name": "content", "type": "text", "required": true},
+        {"name": "tags", "type": "text"},
+        {"name": "source", "type": "text"}
+      ]
+    },
+    "tips": {
+      "fields": [
+        {"name": "row_id", "type": "integer", "auto": "increment"},
+        {"name": "id", "type": "text", "required": true},
+        {"name": "category", "type": "text", "required": true},
+        {"name": "text", "type": "text", "required": true},
+        {"name": "season", "type": "text"}
+      ]
+    },
+    "credit_cards": {
+      "fields": [
+        {"name": "row_id", "type": "integer", "auto": "increment"},
+        {"name": "id", "type": "text", "required": true},
+        {"name": "bank", "type": "text", "required": true},
+        {"name": "name", "type": "text", "required": true},
+        {"name": "category", "type": "text"},
+        {"name": "annual_fee", "type": "text"},
+        {"name": "cashback", "type": "text"},
+        {"name": "rewards", "type": "text"},
+        {"name": "min_income", "type": "integer"},
+        {"name": "interest_pct", "type": "text"},
+        {"name": "best_for", "type": "text"},
+        {"name": "source_url", "type": "text"}
+      ]
+    },
+    "deals": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "source", "type": "text", "required": true},
+        {"name": "description", "type": "text", "required": true},
+        {"name": "category", "type": "text", "required": true},
+        {"name": "discount_pct", "type": "integer"},
+        {"name": "max_discount", "type": "integer"},
+        {"name": "min_order", "type": "integer"},
+        {"name": "code", "type": "text"},
+        {"name": "url", "type": "text"},
+        {"name": "expiry", "type": "text"},
+        {"name": "used", "type": "text", "default": "false"},
+        {"name": "created_at", "type": "text", "role": "timestamp"}
+      ]
+    },
+    "loyalty_catalog": {
+      "fields": [
+        {"name": "row_id", "type": "integer", "auto": "increment"},
+        {"name": "program", "type": "text", "required": true},
+        {"name": "display", "type": "text", "required": true},
+        {"name": "type", "type": "text"},
+        {"name": "earning_rules", "type": "text"},
+        {"name": "redemption_info", "type": "text"},
+        {"name": "expiry_policy", "type": "text"},
+        {"name": "tips", "type": "text"},
+        {"name": "partners", "type": "text"},
+        {"name": "source_url", "type": "text"}
+      ]
+    },
+    "profile": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "user_id", "type": "text", "required": true},
+        {"name": "name", "type": "text"},
+        {"name": "income", "type": "integer"},
+        {"name": "monthly_fixed", "type": "integer"},
+        {"name": "monthly_budget", "type": "integer"},
+        {"name": "goal", "type": "text"},
+        {"name": "risk_level", "type": "text"},
+        {"name": "credit_cards", "type": "text"},
+        {"name": "knowledge_level", "type": "text"},
+        {"name": "daily_tips", "type": "text", "default": "false"},
+        {"name": "tip_categories", "type": "text"},
+        {"name": "deal_categories", "type": "text"},
+        {"name": "referral_code", "type": "text"},
+        {"name": "onboarded", "type": "text", "default": "false"},
+        {"name": "created_at", "type": "text", "role": "timestamp"}
+      ]
+    },
+    "transactions": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "user_id", "type": "text", "required": true, "ref": "profile"},
+        {"name": "date", "type": "text", "required": true},
+        {"name": "place", "type": "text", "required": true},
+        {"name": "amount", "type": "integer", "required": true, "role": "price"},
+        {"name": "category", "type": "text", "required": true},
+        {"name": "note", "type": "text"},
+        {"name": "is_recurring", "type": "text", "default": "false"},
+        {"name": "created_at", "type": "text", "role": "timestamp"}
+      ]
+    },
+    "loyalty": {
+      "fields": [
+        {"name": "id", "type": "integer", "auto": "increment"},
+        {"name": "user_id", "type": "text", "required": true, "ref": "profile"},
+        {"name": "program", "type": "text", "required": true},
+        {"name": "display", "type": "text", "required": true},
+        {"name": "points", "type": "integer", "required": true},
+        {"name": "tier", "type": "text"},
+        {"name": "expiry", "type": "text"},
+        {"name": "notify_days", "type": "integer"},
+        {"name": "updated_at", "type": "text", "role": "timestamp"}
+      ]
+    }
+  },
+  "primary": "transactions",
+  "timezone": "Asia/Ho_Chi_Minh"
+}

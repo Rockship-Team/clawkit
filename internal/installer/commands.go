@@ -78,7 +78,7 @@ func CmdInstall(skillName string, profileName string) {
 	}
 
 	// Download skill (remote) or copy (local dev).
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
 	err = downloadSkill(skillName, targetDir, skill.Exclude)
@@ -122,7 +122,7 @@ func CmdInstall(skillName string, profileName string) {
 		ui.Warn("Could not create image directories: %v", err)
 	}
 
-	// Load config early — schema init and profile merge both write to it.
+	// Load config early — profile merge writes to it.
 	cfg, _ := config.LoadSkillConfig(targetDir)
 	if cfg == nil {
 		cfg = &config.SkillConfig{}
@@ -130,14 +130,6 @@ func CmdInstall(skillName string, profileName string) {
 	cfg.SkillName = skillName
 	cfg.Profile = profileName
 	cfg.Version = skill.Version
-
-	// Initialize database from schema.json.
-	if schemaErr := initSchema(targetDir, cfg, profileValues); schemaErr != nil {
-		os.RemoveAll(targetDir)
-		ui.Fatal("Database init failed: %v", schemaErr)
-	} else if cfg.DBTarget != "" {
-		ui.Ok("Database initialized (%s)", cfg.DBTarget)
-	}
 
 	// Merge profile values into UserInputs for template placeholder substitution.
 	if len(profileValues) > 0 {
@@ -339,7 +331,7 @@ func CmdPackage(skillName string) {
 		}
 	}
 
-	if err := os.MkdirAll("dist", 0755); err != nil {
+	if err := os.MkdirAll("dist", 0o755); err != nil {
 		ui.Fatal("Failed to create dist directory: %v", err)
 	}
 	outputPath := filepath.Join("dist", skillName+".tar.gz")
@@ -495,7 +487,7 @@ func installGogCLI() (string, error) {
 
 	// Determine install directory per platform.
 	installDir := installBinDir()
-	if err := os.MkdirAll(installDir, 0755); err != nil {
+	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		return "", fmt.Errorf("create install dir %s: %w", installDir, err)
 	}
 
@@ -506,7 +498,7 @@ func installGogCLI() (string, error) {
 	}
 
 	// Try direct write first, fall back to sudo on Unix.
-	if err := os.WriteFile(destPath, data, 0755); err != nil {
+	if err := os.WriteFile(destPath, data, 0o755); err != nil {
 		if goos != "windows" {
 			ui.Info("Need sudo to install to %s", installDir)
 			cmd := exec.Command("sudo", "cp", extractedBin, destPath)
@@ -601,7 +593,7 @@ func installBinDir() string {
 		return filepath.Join(home, "AppData", "Local", "clawkit", "bin")
 	}
 	// Unix: prefer /usr/local/bin if writable, else ~/.local/bin
-	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 		f.Close()
 		os.Remove("/usr/local/bin/.clawkit-test")
 		return "/usr/local/bin"

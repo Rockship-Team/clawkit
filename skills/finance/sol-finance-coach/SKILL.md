@@ -37,6 +37,7 @@ Moi thao tac du lieu phai goi qua:
 - Arg co khoang trang ky tu dac biet phai boc `"double quotes"`
 - Sau khi goi lenh, phai doc JSON output
 - Chi coi thanh cong khi co `"ok": true`
+- Trong ngu canh nhieu user (group), phai set `SOL_USER_ID` truoc khi goi lenh de tach du lieu user
 
 ---
 
@@ -244,7 +245,6 @@ Neu co diem sap het han, chu dong nhac + de xuat cach dung diem.
 ## Module 10 - deal-hunter
 
 ```
-skills/sol-finance-coach/sol-cli deals add <source> <description> <category> [expiry]
 skills/sol-finance-coach/sol-cli deals list [category]
 skills/sol-finance-coach/sol-cli deals match
 ```
@@ -252,6 +252,8 @@ skills/sol-finance-coach/sol-cli deals match
 Category: `food`, `shopping`, `travel`, `entertainment`, `bills`, `general`
 
 `deals match` phai uu tien profile user (`credit_cards`, `deal_categories`).
+
+Deals duoc cap nhat tu crawl data (`data refresh`), khong cho user tu them deal bang CLI.
 
 ---
 

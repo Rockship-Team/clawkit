@@ -54,8 +54,10 @@ Commands:
   tips      random|daily|seasonal       Savings tips
   cards     list|recommend|compare      Credit card optimizer
   loyalty   add|list|update|expiring|remove  Loyalty tracker
-  deals     add|list|match              Deal hunter
+  deals     list|match                  Deal hunter
   simulate  compound|loan|goal          Investment simulator
   digest    generate                    Daily digest
-	knowledge search|list|get             Financial knowledge base`)
+	knowledge search|list|get             Financial knowledge base\n\n`+
+		"Multi-user:\n"+
+		"  Set SOL_USER_ID to isolate user tables (profile, transactions, loyalty)")
 }

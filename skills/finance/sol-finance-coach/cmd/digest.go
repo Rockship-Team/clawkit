@@ -57,8 +57,7 @@ func cmdDigest(args []string) {
 	digest["expiring_loyalty"] = expiring
 
 	// 4. Spending summary for current month
-	var txs []Transaction
-	readJSON(userPath("transactions.json"), &txs)
+	txs := loadTransactions()
 	monthTotal := int64(0)
 	monthPrefix := date[:7]
 	for _, t := range txs {

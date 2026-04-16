@@ -105,9 +105,11 @@ func loadSchema(skillDir string) (*Schema, error) {
 	return &s, nil
 }
 
-var validTypes = map[string]bool{"text": true, "integer": true}
-var validRoles = map[string]bool{"owner": true, "status": true, "price": true, "timestamp": true}
-var validAuto = map[string]bool{"increment": true, "timestamp": true, "": true}
+var (
+	validTypes = map[string]bool{"text": true, "integer": true}
+	validRoles = map[string]bool{"owner": true, "status": true, "price": true, "timestamp": true}
+	validAuto  = map[string]bool{"increment": true, "timestamp": true, "": true}
+)
 
 // validateSchema checks that the schema is well-formed.
 func validateSchema(s *Schema) error {
@@ -256,17 +258,22 @@ func applySchemaOverlay(basePath, profilePath string) error {
 	if err != nil {
 		return fmt.Errorf("marshal merged schema: %w", err)
 	}
-	return os.WriteFile(basePath, out, 0644)
+	return os.WriteFile(basePath, out, 0o644)
 }
 
 // initLocalDB creates empty JSON array files for each table in local storage.
 func initLocalDB(skillDir string, s *Schema) error {
+	dataDir := filepath.Join(skillDir, "data")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return fmt.Errorf("create data dir: %w", err)
+	}
+
 	for tname := range s.Tables {
-		dbPath := filepath.Join(skillDir, tname+".json")
+		dbPath := filepath.Join(dataDir, tname+".json")
 		if fileExists(dbPath) {
 			continue
 		}
-		if err := os.WriteFile(dbPath, []byte("[]\n"), 0644); err != nil {
+		if err := os.WriteFile(dbPath, []byte("[]\n"), 0o644); err != nil {
 			return fmt.Errorf("create %s.json: %w", tname, err)
 		}
 	}

@@ -1,0 +1,5 @@
+{
+  "requires_bins": ["sa-cli"],
+  "setup_prompts": [],
+  "exclude": []
+}

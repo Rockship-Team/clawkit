@@ -145,10 +145,9 @@ func cmdOnboard(args []string) {
 }
 
 func cmdInit() {
-	dir := skillDir()
-	os.MkdirAll(dir, 0o755)
+	ensureInit()
 
-	// Create empty user data files if they don't exist
+	// Create empty runtime user data files under data/ if they don't exist.
 	files := []struct {
 		name    string
 		content string
@@ -157,9 +156,6 @@ func cmdInit() {
 		{"transactions.json", "[]"},
 		{"loyalty.json", "[]"},
 		{"user_deals.json", "[]"},
-		{"challenge_state.json", "{}"},
-		{"quiz_state.json", `{"answered":[],"score":0,"streak":0}`},
-		{"feedback.json", "[]"},
 	}
 
 	created := 0
@@ -170,5 +166,5 @@ func cmdInit() {
 			created++
 		}
 	}
-	okOut(map[string]interface{}{"initialized": true, "files_created": created})
+	okOut(map[string]interface{}{"initialized": true, "data_dir": dataPath(""), "files_created": created})
 }

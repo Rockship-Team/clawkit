@@ -44,9 +44,28 @@ func saveLoyalty(lp []LoyaltyProgram) error {
 }
 
 func loadDeals() []Deal {
-	var deals []Deal
-	readJSON(userPath("user_deals.json"), &deals)
-	return deals
+	var seeded []Deal
+	var userDeals []Deal
+
+	readJSON(dataPath("deals.json"), &seeded)
+	readJSON(userPath("user_deals.json"), &userDeals)
+
+	all := make([]Deal, 0, len(seeded)+len(userDeals))
+	all = append(all, seeded...)
+	all = append(all, userDeals...)
+
+	seen := map[string]bool{}
+	merged := make([]Deal, 0, len(all))
+	for _, d := range all {
+		key := strings.ToLower(strings.TrimSpace(d.Source + "|" + d.Description + "|" + d.Category + "|" + d.Expiry))
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		merged = append(merged, d)
+	}
+
+	return merged
 }
 
 func saveDeals(deals []Deal) error {
@@ -239,7 +258,7 @@ func cmdDeals(args []string) {
 		deals := loadDeals()
 		today := vnToday()
 		// Filter active (not expired, not used)
-		var active []Deal
+		active := make([]Deal, 0, len(deals))
 		for _, d := range deals {
 			if d.Used {
 				continue
@@ -310,7 +329,7 @@ func cmdDeals(args []string) {
 		if len(scored) > 10 {
 			scored = scored[:10]
 		}
-		var matched []Deal
+		matched := make([]Deal, 0, len(scored))
 		for _, sd := range scored {
 			matched = append(matched, sd.Deal)
 		}

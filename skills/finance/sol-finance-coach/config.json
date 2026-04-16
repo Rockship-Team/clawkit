@@ -3,7 +3,6 @@
   "exclude": [
     "cmd",
     "tools",
-    "crawl",
     "REQUIREMENTS.md"
   ]
 }

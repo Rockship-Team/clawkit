@@ -8,14 +8,11 @@ import (
 
 // SourceConfig holds all crawl source URLs, loaded from sources.json.
 type SourceConfig struct {
-	CardSources    []CardSource       `json:"card_sources"`
-	BankCardPages  []BankPage         `json:"bank_card_pages"`
-	BankRatePages  []BankPage         `json:"bank_rate_pages"`
-	BankPromoPages []BankPage         `json:"bank_promo_pages"`
-	WalletPromos   []WalletPage       `json:"wallet_promo_pages"`
-	LoyaltyProgs   []LoyaltySource    `json:"loyalty_programs"`
-	EcommerceSales []WalletPage       `json:"ecommerce_sale_pages"`
-	InvestmentData []InvestmentSource `json:"investment_data_pages"`
+	CardSources    []CardSource    `json:"card_sources"`
+	BankCardPages  []BankPage      `json:"bank_card_pages"`
+	BankPromoPages []BankPage      `json:"bank_promo_pages"`
+	WalletPromos   []WalletPage    `json:"wallet_promo_pages"`
+	LoyaltyProgs   []LoyaltySource `json:"loyalty_programs"`
 }
 
 type CardSource struct {
@@ -39,12 +36,6 @@ type LoyaltySource struct {
 	Display string `json:"display"`
 	Type    string `json:"type"`
 	URL     string `json:"url"`
-}
-
-type InvestmentSource struct {
-	Name string `json:"name"`
-	Type string `json:"type"` // "fund" or "gold"
-	URL  string `json:"url"`
 }
 
 var loadedConfig *SourceConfig

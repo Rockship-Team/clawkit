@@ -10,33 +10,27 @@ bash skills/sol-finance-coach/cron/setup-cron.sh
 ## Jobs
 
 | Name | Schedule | Style | Purpose |
-|------|----------|-------|---------|
+| ---- | -------- | ----- | ------- |
 | sol-daily-digest | `30 7 * * *` | isolated + announce | Morning financial digest |
 | sol-weekly-report | `0 20 * * 0` | isolated + announce | Weekly spending summary |
 | sol-deal-alerts | `0 8,12,18 * * *` | isolated + announce | Deal matching 3x/day |
 | sol-monthly-report | `0 9 1 * *` | isolated + announce | Monthly spending analysis |
-| sol-challenge-reminder | `0 20 * * *` | isolated + announce | Challenge check-in nudge |
 | sol-data-refresh | `0 5 * * 1` | isolated + light-context | Weekly crawl data refresh |
-| sol-feedback-prompt | `0 12 * * *` | isolated + announce | 7-day feedback request |
 | sol-loyalty-expiry | `0 9 * * 1,4` | isolated + announce | Loyalty points expiry check |
 | sol-savings-checkin | `0 10 15 * *` | isolated + announce | Mid-month budget check-in |
-| sol-weekly-quiz | `0 19 * * 3` | isolated + announce | Weekly quiz prompt |
 
 All schedules use timezone `Asia/Ho_Chi_Minh`.
 
 ## Schedule overview
 
 | Time | Job | Frequency |
-|------|-----|-----------|
+| ---- | --- | --------- |
 | 05:00 Mon | sol-data-refresh | Weekly (silent) |
 | 07:30 Daily | sol-daily-digest | Daily |
 | 08:00/12:00/18:00 | sol-deal-alerts | 3x daily (conditional) |
 | 09:00 Mon+Thu | sol-loyalty-expiry | 2x weekly (conditional) |
 | 09:00 1st | sol-monthly-report | Monthly |
 | 10:00 15th | sol-savings-checkin | Monthly (conditional) |
-| 12:00 Daily | sol-feedback-prompt | Daily (conditional, one-time) |
-| 19:00 Wed | sol-weekly-quiz | Weekly |
-| 20:00 Daily | sol-challenge-reminder | Daily (conditional) |
 | 20:00 Sun | sol-weekly-report | Weekly |
 
 ## Management
@@ -53,9 +47,8 @@ openclaw cron remove <jobId>          # Delete a job
 
 ```bash
 for id in sol-daily-digest sol-weekly-report sol-deal-alerts \
-  sol-monthly-report sol-challenge-reminder sol-data-refresh \
-  sol-feedback-prompt sol-loyalty-expiry sol-savings-checkin \
-  sol-weekly-quiz; do
+  sol-monthly-report sol-data-refresh sol-loyalty-expiry \
+  sol-savings-checkin; do
   openclaw cron remove "$id"
 done
 ```

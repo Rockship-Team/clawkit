@@ -6,49 +6,32 @@ import (
 	"path/filepath"
 )
 
-// runAll crawls all sources and writes the results directly to the data/ directory.
+// runAll crawls all sources and writes results to the data/ directory.
 func runAll() {
 	dataDir := findDataDir()
+	_ = os.MkdirAll(dataDir, 0o755)
 	info("output directory: " + dataDir)
 
 	// Cards
 	info("=== Crawling credit cards ===")
 	cards := crawlAllCards()
-	writeDataFile(filepath.Join(dataDir, "credit-cards-crawled.json"), cards)
-
-	// Rates
-	info("=== Crawling interest rates ===")
-	rates := crawlAllRates()
-	writeDataFile(filepath.Join(dataDir, "interest-rates.json"), rates)
+	writeDataFile(filepath.Join(dataDir, "credit-cards.json"), cards)
 
 	// Deals
 	info("=== Crawling deals ===")
 	deals := crawlAllDeals()
-	writeDataFile(filepath.Join(dataDir, "deals-seed.json"), deals)
+	writeDataFile(filepath.Join(dataDir, "deals.json"), deals)
 
 	// Loyalty
 	info("=== Crawling loyalty programs ===")
 	loyalty := crawlAllLoyalty()
 	writeDataFile(filepath.Join(dataDir, "loyalty-catalog.json"), loyalty)
 
-	// E-commerce
-	info("=== Crawling e-commerce sales ===")
-	ecomDeals := crawlAllEcommerce()
-	writeDataFile(filepath.Join(dataDir, "ecommerce-deals.json"), ecomDeals)
-
-	// Investment data
-	info("=== Crawling investment data ===")
-	investData := crawlAllInvestment()
-	writeDataFile(filepath.Join(dataDir, "investment-data.json"), investData)
-
 	info("=== Done! Files written to " + dataDir + " ===")
-	info("Review the *-crawled.json files, then merge into the main data files:")
-	info("  - credit-cards-crawled.json → review and merge into credit-cards.json")
-	info("  - interest-rates.json → new data file for the skill")
-	info("  - deals-seed.json → seed data for deals")
-	info("  - loyalty-catalog.json → loyalty program reference catalog")
-	info("  - ecommerce-deals.json → e-commerce sale deals")
-	info("  - investment-data.json → fund NAV + gold prices")
+	info("Crawl data updated directly in final files:")
+	info("  - credit-cards.json")
+	info("  - deals.json")
+	info("  - loyalty-catalog.json")
 }
 
 func crawlAllCards() []CreditCard {
@@ -71,26 +54,6 @@ func crawlAllCards() []CreditCard {
 		all = append(all, cards...)
 	}
 	return deduplicateCards(all)
-}
-
-func crawlAllRates() []InterestRate {
-	cfg := getConfig()
-	var all []InterestRate
-	rates, err := crawlLaiSuatVN()
-	if err == nil {
-		all = append(all, rates...)
-	}
-	rates, err = crawlTheBankRates()
-	if err == nil {
-		all = append(all, rates...)
-	}
-	for _, bp := range cfg.BankRatePages {
-		rates, err := crawlBankRatePage(bp.Bank, bp.URL)
-		if err == nil {
-			all = append(all, rates...)
-		}
-	}
-	return all
 }
 
 func crawlAllDeals() []Deal {
@@ -140,6 +103,7 @@ func findDataDir() string {
 	candidates := []string{
 		"../../data",
 		"data",
+		"skills/finance/sol-finance-coach/data",
 		"skills/sol-finance-coach/data",
 	}
 	for _, d := range candidates {

@@ -4,7 +4,7 @@
 #
 # Prerequisites: openclaw CLI available, Gateway running.
 # Verify after: openclaw cron list
-# Remove all:   for id in sol-daily-digest sol-weekly-report sol-deal-alerts sol-monthly-report sol-challenge-reminder sol-data-refresh sol-feedback-prompt sol-loyalty-expiry sol-savings-checkin sol-weekly-quiz; do openclaw cron remove "$id"; done
+# Remove all:   for id in sol-daily-digest sol-weekly-report sol-deal-alerts sol-monthly-report sol-data-refresh sol-loyalty-expiry sol-savings-checkin; do openclaw cron remove "$id"; done
 set -euo pipefail
 
 SKILL="skills/sol-finance-coach"
@@ -18,7 +18,7 @@ openclaw cron add \
   --tz "Asia/Ho_Chi_Minh" \
   --session isolated \
   --message "Chay: ${SKILL}/sol-cli digest generate
-Doc JSON output va format thanh ban tin sang than thien theo SKILL.md muc 12 (Ban tin hang ngay). Bao gom: meo tiet kiem, deal hot, micro-lesson, nhac loyalty het han.
+Doc JSON output va format thanh ban tin sang than thien theo SKILL.md muc 7 (Ban tin hang ngay). Bao gom: meo tiet kiem, deal hot, micro-lesson, nhac loyalty het han.
 NEU co truong 'budget': them dong 'Budget thang: da chi X/Y (Z%)'.
 Gui cho user." \
   --announce
@@ -58,44 +58,19 @@ Doc JSON output. Render bao cao tong hop thang voi ASCII bar chart. Goi y 2-3 ha
   --announce
 echo "  + sol-monthly-report (0 9 1 * *)"
 
-# 5. Challenge check-in reminder — 8 PM daily VN time
-openclaw cron add \
-  --name "sol-challenge-reminder" \
-  --cron "0 20 * * *" \
-  --tz "Asia/Ho_Chi_Minh" \
-  --session isolated \
-  --message "Chay: ${SKILL}/sol-cli challenge status
-Neu co active challenge va chua check-in hom nay (checkins array khong chua ngay hom nay), gui nhac nho than thien: 'Nho check-in thu thach [ten] hom nay nha! Day [X]/[Y] roi.'
-Neu da check-in hoac khong co active challenge thi KHONG gui gi." \
-  --announce
-echo "  + sol-challenge-reminder (0 20 * * *)"
-
-# 6. Data refresh — Monday 5 AM VN time (weekly)
+# 5. Data refresh — Monday 5 AM VN time (weekly)
 openclaw cron add \
   --name "sol-data-refresh" \
   --cron "0 5 * * 1" \
   --tz "Asia/Ho_Chi_Minh" \
   --session isolated \
-  --message "Chay crawl tool de cap nhat du lieu:
-cd skills/sol-finance-coach/tools/crawl && go run . all 2>&1
-Crawl du lieu moi tu cac nguon (credit cards, interest rates, deals, loyalty, ecommerce, investment). Doc stderr output de xac nhan cac file da duoc ghi vao data/. Neu co loi crawl trang nao, ghi nhan nhung KHONG bao user." \
+  --message "Chay: ${SKILL}/sol-cli data refresh
+Lam moi du lieu cards, deals, loyalty tu cac nguon crawl.
+Neu loi thi chi log noi bo, KHONG gui thong bao cho user." \
   --light-context
 echo "  + sol-data-refresh (0 5 * * 1)"
 
-# 7. Feedback prompt — noon daily VN time
-openclaw cron add \
-  --name "sol-feedback-prompt" \
-  --cron "0 12 * * *" \
-  --tz "Asia/Ho_Chi_Minh" \
-  --session isolated \
-  --message "Chay: ${SKILL}/sol-cli feedback stats
-Neu total = 0, chay: ${SKILL}/sol-cli onboard status
-Neu onboarded = true va created_at cach hom nay >= 7 ngay, hoi user: 'Ban da dung Tai duoc 1 tuan roi! Bot giup ich cho ban khong? Cho minh danh gia 1-5 sao nhe!'
-Neu chua du 7 ngay hoac da feedback roi, KHONG gui gi." \
-  --announce
-echo "  + sol-feedback-prompt (0 12 * * *)"
-
-# 8. Loyalty expiry check — Mon+Thu 9 AM VN time
+# 6. Loyalty expiry check — Mon+Thu 9 AM VN time
 openclaw cron add \
   --name "sol-loyalty-expiry" \
   --cron "0 9 * * 1,4" \
@@ -109,7 +84,7 @@ Neu khong co diem sap het han, KHONG gui gi." \
   --announce
 echo "  + sol-loyalty-expiry (0 9 * * 1,4)"
 
-# 9. Mid-month savings check-in — 15th of month, 10 AM VN time
+# 7. Mid-month savings check-in — 15th of month, 10 AM VN time
 openclaw cron add \
   --name "sol-savings-checkin" \
   --cron "0 10 15 * *" \
@@ -126,19 +101,5 @@ Neu khong co giao dich, KHONG gui gi." \
   --announce
 echo "  + sol-savings-checkin (0 10 15 * *)"
 
-# 10. Weekly quiz prompt — Wednesday 7 PM VN time
-openclaw cron add \
-  --name "sol-weekly-quiz" \
-  --cron "0 19 * * 3" \
-  --tz "Asia/Ho_Chi_Minh" \
-  --session isolated \
-  --message "Chay: ${SKILL}/sol-cli quiz random
-Trinh bay cau hoi trac nghiem vui: 'Toi thu 4 roi — thoi diem hoc tai chinh! 🧠'
-Cho user tra loi.
-Chay: ${SKILL}/sol-cli quiz stats
-Neu user da tra loi dung 20+ cau, kiem tra badge finance_101." \
-  --announce
-echo "  + sol-weekly-quiz (0 19 * * 3)"
-
 echo ""
-echo "Done! 10 cron jobs registered. Verify: openclaw cron list"
+echo "Done! 7 cron jobs registered. Verify: openclaw cron list"

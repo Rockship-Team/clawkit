@@ -21,12 +21,15 @@ type ChallengeTemplate struct {
 
 // ChallengeState tracks the user's active challenge progress.
 type ChallengeState struct {
-	ActiveID  string   `json:"active_id,omitempty"`
-	StartedAt string   `json:"started_at,omitempty"`
-	Streak    int      `json:"streak"`
-	Checkins  []string `json:"checkins"`
-	Completed []string `json:"completed"`
-	Badges    []string `json:"badges"`
+	ActiveID          string   `json:"active_id,omitempty"`
+	StartedAt         string   `json:"started_at,omitempty"`
+	Streak            int      `json:"streak"`
+	Checkins          []string `json:"checkins"`
+	Completed         []string `json:"completed"`
+	Badges            []string `json:"badges"`
+	TotalSaved        int64    `json:"total_saved"`
+	InteractionStreak int      `json:"interaction_streak"`
+	LastInteraction   string   `json:"last_interaction,omitempty"`
 }
 
 // QuizQuestion is a financial quiz question from data/quizzes.json.
@@ -41,9 +44,12 @@ type QuizQuestion struct {
 
 // QuizState tracks the user's quiz progress.
 type QuizState struct {
-	Answered []QuizAnswer `json:"answered"`
-	Score    int          `json:"score"`
-	Streak   int          `json:"streak"`
+	Answered   []QuizAnswer `json:"answered"`
+	Score      int          `json:"score"`
+	Streak     int          `json:"streak"`
+	BestStreak int          `json:"best_streak"`
+	WeeklyScore int         `json:"weekly_score"`
+	WeekStart  string       `json:"week_start,omitempty"`
 }
 
 type QuizAnswer struct {
@@ -194,6 +200,23 @@ func cmdChallenge(args []string) {
 			"badges":      cs.Badges,
 		})
 
+	case "abandon":
+		cs := loadChallengeState()
+		if cs.ActiveID == "" {
+			errOut("no active challenge to abandon")
+			os.Exit(1)
+		}
+		abandoned := cs.ActiveID
+		cs.ActiveID = ""
+		cs.StartedAt = ""
+		cs.Streak = 0
+		cs.Checkins = []string{}
+		if err := saveChallengeState(cs); err != nil {
+			errOut("failed to save: " + err.Error())
+			os.Exit(1)
+		}
+		okOut(map[string]interface{}{"abandoned": abandoned})
+
 	case "status":
 		cs := loadChallengeState()
 		if cs.ActiveID == "" {
@@ -323,9 +346,20 @@ func cmdQuiz(args []string) {
 			At:      vnNow().Format("2006-01-02T15:04:05-07:00"),
 		})
 
+		// Reset weekly score if new week
+		today := vnToday()
+		if qs.WeekStart == "" || today >= addDays(qs.WeekStart, 7) {
+			qs.WeeklyScore = 0
+			qs.WeekStart = today
+		}
+
 		if correct {
 			qs.Score += 5
 			qs.Streak++
+			qs.WeeklyScore += 5
+			if qs.Streak > qs.BestStreak {
+				qs.BestStreak = qs.Streak
+			}
 		} else {
 			qs.Streak = 0
 		}
@@ -375,6 +409,8 @@ func cmdQuiz(args []string) {
 			"accuracy_pct":   pct,
 			"score":          qs.Score,
 			"streak":         qs.Streak,
+			"best_streak":    qs.BestStreak,
+			"weekly_score":   qs.WeeklyScore,
 		})
 
 	default:

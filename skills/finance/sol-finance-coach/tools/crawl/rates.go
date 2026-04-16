@@ -18,12 +18,6 @@ type InterestRate struct {
 	SourceURL string  `json:"source_url,omitempty"`
 }
 
-// Savings rate comparison sources.
-var rateSources = []string{
-	"https://thebank.vn/blog/tag/lai-suat-gui-tiet-kiem",
-	"https://laisuat.vn",
-}
-
 func runRates() {
 	var allRates []InterestRate
 
@@ -60,20 +54,6 @@ func runRates() {
 
 	info(fmt.Sprintf("total rate entries: %d", len(allRates)))
 	jsonPrint(allRates)
-}
-
-var bankRatePages = []struct {
-	Bank string
-	URL  string
-}{
-	{"Techcombank", "https://techcombank.com/lai-suat"},
-	{"VPBank", "https://vpbank.com.vn/lai-suat"},
-	{"TPBank", "https://tpbank.vn/lai-suat.html"},
-	{"ACB", "https://acb.com.vn/lai-suat"},
-	{"MB", "https://www.mbbank.com.vn/lai-suat"},
-	{"Vietcombank", "https://vietcombank.com.vn/lai-suat"},
-	{"BIDV", "https://bidv.com.vn/lai-suat"},
-	{"VietinBank", "https://vietinbank.vn/lai-suat"},
 }
 
 // crawlLaiSuatVN extracts rates from laisuat.vn which typically has a comparison table.

@@ -31,17 +31,30 @@ func runAll() {
 	loyalty := crawlAllLoyalty()
 	writeDataFile(filepath.Join(dataDir, "loyalty-catalog.json"), loyalty)
 
+	// E-commerce
+	info("=== Crawling e-commerce sales ===")
+	ecomDeals := crawlAllEcommerce()
+	writeDataFile(filepath.Join(dataDir, "ecommerce-deals.json"), ecomDeals)
+
+	// Investment data
+	info("=== Crawling investment data ===")
+	investData := crawlAllInvestment()
+	writeDataFile(filepath.Join(dataDir, "investment-data.json"), investData)
+
 	info("=== Done! Files written to " + dataDir + " ===")
 	info("Review the *-crawled.json files, then merge into the main data files:")
 	info("  - credit-cards-crawled.json → review and merge into credit-cards.json")
 	info("  - interest-rates.json → new data file for the skill")
 	info("  - deals-seed.json → seed data for deals")
 	info("  - loyalty-catalog.json → loyalty program reference catalog")
+	info("  - ecommerce-deals.json → e-commerce sale deals")
+	info("  - investment-data.json → fund NAV + gold prices")
 }
 
 func crawlAllCards() []CreditCard {
+	cfg := getConfig()
 	var all []CreditCard
-	for _, src := range cardSources {
+	for _, src := range cfg.CardSources {
 		cards, err := crawlTheBankArticleList(src.URL, src.Category)
 		if err != nil {
 			info("  " + src.URL + ": " + err.Error())
@@ -49,7 +62,7 @@ func crawlAllCards() []CreditCard {
 		}
 		all = append(all, cards...)
 	}
-	for _, bp := range bankCardPages {
+	for _, bp := range cfg.BankCardPages {
 		cards, err := crawlBankCardPage(bp.Bank, bp.URL)
 		if err != nil {
 			info("  " + bp.Bank + ": " + err.Error())
@@ -61,6 +74,7 @@ func crawlAllCards() []CreditCard {
 }
 
 func crawlAllRates() []InterestRate {
+	cfg := getConfig()
 	var all []InterestRate
 	rates, err := crawlLaiSuatVN()
 	if err == nil {
@@ -70,7 +84,7 @@ func crawlAllRates() []InterestRate {
 	if err == nil {
 		all = append(all, rates...)
 	}
-	for _, bp := range bankRatePages {
+	for _, bp := range cfg.BankRatePages {
 		rates, err := crawlBankRatePage(bp.Bank, bp.URL)
 		if err == nil {
 			all = append(all, rates...)
@@ -80,14 +94,15 @@ func crawlAllRates() []InterestRate {
 }
 
 func crawlAllDeals() []Deal {
+	cfg := getConfig()
 	var all []Deal
-	for _, bp := range bankPromoPages {
+	for _, bp := range cfg.BankPromoPages {
 		deals, err := crawlPromoPage(bp.Bank, bp.URL)
 		if err == nil {
 			all = append(all, deals...)
 		}
 	}
-	for _, wp := range walletPromoPages {
+	for _, wp := range cfg.WalletPromos {
 		deals, err := crawlPromoPage(wp.Name, wp.URL)
 		if err == nil {
 			all = append(all, deals...)
@@ -97,9 +112,15 @@ func crawlAllDeals() []Deal {
 }
 
 func crawlAllLoyalty() []LoyaltyCatalogEntry {
+	cfg := getConfig()
 	var all []LoyaltyCatalogEntry
-	for _, src := range loyaltySources {
-		entry, err := crawlLoyaltyProgram(src)
+	for _, src := range cfg.LoyaltyProgs {
+		entry, err := crawlLoyaltyProgram(struct {
+			Program string
+			Display string
+			Type    string
+			URL     string
+		}{src.Program, src.Display, src.Type, src.URL})
 		if err != nil {
 			all = append(all, LoyaltyCatalogEntry{
 				Program:   src.Program,

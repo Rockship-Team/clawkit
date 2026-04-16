@@ -8,6 +8,7 @@ import (
 type FeedbackEntry struct {
 	Score   int    `json:"score"`
 	Comment string `json:"comment,omitempty"`
+	Type    string `json:"type,omitempty"`
 	At      string `json:"at"`
 }
 
@@ -47,6 +48,7 @@ func cmdFeedback(args []string) {
 		fb = append(fb, FeedbackEntry{
 			Score:   score,
 			Comment: comment,
+			Type:    "rating",
 			At:      vnNow().Format("2006-01-02T15:04:05-07:00"),
 		})
 		if err := saveFeedback(fb); err != nil {
@@ -54,6 +56,46 @@ func cmdFeedback(args []string) {
 			os.Exit(1)
 		}
 		okOut(map[string]interface{}{"score": score, "comment": comment})
+
+	case "suggest":
+		if len(args) < 2 {
+			errOut("usage: feedback suggest <text>")
+			os.Exit(1)
+		}
+		fb := loadFeedback()
+		fb = append(fb, FeedbackEntry{
+			Comment: args[1],
+			Type:    "feature_request",
+			At:      vnNow().Format("2006-01-02T15:04:05-07:00"),
+		})
+		if err := saveFeedback(fb); err != nil {
+			errOut("failed to save: " + err.Error())
+			os.Exit(1)
+		}
+		okOut(map[string]interface{}{"suggestion": args[1]})
+
+	case "referral":
+		if len(args) < 2 {
+			errOut("usage: feedback referral <code>")
+			os.Exit(1)
+		}
+		fb := loadFeedback()
+		fb = append(fb, FeedbackEntry{
+			Comment: args[1],
+			Type:    "referral",
+			At:      vnNow().Format("2006-01-02T15:04:05-07:00"),
+		})
+		if err := saveFeedback(fb); err != nil {
+			errOut("failed to save: " + err.Error())
+			os.Exit(1)
+		}
+		// Generate referral code for user if not set
+		p := loadProfile()
+		if p.ReferralCode == "" {
+			p.ReferralCode = "SOL-" + args[1]
+			saveProfile(p)
+		}
+		okOut(map[string]interface{}{"referral_code": args[1], "user_code": p.ReferralCode})
 
 	case "stats":
 		fb := loadFeedback()
@@ -162,6 +204,25 @@ func cmdDigest(args []string) {
 	// 6. User profile for personalization
 	profile := loadProfile()
 	digest["knowledge_level"] = profile.KnowledgeLevel
+
+	// 7. Budget status
+	if profile.MonthlyBudget > 0 {
+		remaining := profile.MonthlyBudget - monthTotal
+		pctUsed := int(monthTotal * 100 / profile.MonthlyBudget)
+		digest["budget"] = map[string]interface{}{
+			"monthly_budget": profile.MonthlyBudget,
+			"spent":          monthTotal,
+			"remaining":      remaining,
+			"pct_used":       pctUsed,
+		}
+	}
+
+	// 8. Knowledge micro-lesson
+	var kb []KnowledgeChunk
+	if readJSON(dataPath("knowledge-base.json"), &kb) && len(kb) > 0 {
+		idx := deterministicIndex(date+"kb", len(kb))
+		digest["micro_lesson"] = kb[idx]
+	}
 
 	okOut(digest)
 }

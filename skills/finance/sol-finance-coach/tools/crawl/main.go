@@ -42,6 +42,10 @@ func main() {
 		runDeals(bank)
 	case "loyalty":
 		runLoyalty()
+	case "ecommerce":
+		runEcommerce()
+	case "investment":
+		runInvestment()
 	case "all":
 		runAll()
 	default:
@@ -58,12 +62,11 @@ Usage:
   crawl rates                     Deposit/savings interest rates
   crawl deals [--bank <name>]     Promotions from bank websites
   crawl loyalty                   Loyalty program earning/redemption info
+  crawl ecommerce                 E-commerce sale deals (Shopee, Lazada, Tiki)
+  crawl investment                Fund NAV + gold prices
   crawl all                       Run all crawlers, write to data/
 
-Sources:
-  thebank.vn          Credit card comparisons
-  laisuat.vn          Deposit rate tables
-  Bank promo pages    Techcombank, VPBank, TPBank, ACB, MB, VIB, etc.
+Sources defined in sources.json (single source of truth).
 
 Output: JSON to stdout. Pipe to data files:
   crawl cards > ../../data/credit-cards.json

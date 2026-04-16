@@ -8,12 +8,14 @@ import (
 
 // SourceConfig holds all crawl source URLs, loaded from sources.json.
 type SourceConfig struct {
-	CardSources    []CardSource    `json:"card_sources"`
-	BankCardPages  []BankPage      `json:"bank_card_pages"`
-	BankRatePages  []BankPage      `json:"bank_rate_pages"`
-	BankPromoPages []BankPage      `json:"bank_promo_pages"`
-	WalletPromos   []WalletPage    `json:"wallet_promo_pages"`
-	LoyaltyProgs   []LoyaltySource `json:"loyalty_programs"`
+	CardSources    []CardSource       `json:"card_sources"`
+	BankCardPages  []BankPage         `json:"bank_card_pages"`
+	BankRatePages  []BankPage         `json:"bank_rate_pages"`
+	BankPromoPages []BankPage         `json:"bank_promo_pages"`
+	WalletPromos   []WalletPage       `json:"wallet_promo_pages"`
+	LoyaltyProgs   []LoyaltySource    `json:"loyalty_programs"`
+	EcommerceSales []WalletPage       `json:"ecommerce_sale_pages"`
+	InvestmentData []InvestmentSource `json:"investment_data_pages"`
 }
 
 type CardSource struct {
@@ -37,6 +39,12 @@ type LoyaltySource struct {
 	Display string `json:"display"`
 	Type    string `json:"type"`
 	URL     string `json:"url"`
+}
+
+type InvestmentSource struct {
+	Name string `json:"name"`
+	Type string `json:"type"` // "fund" or "gold"
+	URL  string `json:"url"`
 }
 
 var loadedConfig *SourceConfig
@@ -73,55 +81,6 @@ func getConfig() *SourceConfig {
 		return loadedConfig
 	}
 
-	info("using built-in source URLs (no sources.json found)")
-	loadedConfig = defaultConfig()
-	return loadedConfig
-}
-
-func defaultConfig() *SourceConfig {
-	return &SourceConfig{
-		CardSources: []CardSource{
-			{"https://thebank.vn/blog/tag/the-tin-dung-cashback", "cashback"},
-			{"https://thebank.vn/blog/tag/the-tin-dung-mien-phi", "free"},
-			{"https://thebank.vn/blog/tag/the-tin-dung-tich-diem", "miles"},
-		},
-		BankCardPages: func() []BankPage {
-			var pages []BankPage
-			for _, bp := range bankCardPages {
-				pages = append(pages, BankPage{Bank: bp.Bank, URL: bp.URL})
-			}
-			return pages
-		}(),
-		BankRatePages: func() []BankPage {
-			var pages []BankPage
-			for _, bp := range bankRatePages {
-				pages = append(pages, BankPage{Bank: bp.Bank, URL: bp.URL})
-			}
-			return pages
-		}(),
-		BankPromoPages: func() []BankPage {
-			var pages []BankPage
-			for _, bp := range bankPromoPages {
-				pages = append(pages, BankPage{Bank: bp.Bank, URL: bp.URL})
-			}
-			return pages
-		}(),
-		WalletPromos: func() []WalletPage {
-			var pages []WalletPage
-			for _, wp := range walletPromoPages {
-				pages = append(pages, WalletPage{Name: wp.Name, URL: wp.URL})
-			}
-			return pages
-		}(),
-		LoyaltyProgs: func() []LoyaltySource {
-			var progs []LoyaltySource
-			for _, ls := range loyaltySources {
-				progs = append(progs, LoyaltySource{
-					Program: ls.Program, Display: ls.Display,
-					Type: ls.Type, URL: ls.URL,
-				})
-			}
-			return progs
-		}(),
-	}
+	fatal("sources.json not found — place it next to the crawl binary or in tools/crawl/", nil)
+	return nil // unreachable
 }

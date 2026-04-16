@@ -5,17 +5,17 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Transaction struct {
-	ID        int    `json:"id"`
-	Date      string `json:"date"`
-	Place     string `json:"place"`
-	Amount    int64  `json:"amount"`
-	Category  string `json:"category"`
-	Note      string `json:"note"`
-	CreatedAt string `json:"created_at"`
+	ID          int    `json:"id"`
+	Date        string `json:"date"`
+	Place       string `json:"place"`
+	Amount      int64  `json:"amount"`
+	Category    string `json:"category"`
+	Note        string `json:"note"`
+	IsRecurring bool   `json:"is_recurring,omitempty"`
+	CreatedAt   string `json:"created_at"`
 }
 
 var validCategories = map[string]bool{
@@ -61,6 +61,14 @@ func cmdSpend(args []string) {
 		spendLast(n)
 	case "undo":
 		spendUndo()
+	case "budget":
+		spendBudget(args[1:])
+	case "compare":
+		if len(args) < 3 {
+			errOut("usage: spend compare <period1> <period2>")
+			os.Exit(1)
+		}
+		spendCompare(args[1], args[2])
 	default:
 		errOut("unknown spend command: " + args[0])
 		os.Exit(1)
@@ -207,14 +215,29 @@ func spendReport(period string) {
 		recent[i], recent[j] = recent[j], recent[i]
 	}
 
-	okOut(map[string]interface{}{
+	result := map[string]interface{}{
 		"period":      period,
 		"label":       label,
 		"total":       total,
 		"count":       len(filtered),
 		"by_category": byCat,
 		"recent":      recent,
-	})
+	}
+
+	// Include budget info if set
+	p := loadProfile()
+	if p.MonthlyBudget > 0 && (period == "month" || strings.HasPrefix(period, vnNow().Format("2006-01"))) {
+		remaining := p.MonthlyBudget - total
+		pctUsed := 0
+		if p.MonthlyBudget > 0 {
+			pctUsed = int(total * 100 / p.MonthlyBudget)
+		}
+		result["budget"] = p.MonthlyBudget
+		result["remaining"] = remaining
+		result["pct_used"] = pctUsed
+	}
+
+	okOut(result)
 }
 
 func spendLast(n int) {
@@ -244,11 +267,99 @@ func spendUndo() {
 	okOut(map[string]interface{}{"removed": removed})
 }
 
-// weekStart returns Monday of the current week.
-func weekStart(t time.Time) time.Time {
-	weekday := int(t.Weekday())
-	if weekday == 0 {
-		weekday = 7
+func spendBudget(args []string) {
+	if len(args) == 0 {
+		errOut("usage: spend budget set|get")
+		os.Exit(1)
 	}
-	return t.AddDate(0, 0, -(weekday - 1))
+	switch args[0] {
+	case "set":
+		if len(args) < 2 {
+			errOut("usage: spend budget set <amount>")
+			os.Exit(1)
+		}
+		v, err := parseAmount(args[1])
+		if err != nil {
+			errOut("invalid amount: " + args[1])
+			os.Exit(1)
+		}
+		p := loadProfile()
+		p.MonthlyBudget = v
+		if err := saveProfile(p); err != nil {
+			errOut("failed to save: " + err.Error())
+			os.Exit(1)
+		}
+		okOut(map[string]interface{}{"monthly_budget": v})
+	case "get":
+		p := loadProfile()
+		okOut(map[string]interface{}{"monthly_budget": p.MonthlyBudget})
+	default:
+		errOut("usage: spend budget set|get")
+		os.Exit(1)
+	}
+}
+
+func spendCompare(period1, period2 string) {
+	txs := loadTransactions()
+
+	aggregate := func(prefix string) (int64, []map[string]interface{}) {
+		total := int64(0)
+		catTotals := map[string]int64{}
+		for _, t := range txs {
+			if strings.HasPrefix(t.Date, prefix) {
+				total += t.Amount
+				catTotals[t.Category] += t.Amount
+			}
+		}
+		var byCat []map[string]interface{}
+		for cat, amt := range catTotals {
+			pct := 0
+			if total > 0 {
+				pct = int(amt * 100 / total)
+			}
+			byCat = append(byCat, map[string]interface{}{
+				"category": cat,
+				"amount":   amt,
+				"pct":      pct,
+			})
+		}
+		sort.Slice(byCat, func(i, j int) bool {
+			return byCat[i]["amount"].(int64) > byCat[j]["amount"].(int64)
+		})
+		return total, byCat
+	}
+
+	total1, byCat1 := aggregate(period1)
+	total2, byCat2 := aggregate(period2)
+
+	// Build delta by category
+	catMap1 := map[string]int64{}
+	for _, c := range byCat1 {
+		catMap1[c["category"].(string)] = c["amount"].(int64)
+	}
+	catMap2 := map[string]int64{}
+	for _, c := range byCat2 {
+		catMap2[c["category"].(string)] = c["amount"].(int64)
+	}
+	allCats := map[string]bool{}
+	for k := range catMap1 {
+		allCats[k] = true
+	}
+	for k := range catMap2 {
+		allCats[k] = true
+	}
+	var deltaCat []map[string]interface{}
+	for cat := range allCats {
+		deltaCat = append(deltaCat, map[string]interface{}{
+			"category": cat,
+			"delta":    catMap2[cat] - catMap1[cat],
+		})
+	}
+
+	okOut(map[string]interface{}{
+		"period1":     map[string]interface{}{"period": period1, "total": total1, "by_category": byCat1},
+		"period2":     map[string]interface{}{"period": period2, "total": total2, "by_category": byCat2},
+		"total_delta": total2 - total1,
+		"delta":       deltaCat,
+	})
 }

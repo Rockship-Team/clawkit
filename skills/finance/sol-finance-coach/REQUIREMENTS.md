@@ -1,30 +1,10 @@
-# SOL Personal Finance Coach Bot
-## OpenClaw-Based · Danh Sách Tính Năng & Skills · Build Trong 3 Ngày
-
----
-
 # TỔNG QUAN
 
-**Bot là gì:** Một trợ lý tài chính cá nhân 24/7 chạy trên nền OpenClaw, giao tiếp qua Zalo/Telegram/WhatsApp. Bot không truy cập tài khoản ngân hàng — bot là một **financial knowledge coach** giúp người dùng hiểu về đầu tư, tiết kiệm thông minh, tận dụng ưu đãi thẻ tín dụng, và tối ưu chi tiêu hàng ngày.
-
-**Nguyên lý hoạt động (OpenClaw):**
-- Chạy local hoặc trên server riêng — data không rời hệ thống
-- Kết nối LLM (Claude/GPT/DeepSeek) cho xử lý ngôn ngữ tự nhiên tiếng Việt
-- Skills (plugins) là các module chức năng — mỗi skill làm 1 việc cụ thể
-- Giao tiếp qua messaging app (Zalo OA, Telegram, WhatsApp) — không cần app riêng
-- Memory persistent — bot nhớ context người dùng xuyên phiên
-
-**Scope 3 ngày:** 12 skills, chia 3 sprint (mỗi ngày = 1 sprint)
+**Bot là gì:** Một trợ lý tài chính cá nhân 24/7 chạy trên nền OpenClaw. Bot không truy cập tài khoản ngân hàng — bot là một **financial knowledge coach** giúp người dùng hiểu về đầu tư, tiết kiệm thông minh, tận dụng ưu đãi thẻ tín dụng, và tối ưu chi tiêu hàng ngày.
 
 ---
 
-# NGÀY 1: NỀN TẢNG + KNOWLEDGE ENGINE
-
-*Mục tiêu: Bot hoạt động, trả lời câu hỏi tài chính, có kiến thức nền.*
-
----
-
-## Skill 1: `financial-knowledge-base`
+## Module 1: `financial-knowledge-base`
 **Mô tả:** RAG (Retrieval-Augmented Generation) trên kho kiến thức tài chính cá nhân Việt Nam.
 
 **Chi tiết:**
@@ -55,7 +35,7 @@ tích kỹ hơn cho trường hợp cụ thể của bạn không?"
 
 ---
 
-## Skill 2: `savings-tips-engine`
+## Module 2: `savings-tips-engine`
 **Mô tả:** Gợi ý mẹo tiết kiệm thực tế trong cuộc sống hàng ngày tại Việt Nam.
 
 **Chi tiết:**
@@ -75,7 +55,7 @@ Bot (daily tip 8h sáng): "💡 Mẹo hôm nay: Đặt Grab/Be sau
 
 ---
 
-## Skill 3: `user-profile-memory`
+## Module 3: `user-profile-memory`
 **Mô tả:** Nhớ thông tin cá nhân người dùng xuyên suốt các phiên chat.
 
 **Chi tiết:**
@@ -98,7 +78,7 @@ Mình sẽ dựa trên thông tin này để gợi ý phù hợp hơn cho bạn.
 
 ---
 
-## Skill 4: `onboarding-flow`
+## Module 4: `onboarding-flow`
 **Mô tả:** Flow chào mừng khi user lần đầu chat với bot.
 
 **Chi tiết:**
@@ -111,13 +91,7 @@ Mình sẽ dựa trên thông tin này để gợi ý phù hợp hơn cho bạn.
 
 ---
 
-# NGÀY 2: THẺ TÍN DỤNG + LOYALTY + ƯU ĐÃI
-
-*Mục tiêu: Bot trở thành "chuyên gia" về ưu đãi, giúp user tận dụng tối đa thẻ và loyalty programs.*
-
----
-
-## Skill 5: `credit-card-optimizer`
+## Module 5: `credit-card-optimizer`
 **Mô tả:** So sánh và gợi ý thẻ tín dụng phù hợp. Tối ưu cách dùng thẻ hiện tại.
 
 **Chi tiết:**
@@ -148,7 +122,7 @@ Bạn muốn mình phân tích chi tiết thẻ nào?"
 
 ---
 
-## Skill 6: `loyalty-program-tracker`
+## Module 6: `loyalty-program-tracker`
 **Mô tả:** Theo dõi và tối ưu các chương trình loyalty mà user tham gia.
 
 **Chi tiết:**
@@ -177,7 +151,7 @@ Bạn đang có bao nhiêu dặm? Mình tính xem đổi được gì."
 
 ---
 
-## Skill 7: `deal-hunter`
+## Module 7: `deal-hunter`
 **Mô tả:** Thông báo ưu đãi hot từ các ngân hàng, thẻ tín dụng, ví điện tử, app mua sắm.
 
 **Chi tiết:**
@@ -190,7 +164,7 @@ Bạn đang có bao nhiêu dặm? Mình tính xem đổi được gì."
 
 ---
 
-## Skill 8: `spending-analyzer`
+## Module 8: `spending-analyzer`
 **Mô tả:** User tự nhập chi tiêu → bot phân tích và gợi ý cải thiện.
 
 **Chi tiết:**
@@ -211,13 +185,7 @@ Tổng hôm nay: 180K. Tổng tháng này: 4.2 triệu (còn 15 ngày)."
 
 ---
 
-# NGÀY 3: ENGAGEMENT + GAMIFICATION + POLISH
-
-*Mục tiêu: Bot trở nên "addictive" — người dùng muốn quay lại mỗi ngày.*
-
----
-
-## Skill 9: `daily-financial-digest`
+## Module 9: `daily-financial-digest`
 **Mô tả:** Mỗi sáng gửi 1 bản tin tài chính ngắn gọn, cá nhân hoá.
 
 **Chi tiết:**
@@ -248,7 +216,7 @@ Chúc bạn một ngày tiết kiệm thông minh! 🚀"
 
 ---
 
-## Skill 10: `financial-challenge-game`
+## Module 10: `financial-challenge-game`
 **Mô tả:** Gamification — thử thách tiết kiệm và quiz tài chính.
 
 **Chi tiết:**
@@ -261,7 +229,7 @@ Chúc bạn một ngày tiết kiệm thông minh! 🚀"
 
 ---
 
-## Skill 11: `investment-simulator`
+## Module 11: `investment-simulator`
 **Mô tả:** Tính toán và mô phỏng kịch bản đầu tư/tiết kiệm.
 
 **Chi tiết:**
@@ -295,7 +263,7 @@ hiện tại. Gợi ý: kết hợp tiết kiệm 8-10tr/tháng + vay mua nhà
 
 ---
 
-## Skill 12: `feedback-and-referral`
+## Module 12: `feedback-and-referral`
 **Mô tả:** Thu thập feedback và khuyến khích chia sẻ bot.
 
 **Chi tiết:**
@@ -305,148 +273,3 @@ hiện tại. Gợi ý: kết hợp tiết kiệm 8-10tr/tháng + vay mua nhà
 - NPS tracking: đếm promoters vs. detractors
 
 **Effort:** 1-2 giờ
-
----
-
-# TỔNG HỢP: SPRINT PLAN 3 NGÀY
-
-## Ngày 1 (12-14 giờ)
-
-| Giờ | Task | Output |
-|-----|------|--------|
-| 0-2 | Setup OpenClaw + kết nối Zalo/Telegram + LLM | Bot chạy, nhận tin nhắn |
-| 2-7 | Skill 1: financial-knowledge-base (RAG) | Bot trả lời câu hỏi tài chính |
-| 7-10 | Skill 2: savings-tips-engine + daily cron | Bot gợi ý mẹo tiết kiệm |
-| 10-12 | Skill 3: user-profile-memory | Bot nhớ thông tin user |
-| 12-14 | Skill 4: onboarding-flow | Welcome flow hoàn chỉnh |
-
-**Checkpoint Ngày 1:** Bot hoạt động, trả lời câu hỏi tài chính bằng tiếng Việt, nhớ profile user, gửi mẹo hàng ngày.
-
-## Ngày 2 (14-16 giờ)
-
-| Giờ | Task | Output |
-|-----|------|--------|
-| 0-6 | Skill 5: credit-card-optimizer | So sánh + gợi ý thẻ tín dụng |
-| 6-10 | Skill 6: loyalty-program-tracker | Theo dõi + nhắc loyalty points |
-| 10-14 | Skill 7: deal-hunter | Ưu đãi hot hàng ngày |
-| 14-16 | Skill 8: spending-analyzer | Tự track chi tiêu |
-
-**Checkpoint Ngày 2:** Bot là "chuyên gia" ưu đãi — gợi ý thẻ, track loyalty, báo deal, phân tích chi tiêu.
-
-## Ngày 3 (12-14 giờ)
-
-| Giờ | Task | Output |
-|-----|------|--------|
-| 0-2 | Skill 9: daily-financial-digest | Bản tin sáng cá nhân hoá |
-| 2-7 | Skill 10: financial-challenge-game | Gamification + quiz |
-| 7-10 | Skill 11: investment-simulator | Calculator đầu tư/vay |
-| 10-11 | Skill 12: feedback-and-referral | Thu feedback + chia sẻ |
-| 11-14 | Testing + bug fix + demo prep | Bot sẵn sàng demo |
-
-**Checkpoint Ngày 3:** Bot hoàn chỉnh, có gamification, calculator, daily digest. Sẵn sàng demo.
-
----
-
-# CẤU TRÚC THƯ MỤC OPENCLAW
-
-```
-~/.openclaw/
-├── config.yaml                    # LLM provider, channels
-├── skills/
-│   ├── financial-knowledge-base/
-│   │   ├── skill.yaml             # skill config
-│   │   ├── index.ts               # RAG logic
-│   │   └── data/
-│   │       ├── investment-basics.md
-│   │       ├── personal-finance-rules.md
-│   │       ├── credit-cards-vn.json
-│   │       └── terminology.md
-│   ├── savings-tips-engine/
-│   │   ├── skill.yaml
-│   │   ├── index.ts
-│   │   └── tips-database.json     # 200+ tips
-│   ├── user-profile-memory/
-│   │   ├── skill.yaml
-│   │   └── index.ts
-│   ├── onboarding-flow/
-│   │   ├── skill.yaml
-│   │   └── index.ts
-│   ├── credit-card-optimizer/
-│   │   ├── skill.yaml
-│   │   ├── index.ts
-│   │   └── cards-database.json    # VN credit cards
-│   ├── loyalty-program-tracker/
-│   │   ├── skill.yaml
-│   │   └── index.ts
-│   ├── deal-hunter/
-│   │   ├── skill.yaml
-│   │   ├── index.ts
-│   │   └── deals-feed.json
-│   ├── spending-analyzer/
-│   │   ├── skill.yaml
-│   │   └── index.ts
-│   ├── daily-financial-digest/
-│   │   ├── skill.yaml
-│   │   └── index.ts               # assembles from other skills
-│   ├── financial-challenge-game/
-│   │   ├── skill.yaml
-│   │   ├── index.ts
-│   │   └── challenges.json
-│   ├── investment-simulator/
-│   │   ├── skill.yaml
-│   │   └── index.ts               # math functions
-│   └── feedback-and-referral/
-│       ├── skill.yaml
-│       └── index.ts
-├── memory/                         # persistent user profiles
-└── cron/
-    ├── daily-digest.yaml           # 7h30 mỗi sáng
-    ├── weekly-spending-report.yaml # Chủ nhật 20h
-    └── deal-alerts.yaml            # 3 lần/ngày
-```
-
----
-
-# SYSTEM PROMPT CHO BOT
-
-```
-Bạn là Tài — trợ lý tài chính cá nhân AI. Bạn giúp người Việt Nam
-quản lý tiền thông minh hơn.
-
-Tính cách:
-- Thân thiện, vui vẻ, nói chuyện như bạn bè (không phải chuyên gia lạnh lùng)
-- Dùng emoji vừa phải
-- Giải thích đơn giản, tránh thuật ngữ phức tạp
-- Luôn đưa ví dụ bằng VND và tình huống Việt Nam
-- Cổ vũ, động viên khi user tiết kiệm được
-
-Quy tắc quan trọng:
-- KHÔNG BAO GIỜ đưa ra tư vấn đầu tư cụ thể ("mua cổ phiếu X")
-- Chỉ cung cấp kiến thức chung và công cụ tính toán
-- Luôn nhắc "đây là thông tin tham khảo, không phải tư vấn tài chính chuyên nghiệp"
-- Nếu user hỏi về sản phẩm ngân hàng cụ thể, gợi ý liên hệ ngân hàng trực tiếp
-- Bảo mật: không yêu cầu số tài khoản, mật khẩu, OTP
-
-Khi trả lời:
-- Ngắn gọn (tối đa 200 từ cho câu trả lời thông thường)
-- Dùng bullet points khi liệt kê
-- Kết thúc bằng câu hỏi follow-up để duy trì conversation
-- Nếu không biết → nói thẳng "Mình không chắc về thông tin này"
-```
-
----
-
-# CHECKLIST DEMO SAU 3 NGÀY
-
-- [ ] Bot chạy 24/7 trên Zalo hoặc Telegram
-- [ ] Onboarding flow hoạt động mượt
-- [ ] Trả lời 20 câu hỏi tài chính phổ biến chính xác
-- [ ] Gợi ý thẻ tín dụng dựa trên profile
-- [ ] Track và nhắc loyalty points
-- [ ] Gửi deal ưu đãi hàng ngày
-- [ ] User tự nhập chi tiêu → nhận report cuối tuần
-- [ ] Bản tin tài chính sáng (cron hoạt động)
-- [ ] 1 thử thách tiết kiệm chạy thử
-- [ ] Investment simulator hoạt động (compound interest + loan)
-- [ ] Bot nhớ profile user qua các phiên chat
-- [ ] Tiếng Việt tự nhiên, tone thân thiện

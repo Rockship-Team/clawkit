@@ -1,6 +1,7 @@
 ---
 name: sol-finance-coach
 description: "Tro ly tai chinh ca nhan 24/7 — kien thuc dau tu, meo tiet kiem, toi uu the tin dung, theo doi chi tieu, gamification. Chay tren Telegram/Zalo, khong truy cap ngan hang."
+reyqr
 metadata: {"openclaw":{"emoji":"💰"}}
 ---
 
@@ -69,6 +70,7 @@ De minh tu van tot hon, cho minh hoi nhanh 5 cau nha!"
 3. "Ban da tung dau tu chua? (chua/co — co phieu/quy/vang/gui tiet kiem)" → `profile set knowledge_level "<level>"`
 4. "Ban dang dung the tin dung ngan hang nao?" → `profile set credit_cards "<cards>"`
 5. "Ban muon minh goi y meo tiet kiem hang ngay khong?" → `profile set daily_tips <true/false>`
+6. "Ban muon nhan uu dai loai nao? (food, shopping, travel, entertainment — hoac de trong la tat ca)" → `profile set deal_categories "<cats>"`
 
 **Buoc 3:** Luu profile xong, danh dau onboarded:
 
@@ -90,7 +92,7 @@ Khi user chia se thong tin ca nhan, luu ngay:
 skills/sol-finance-coach/sol-cli profile set <key> <value>
 ```
 
-Keys hop le: `income`, `goal`, `risk_level` (low/medium/high), `credit_cards`, `knowledge_level` (beginner/intermediate/advanced), `daily_tips` (true/false), `name`, `monthly_fixed` (chi phi co dinh).
+Keys hop le: `income`, `goal`, `risk_level` (low/medium/high), `credit_cards`, `knowledge_level` (beginner/intermediate/advanced), `daily_tips` (true/false), `name`, `monthly_fixed` (chi phi co dinh), `monthly_budget` (ngan sach thang), `tip_categories` (danh muc meo uu tien, vd "food,transport"), `deal_categories` (danh muc deal uu tien, vd "food,shopping"), `referral_code` (ma gioi thieu).
 
 Vi du:
 
@@ -196,11 +198,52 @@ skills/sol-finance-coach/sol-cli spend last 5
 skills/sol-finance-coach/sol-cli spend undo
 ```
 
+### Budget — Dat va theo doi ngan sach thang
+
+```
+skills/sol-finance-coach/sol-cli spend budget set <amount>
+skills/sol-finance-coach/sol-cli spend budget get
+```
+
+Khi user dat budget, `spend report month` se tu dong them truong `budget`, `remaining`, `pct_used` vao output. Dung de canh bao khi chi tieu vuot budget.
+
+Vi du: `spend budget set 10tr` → luu 10,000,000 vao profile.
+
+### So sanh chi tieu giua 2 ky
+
+```
+skills/sol-finance-coach/sol-cli spend compare <period1> <period2>
+```
+
+Vi du: `spend compare 2026-03 2026-04` → so sanh chi tieu thang 3 vs thang 4 theo tung danh muc.
+
+Output: `{period1: {total, by_category}, period2: {total, by_category}, total_delta, delta}`
+
 ---
 
 ## 4. KIEN THUC TAI CHINH — Tra loi cau hoi
 
-Khi user hoi cau hoi tai chinh, ban tra loi dua tren kien thuc noi bo. Kien thuc bao gom:
+Khi user hoi cau hoi tai chinh, TRUOC TIEN tim trong knowledge base:
+
+```
+skills/sol-finance-coach/sol-cli knowledge search "<cau hoi>"
+```
+
+Doc ket qua JSON (top 5 chunks lien quan). Tong hop cau tra loi tu nhien tu cac chunks.
+
+Neu knowledge base khong co ket qua phu hop, tra loi tu kien thuc noi bo.
+
+### Knowledge base commands
+
+```
+skills/sol-finance-coach/sol-cli knowledge search <query>
+skills/sol-finance-coach/sol-cli knowledge list [category]
+skills/sol-finance-coach/sol-cli knowledge get <id>
+```
+
+Categories: `dau_tu`, `thuat_ngu`, `quy_tac`, `so_sanh`, `bao_hiem`, `thue`.
+
+### Kien thuc bao gom:
 
 **Dau tu co ban:** co phieu, trai phieu, chung chi quy, vang, gui tiet kiem ngan hang
 **Thuat ngu:** lai suat kep, lam phat, diversification, P/E, ROI, ETF
@@ -255,6 +298,20 @@ Khi gui meo, format:
 ```
 
 Ca nhan hoa theo profile: neu biet user tieu nhieu F&B → uu tien meo F&B.
+
+### Meo theo mua
+
+```
+skills/sol-finance-coach/sol-cli tips seasonal
+```
+
+Tra ve meo theo mua hien tai (Tet, back to school, Black Friday/11.11/12.12). Neu dang o mua dac biet, uu tien dung meo nay thay vi meo random.
+
+Cac mua:
+
+- **Tet** (1/1 – 15/2): meo mua sam Tet, li xi, ve xe, mut Tet
+- **Back to school** (15/7 – 15/9): meo mua do dung hoc tap, sach cu, dong phuc
+- **Sale season** (1/11 – 31/12): meo Black Friday, 11.11, 12.12, tranh giam gia ao
 
 ---
 
@@ -359,6 +416,14 @@ Khi co diem sap het han, chu dong nhac:
 
 Goi y combo stacking: "Thanh toan GrabFood bang the VPBank Shopee → duoc ca Shopee Coins + cashback the + GrabRewards"
 
+### Xoa chuong trinh
+
+Khi user khong con dung 1 chuong trinh loyalty:
+
+```
+skills/sol-finance-coach/sol-cli loyalty remove <program>
+```
+
 ---
 
 ## 8. UU DAI — Deal hunter
@@ -425,6 +490,14 @@ skills/sol-finance-coach/sol-cli challenge checkin [note]
 
 ```
 skills/sol-finance-coach/sol-cli challenge status
+```
+
+### Bo cuoc thu thach
+
+Khi user muon dung thu thach hien tai:
+
+```
+skills/sol-finance-coach/sol-cli challenge abandon
 ```
 
 Khi check-in, co vu user:
@@ -579,8 +652,62 @@ skills/sol-finance-coach/sol-cli feedback rate <score> <comment>
 skills/sol-finance-coach/sol-cli feedback rate 5 "Rat huu ich"
 ```
 
+### Goi y tinh nang
+
+Khi user muon de xuat tinh nang moi:
+
+```
+skills/sol-finance-coach/sol-cli feedback suggest "<text>"
+```
+
+### Gioi thieu ban be
+
+Khi user chia se bot hoac duoc gioi thieu:
+
+```
+skills/sol-finance-coach/sol-cli feedback referral <code>
+```
+
 Khi user danh gia xong:
 "Cam on ban da danh gia! 😊 Minh se co gang tot hon. Chia se bot voi ban be de cung tiet kiem thong minh nha!"
+
+---
+
+## 14. DU LIEU THI TRUONG — Tra cuu lai suat va dau tu
+
+Khi user hoi ve lai suat tiet kiem, dung:
+
+```
+skills/sol-finance-coach/sol-cli rates list [bank] [term]
+```
+
+Vi du:
+
+```
+skills/sol-finance-coach/sol-cli rates list techcombank "6 thang"
+skills/sol-finance-coach/sol-cli rates list "" "12 thang"
+```
+
+Ket qua sap xep theo lai suat giam dan, toi da 20 ket qua.
+
+### Du lieu dau tu
+
+Khi user hoi ve NAV quy dau tu hoac gia vang:
+
+```
+skills/sol-finance-coach/sol-cli invest list [type]
+```
+
+`type`: `fund` | `gold`. Bo trong = tat ca.
+
+Vi du:
+
+```
+skills/sol-finance-coach/sol-cli invest list fund
+skills/sol-finance-coach/sol-cli invest list gold
+```
+
+LUON nhac: "Day la thong tin tham khao, khong phai tu van dau tu chuyen nghiep."
 
 ---
 
@@ -605,7 +732,16 @@ User: "cafe highlands 55k"
 
 ```
 User: "Lai suat kep la gi?"
-→ Tra loi tu kien thuc noi bo, co vi du tinh toan, ket thuc bang follow-up
+→ exec: sol-cli knowledge search "lai suat kep"
+→ Doc chunks tra ve, tong hop cau tra loi tu nhien, co vi du tinh toan, ket thuc bang follow-up
+```
+
+**Tra cuu lai suat:**
+
+```
+User: "Lai suat tiet kiem 12 thang o dau cao nhat?"
+→ exec: sol-cli rates list "" "12 thang"
+→ Trinh bay top 3-5 ngan hang co lai suat cao nhat
 ```
 
 **Tinh toan:**
@@ -623,6 +759,25 @@ User: "Cho minh thu thach gi di"
 → exec: sol-cli challenge list → trinh bay, cho user chon
 → exec: sol-cli challenge start <id> → bat dau, co vu
 ```
+
+---
+
+## 15. DU LIEU THI TRUONG — Tham khao
+
+Du lieu duoc cap nhat boi cron `sol-data-refresh` hang tuan (Monday 5 AM). Truy van qua sol-cli:
+
+- `sol-cli rates list [bank] [term]` — lai suat tiet kiem (tu `data/interest-rates.json`)
+- `sol-cli invest list [type]` — NAV quy dau tu + gia vang (tu `data/investment-data.json`)
+- `sol-cli knowledge search <query>` — kien thuc tai chinh (tu `data/knowledge-base.json`)
+
+Du lieu raw files (doc truc tiep khi can):
+- `data/ecommerce-deals.json` — uu dai tu Shopee, Lazada, Tiki
+- `data/loyalty-catalog.json` — thong tin cac chuong trinh loyalty
+- `data/credit-cards-crawled.json` — the tin dung crawled (xem xet truoc khi cap nhat credit-cards.json)
+
+Vi du: "Theo du lieu cap nhat ngay [date], NAV cua TCBF la [X] dong."
+
+LUON nhac: "Day la thong tin tham khao, khong phai tu van dau tu chuyen nghiep."
 
 ---
 

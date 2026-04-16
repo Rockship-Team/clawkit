@@ -9,11 +9,15 @@ type Profile struct {
 	Name           string `json:"name,omitempty"`
 	Income         int64  `json:"income,omitempty"`
 	MonthlyFixed   int64  `json:"monthly_fixed,omitempty"`
+	MonthlyBudget  int64  `json:"monthly_budget,omitempty"`
 	Goal           string `json:"goal,omitempty"`
 	RiskLevel      string `json:"risk_level,omitempty"`
 	CreditCards    string `json:"credit_cards,omitempty"`
 	KnowledgeLevel string `json:"knowledge_level,omitempty"`
 	DailyTips      bool   `json:"daily_tips"`
+	TipCategories  string `json:"tip_categories,omitempty"`
+	DealCategories string `json:"deal_categories,omitempty"`
+	ReferralCode   string `json:"referral_code,omitempty"`
 	Onboarded      bool   `json:"onboarded"`
 	CreatedAt      string `json:"created_at,omitempty"`
 }
@@ -75,8 +79,21 @@ func cmdProfile(args []string) {
 			p.KnowledgeLevel = val
 		case "credit_cards":
 			p.CreditCards = val
+		case "monthly_budget":
+			v, err := parseAmount(val)
+			if err != nil {
+				errOut("invalid amount: " + val)
+				os.Exit(1)
+			}
+			p.MonthlyBudget = v
 		case "daily_tips":
 			p.DailyTips = val == "true" || val == "yes" || val == "1"
+		case "tip_categories":
+			p.TipCategories = val
+		case "deal_categories":
+			p.DealCategories = val
+		case "referral_code":
+			p.ReferralCode = val
 		default:
 			errOut("unknown profile key: " + key)
 			os.Exit(1)
@@ -107,7 +124,7 @@ func cmdOnboard(args []string) {
 	switch args[0] {
 	case "status":
 		p := loadProfile()
-		okOut(map[string]interface{}{"onboarded": p.Onboarded})
+		okOut(map[string]interface{}{"onboarded": p.Onboarded, "created_at": p.CreatedAt})
 
 	case "complete":
 		p := loadProfile()

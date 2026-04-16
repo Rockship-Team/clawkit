@@ -75,7 +75,8 @@
   "wallet_promo_pages": [
     { "name": "MoMo", "url": "https://momo.vn/tin-tuc/uu-dai-momo" },
     { "name": "ZaloPay", "url": "https://zalopay.vn/uu-dai" },
-    { "name": "ShopeePay", "url": "https://shopee.vn/m/shopeepay" }
+    { "name": "ShopeePay", "url": "https://shopee.vn/m/shopeepay" },
+    { "name": "VNPay", "url": "https://vnpay.vn/uu-dai" }
   ],
   "loyalty_programs": [
     {
@@ -132,5 +133,25 @@
       "type": "retail",
       "url": "https://www.cgv.vn"
     }
+  ],
+  "ecommerce_sale_pages": [
+    { "name": "Shopee", "url": "https://shopee.vn/m/uu-dai" },
+    { "name": "Lazada", "url": "https://www.lazada.vn/khuyen-mai/" },
+    { "name": "Tiki", "url": "https://tiki.vn/khuyen-mai" }
+  ],
+  "investment_data_pages": [
+    { "name": "TCBF", "type": "fund", "url": "https://www.fmarket.vn/quy/TCBF" },
+    { "name": "VCBF-FI", "type": "fund", "url": "https://www.fmarket.vn/quy/VCBF-FI" },
+    { "name": "VFMVN30", "type": "fund", "url": "https://www.fmarket.vn/quy/VFMVN30ETF" },
+    { "name": "DCDS", "type": "fund", "url": "https://www.fmarket.vn/quy/DCDS" },
+    { "name": "SSIBF", "type": "fund", "url": "https://www.fmarket.vn/quy/SSIBF" },
+    { "name": "MAFBAL", "type": "fund", "url": "https://www.fmarket.vn/quy/MAFBAL" },
+    { "name": "Gold SJC", "type": "gold", "url": "https://sjc.com.vn/giavang/textContent.php" },
+    { "name": "Gold PNJ", "type": "gold", "url": "https://pnj.com.vn/blog/gia-vang/" }
+  ],
+  "rate_aggregator_pages": [
+    { "name": "laisuat.vn", "url": "https://laisuat.vn" },
+    { "name": "thebank.vn rates", "url": "https://thebank.vn/blog/tag/lai-suat-gui-tiet-kiem" },
+    { "name": "websolangsuat.com", "url": "https://websolangsuat.com" }
   ]
 }

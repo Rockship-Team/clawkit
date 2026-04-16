@@ -45,6 +45,13 @@ type FileNode struct {
 	Children []*FileNode `json:"children,omitempty"`
 }
 
+// JSONTableResponse is the table-friendly view of a JSON document.
+type JSONTableResponse struct {
+	Kind    string           `json:"kind"`
+	Columns []string         `json:"columns"`
+	Rows    []map[string]any `json:"rows"`
+}
+
 // Serve starts the dashboard HTTP server on the given port.
 func Serve(port int, registryData []byte) error {
 	entries, err := buildEntries(registryData)
@@ -89,6 +96,10 @@ func Serve(port int, registryData []byte) error {
 		switch {
 		case action == "tree" && r.Method == http.MethodGet:
 			handleTree(w, r, skillDir)
+		case action == "table" && r.Method == http.MethodGet:
+			handleFileTable(w, r, skillDir)
+		case action == "file/table" && r.Method == http.MethodGet:
+			handleFileTable(w, r, skillDir)
 		case action == "file":
 			handleFile(w, r, skillDir)
 		case strings.HasPrefix(action, "db/"):
@@ -164,11 +175,11 @@ func handleFile(w http.ResponseWriter, r *http.Request, skillDir string) {
 			http.Error(w, "read body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if err := os.WriteFile(abs, body, 0644); err != nil {
+		if err := os.WriteFile(abs, body, 0o644); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -187,7 +198,7 @@ func handleFile(w http.ResponseWriter, r *http.Request, skillDir string) {
 		}
 		defer file.Close()
 
-		if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -206,6 +217,145 @@ func handleFile(w http.ResponseWriter, r *http.Request, skillDir string) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// handleFileTable returns a JSON document in a table-friendly shape.
+func handleFileTable(w http.ResponseWriter, r *http.Request, skillDir string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	relPath := r.URL.Query().Get("path")
+	if relPath == "" {
+		http.Error(w, "missing ?path=", http.StatusBadRequest)
+		return
+	}
+
+	abs := filepath.Join(skillDir, filepath.FromSlash(relPath))
+	if !strings.HasPrefix(abs, skillDir+string(os.PathSeparator)) && abs != skillDir {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+
+	data, err := os.ReadFile(abs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	table, err := buildJSONTable(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	jsonOK(w, table)
+}
+
+func buildJSONTable(data []byte) (JSONTableResponse, error) {
+	var parsed any
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return JSONTableResponse{}, fmt.Errorf("parse json: %w", err)
+	}
+
+	switch value := parsed.(type) {
+	case []any:
+		return buildJSONArrayTable(value), nil
+	case map[string]any:
+		return buildJSONObjectTable(value), nil
+	default:
+		return JSONTableResponse{
+			Kind:    "value",
+			Columns: []string{"value"},
+			Rows: []map[string]any{{
+				"value": value,
+			}},
+		}, nil
+	}
+}
+
+func buildJSONArrayTable(items []any) JSONTableResponse {
+	if len(items) == 0 {
+		return JSONTableResponse{Kind: "array", Columns: []string{"value"}, Rows: []map[string]any{}}
+	}
+
+	allObjects := true
+	for _, item := range items {
+		if _, ok := item.(map[string]any); !ok {
+			allObjects = false
+			break
+		}
+	}
+
+	if allObjects {
+		columns := orderedJSONKeys(items)
+		if len(columns) == 0 {
+			rows := make([]map[string]any, 0, len(items))
+			for _, item := range items {
+				rows = append(rows, map[string]any{"value": item})
+			}
+			return JSONTableResponse{Kind: "array", Columns: []string{"value"}, Rows: rows}
+		}
+		rows := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			row := make(map[string]any, len(columns))
+			obj := item.(map[string]any)
+			for _, column := range columns {
+				row[column] = obj[column]
+			}
+			rows = append(rows, row)
+		}
+		return JSONTableResponse{Kind: "array", Columns: columns, Rows: rows}
+	}
+
+	rows := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		rows = append(rows, map[string]any{"value": item})
+	}
+	return JSONTableResponse{Kind: "array", Columns: []string{"value"}, Rows: rows}
+}
+
+func buildJSONObjectTable(item map[string]any) JSONTableResponse {
+	keys := make([]string, 0, len(item))
+	for key := range item {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	rows := make([]map[string]any, 0, len(keys))
+	for _, key := range keys {
+		rows = append(rows, map[string]any{
+			"key":   key,
+			"value": item[key],
+		})
+	}
+
+	return JSONTableResponse{Kind: "object", Columns: []string{"key", "value"}, Rows: rows}
+}
+
+func orderedJSONKeys(items []any) []string {
+	keys := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, item := range items {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		itemKeys := make([]string, 0, len(obj))
+		for key := range obj {
+			itemKeys = append(itemKeys, key)
+		}
+		sort.Strings(itemKeys)
+		for _, key := range itemKeys {
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 func buildTree(root, dir string) (*FileNode, error) {
@@ -746,7 +896,10 @@ table.sql-table td { padding: 6px 12px; border-bottom: 1px solid #1c1c1f; }
 let skills = [];
 let activeSkill = null;
 let activeFilePath = null;  // relative path
+let activeFileKind = null;
+let activeJsonText = '';
 let editorDirty = false;
+let editorToolbarWired = false;
 
 // ── Boot ──
 async function boot() {
@@ -831,6 +984,7 @@ function buildDetailShell(skill) {
       '<div class="editor-pane">' +
         '<div class="editor-toolbar">' +
           '<span class="path" id="editor-path">—</span>' +
+          '<button class="btn" id="btn-json-toggle" style="display:none">Raw</button>' +
           '<label class="btn" id="btn-upload" style="display:none">Upload <input type="file" id="upload-input" style="display:none" multiple></label>' +
           '<button class="btn btn-primary" id="btn-save" style="display:none">Save</button>' +
         '</div>' +
@@ -890,11 +1044,14 @@ async function openFile(relPath, rowEl) {
   rowEl.classList.add('active');
 
   activeFilePath = relPath;
+  activeFileKind = null;
+  activeJsonText = '';
   editorDirty = false;
 
   document.getElementById('editor-path').textContent = relPath;
 
   const ext = relPath.split('.').pop().toLowerCase();
+  const isJson = ext === 'json';
   const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
   const isDB = ['db','sqlite','sqlite3'].includes(ext);
   const isBinary = ['zip','tar','gz'].includes(ext);
@@ -902,13 +1059,26 @@ async function openFile(relPath, rowEl) {
   const area = document.getElementById('editor-area');
   const btnSave = document.getElementById('btn-save');
   const btnUpload = document.getElementById('btn-upload');
+  const btnJsonToggle = document.getElementById('btn-json-toggle');
+
+  btnJsonToggle.style.display = 'none';
 
   if (isDB) {
+    activeFileKind = 'db';
     btnSave.style.display = 'none';
     btnUpload.style.display = 'none';
     openDBViewer(relPath);
     return;
+  } else if (isJson) {
+    activeFileKind = 'json';
+    btnSave.style.display = 'none';
+    btnUpload.style.display = 'none';
+    btnJsonToggle.style.display = 'inline-block';
+    btnJsonToggle.textContent = 'Raw';
+    await openJsonTableView(relPath);
+    return;
   } else if (isImage) {
+    activeFileKind = 'image';
     btnSave.style.display = 'none';
     btnUpload.style.display = 'flex';
     const url = '/api/skills/' + activeSkill.name + '/file?path=' + encodeURIComponent(relPath) + '&t=' + Date.now();
@@ -920,10 +1090,12 @@ async function openFile(relPath, rowEl) {
       })
     );
   } else if (isBinary) {
+    activeFileKind = 'binary';
     btnSave.style.display = 'none';
     btnUpload.style.display = 'none';
     setEditorHTML('<div class="editor-empty" id="editor-area">Binary file — cannot preview</div>');
   } else {
+    activeFileKind = 'text';
     btnUpload.style.display = 'none';
     const resp = await fetch('/api/skills/' + activeSkill.name + '/file?path=' + encodeURIComponent(relPath));
     if (!resp.ok) { toast('Could not read file', true); return; }
@@ -933,12 +1105,151 @@ async function openFile(relPath, rowEl) {
     ta.id = 'editor-area';
     ta.value = text;
     ta.addEventListener('input', () => {
+      activeJsonText = ta.value;
       editorDirty = true;
       btnSave.style.display = 'inline-block';
     });
     setEditorHTML(null, ta);
     btnSave.style.display = 'none';
   }
+}
+
+async function openJsonTableView(relPath) {
+  setEditorHTML('<div class="db-viewer" id="editor-area"><div class="editor-empty">Loading…</div></div>');
+
+  const resp = await fetch('/api/skills/' + activeSkill.name + '/file/table?path=' + encodeURIComponent(relPath));
+  if (!resp.ok) {
+    setEditorHTML('<div class="editor-empty" id="editor-area">Could not load JSON table view</div>');
+    toast(await resp.text(), true);
+    return;
+  }
+
+  const data = await resp.json();
+  renderJsonTableView(data);
+}
+
+function renderJsonTableView(data) {
+  const area = document.getElementById('editor-area');
+  if (!area) return;
+
+  const columns = Array.isArray(data.columns) ? data.columns : [];
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+
+  const head = columns.map(column => '<th>' + escH(column) + '</th>').join('');
+  const body = rows.length > 0 ? rows.map(row => {
+    const cells = columns.map(column => {
+      const value = row ? row[column] : undefined;
+      if (value === null || value === undefined) return '<td class="null">NULL</td>';
+      const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      const short = text.length > 120 ? text.slice(0, 120) + '…' : text;
+      return '<td title="' + escH(text) + '">' + escH(short) + '</td>';
+    }).join('');
+    return '<tr>' + cells + '</tr>';
+  }).join('') : '<tr><td colspan="' + Math.max(columns.length, 1) + '" style="padding:20px;color:#52525b;text-align:center">No rows</td></tr>';
+
+  area.innerHTML =
+    '<div class="db-toolbar">' +
+      '<span style="font-size:11px;color:#52525b">JSON table view</span>' +
+      '<span class="db-count">' + rows.length + ' row(s)</span>' +
+    '</div>' +
+    '<div class="db-table-wrap"><table class="db-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+}
+
+async function showJsonRawView() {
+  if (!activeSkill || !activeFilePath) return;
+
+  const text = await loadRawJsonText(activeFilePath);
+  if (text === null) return;
+  activeJsonText = text;
+  editorDirty = false;
+
+  const ta = document.createElement('textarea');
+  ta.className = 'editor';
+  ta.id = 'editor-area';
+  ta.value = text;
+  ta.addEventListener('input', () => {
+    activeJsonText = ta.value;
+    editorDirty = true;
+    document.getElementById('btn-save').style.display = 'inline-block';
+  });
+  setEditorHTML(null, ta);
+  document.getElementById('btn-save').style.display = 'none';
+}
+
+async function loadRawJsonText(relPath) {
+  const resp = await fetch('/api/skills/' + activeSkill.name + '/file?path=' + encodeURIComponent(relPath));
+  if (!resp.ok) {
+    toast('Could not read file', true);
+    return null;
+  }
+  return resp.text();
+}
+
+function renderJsonFromText(text) {
+  try {
+    const data = buildJsonTableFromText(text);
+    renderJsonTableView(data);
+    return true;
+  } catch (err) {
+    setEditorHTML('<div class="editor-empty" id="editor-area">' + escH(err.message || 'Invalid JSON') + '</div>');
+    return false;
+  }
+}
+
+function buildJsonTableFromText(text) {
+  const parsed = JSON.parse(text);
+
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) {
+      return { kind: 'array', columns: ['value'], rows: [] };
+    }
+
+    const allObjects = parsed.every(item => item && typeof item === 'object' && !Array.isArray(item));
+    if (allObjects) {
+      const columns = [];
+      const seen = new Set();
+      for (const item of parsed) {
+        for (const key of Object.keys(item)) {
+          if (seen.has(key)) continue;
+          seen.add(key);
+          columns.push(key);
+        }
+      }
+      if (columns.length === 0) {
+        return {
+          kind: 'array',
+          columns: ['value'],
+          rows: parsed.map(item => ({ value: item })),
+        };
+      }
+      const rows = parsed.map(item => {
+        const row = {};
+        for (const column of columns) {
+          row[column] = item[column];
+        }
+        return row;
+      });
+      return { kind: 'array', columns, rows };
+    }
+
+    return {
+      kind: 'array',
+      columns: ['value'],
+      rows: parsed.map(item => ({ value: item })),
+    };
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    const columns = ['key', 'value'];
+    const rows = Object.keys(parsed).sort().map(key => ({ key, value: parsed[key] }));
+    return { kind: 'object', columns, rows };
+  }
+
+  return {
+    kind: 'value',
+    columns: ['value'],
+    rows: [{ value: parsed }],
+  };
 }
 
 function setEditorHTML(html, node) {
@@ -957,9 +1268,37 @@ function setEditorHTML(html, node) {
 
 // ── Toolbar actions ──
 function wireEditorToolbar() {
+  if (editorToolbarWired) return;
+  editorToolbarWired = true;
+
   document.addEventListener('click', async e => {
     if (e.target.id === 'btn-save') await saveCurrentFile();
+    if (e.target.id === 'btn-json-toggle') await toggleJsonView();
   }, { once: false });
+}
+
+async function toggleJsonView() {
+  if (activeFileKind !== 'json' || !activeFilePath) return;
+
+  const btnSave = document.getElementById('btn-save');
+  const btnToggle = document.getElementById('btn-json-toggle');
+
+  if (btnToggle.textContent === 'Raw') {
+    await showJsonRawView();
+    btnToggle.textContent = 'Table';
+    btnSave.style.display = editorDirty ? 'inline-block' : 'none';
+    return;
+  }
+
+  const ta = document.getElementById('editor-area');
+  if (ta && ta.tagName === 'TEXTAREA') {
+    activeJsonText = ta.value;
+  }
+  if (!renderJsonFromText(activeJsonText)) {
+    return;
+  }
+  btnToggle.textContent = 'Raw';
+  btnSave.style.display = 'none';
 }
 
 async function saveCurrentFile() {
@@ -973,6 +1312,7 @@ async function saveCurrentFile() {
   );
   if (resp.ok) {
     editorDirty = false;
+    activeJsonText = body;
     document.getElementById('btn-save').style.display = 'none';
     toast('Saved ✓');
   } else {

@@ -37,7 +37,7 @@
     },
     "sol-finance-coach": {
       "version": "1.2.1",
-      "description": "Tro ly tai chinh ca nhan 24/7 — kien thuc dau tu, meo tiet kiem, toi uu the tin dung, theo doi chi tieu, gamification. Chay tren Telegram/Zalo, khong truy cap ngan hang.",
+      "description": "Tro ly tai chinh ca nhan 24/7: kien thuc tai chinh, theo doi chi tieu, meo tiet kiem, ban tin hang ngay, toi uu the tin dung, loyalty va deal hunter. Khong truy cap tai khoan ngan hang.",
       "exclude": [
         "cmd",
         "tools",

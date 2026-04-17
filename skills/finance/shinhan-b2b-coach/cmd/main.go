@@ -25,19 +25,19 @@ func main() {
 	case "ap":
 		cmdAP(os.Args[2:])
 	case "discount":
-		errOut("not implemented")
+		cmdDiscount(os.Args[2:])
 	case "pricing":
-		errOut("not implemented")
+		cmdPricing(os.Args[2:])
 	case "health":
-		errOut("not implemented")
+		cmdHealth(os.Args[2:])
 	case "report":
-		errOut("not implemented")
+		cmdReport(os.Args[2:])
 	case "tax":
-		errOut("not implemented")
+		cmdTax(os.Args[2:])
 	case "recommend":
-		errOut("not implemented")
+		cmdRecommend(os.Args[2:])
 	case "banker":
-		errOut("not implemented")
+		cmdBanker(os.Args[2:])
 	default:
 		usage()
 		os.Exit(1)

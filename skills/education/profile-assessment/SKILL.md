@@ -158,7 +158,9 @@ Then run `sa-cli ec add {student_id} "{name}" "{role}" {hours_per_week} "{achiev
 
 ## Profile Scorecard Display
 
-After profile is saved, run `sa-cli student scorecard {student_id}` and register the weekly check-in cron: `sa-cli cron register {student_id} weekly_checkin "0 10 * * 0" {channel} {channel_user_id}`.
+After profile is saved, run `sa-cli student scorecard {student_id}` to fetch the 5-dimension scorecard.
+
+Weekly check-in cron is registered automatically the first time `sa-cli plan create` runs (see study-plan skill). Deadline reminder crons are registered by `sa-cli application add` (see deadline-tracker skill). No manual cron registration is needed at onboarding.
 
 Display the scorecard:
 

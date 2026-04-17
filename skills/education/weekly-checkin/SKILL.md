@@ -130,13 +130,13 @@ Mình sẽ tạm dừng nhắc tuần. Em muốn tạm nghỉ bao lâu?
 ⚠️ Lưu ý: Nếu có deadline ≤ 7 ngày, mình vẫn sẽ nhắc — đây là cảnh báo không thể tắt.
 ```
 
-→ On confirmation: `sa-cli cron pause {student_id} weekly_checkin {weeks}` 
+→ On confirmation: run `sa-cli cron list {student_id}` to find the `weekly_checkin_{student_id}` job id, then `sa-cli cron cancel {job_name}`. Re-register by asking the student to trigger any action that creates a new plan. Deadline reminder crons (7-day and below) are never paused.
 
 ---
 
 ## Cron Registration
 
-Weekly check-in cron is registered automatically when a student's profile is created (via `profile-assessment` skill). The job fires every Sunday at 10:00 local time and delivers a `weekly_checkin` trigger to this skill.
+Weekly check-in cron is registered automatically the first time `sa-cli plan create` runs. The job fires every Sunday at 10:00 local time and delivers a `weekly_checkin` trigger to this skill.
 
 Cron job name pattern: `weekly_checkin_{student_id}`
 

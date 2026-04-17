@@ -138,6 +138,9 @@ EXECUTE         →  essay-review         (brainstorm → draft → polish)
                 →  financial-aid        (so sánh chi phí + CSS Profile)
                 →  weekly-checkin       (tổng hợp tiến độ hàng tuần, Chủ nhật 10:00)
        ↓
+APPLY           →  deadline-tracker     (final checklist + submit từng trường)
+                →  essay-review         (final polish trước khi nộp)
+       ↓
 RESULT          →  offer-comparison     (so sánh offer + ra quyết định)
        ↓
 PRE-DEP         →  pre-departure        (visa F-1, nhà ở, orientation)

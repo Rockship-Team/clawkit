@@ -47,11 +47,15 @@ school-matching     ──→  danh sách Reach/Target/Safety
 study-plan          ──→  lộ trình SAT/TOEFL/GPA
 ec-strategy         ──→  đánh giá + upgrade EC
     │
-    ▼ (vòng lặp hàng tuần)
+    ▼ (EXECUTE — vòng lặp hàng tuần)
 essay-review        ──→  brainstorm → draft → polish
 deadline-tracker    ──→  dashboard + cron reminders
 financial-aid       ──→  so sánh chi phí
 weekly-checkin      ──→  tổng hợp tiến độ, top 3 ưu tiên (Chủ nhật 10:00)
+    │
+    ▼ (APPLY — submit hồ sơ)
+deadline-tracker    ──→  final checklist + submit từng trường
+essay-review        ──→  final polish trước khi nộp
     │
     ▼
 offer-comparison    ──→  so sánh offer + quyết định

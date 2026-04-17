@@ -1,0 +1,44 @@
+{
+  "wholesale": {
+    "gross_margin_pct": 15,
+    "net_margin_pct": 5,
+    "dso_days": 35,
+    "dpo_days": 25
+  },
+  "manufacturing": {
+    "gross_margin_pct": 25,
+    "net_margin_pct": 8,
+    "dso_days": 40,
+    "dpo_days": 30
+  },
+  "retail": {
+    "gross_margin_pct": 30,
+    "net_margin_pct": 7,
+    "dso_days": 10,
+    "dpo_days": 20
+  },
+  "service": {
+    "gross_margin_pct": 45,
+    "net_margin_pct": 15,
+    "dso_days": 30,
+    "dpo_days": 15
+  },
+  "construction": {
+    "gross_margin_pct": 20,
+    "net_margin_pct": 6,
+    "dso_days": 60,
+    "dpo_days": 45
+  },
+  "fmcg": {
+    "gross_margin_pct": 20,
+    "net_margin_pct": 5,
+    "dso_days": 20,
+    "dpo_days": 30
+  },
+  "technology": {
+    "gross_margin_pct": 50,
+    "net_margin_pct": 12,
+    "dso_days": 35,
+    "dpo_days": 20
+  }
+}

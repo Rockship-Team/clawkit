@@ -1,0 +1,219 @@
+{
+  "tables": {
+    "company_profile": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        { "name": "company_id", "type": "text", "required": true },
+        { "name": "name", "type": "text", "required": true },
+        { "name": "tax_code", "type": "text" },
+        { "name": "industry", "type": "text" },
+        { "name": "employee_count", "type": "integer" },
+        { "name": "monthly_revenue_avg", "type": "integer" },
+        { "name": "monthly_expense_avg", "type": "integer" },
+        { "name": "cash_reserve", "type": "integer" },
+        { "name": "current_bank_products", "type": "text" },
+        { "name": "accounting_software", "type": "text" },
+        { "name": "fiscal_year_start", "type": "integer", "default": 1 },
+        { "name": "owner_user_id", "type": "text", "ref": "profile" },
+        { "name": "health_score", "type": "integer" },
+        { "name": "risk_grade", "type": "text" },
+        { "name": "onboarded", "type": "text", "default": "false" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "business_transactions": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "date", "type": "text", "required": true },
+        { "name": "type", "type": "text", "required": true },
+        { "name": "direction", "type": "text", "required": true },
+        { "name": "counterparty", "type": "text" },
+        {
+          "name": "amount",
+          "type": "integer",
+          "required": true,
+          "role": "price"
+        },
+        { "name": "category", "type": "text", "required": true },
+        { "name": "invoice_number", "type": "text" },
+        { "name": "due_date", "type": "text" },
+        { "name": "paid_date", "type": "text" },
+        { "name": "status", "type": "text", "default": "pending" },
+        { "name": "note", "type": "text" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "cashflow_forecast": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "forecast_date", "type": "text", "required": true },
+        { "name": "period_start", "type": "text", "required": true },
+        { "name": "period_end", "type": "text", "required": true },
+        { "name": "scenario", "type": "text", "default": "base" },
+        { "name": "opening_balance", "type": "integer" },
+        { "name": "inflows_confirmed", "type": "integer" },
+        { "name": "inflows_expected", "type": "integer" },
+        { "name": "outflows_confirmed", "type": "integer" },
+        { "name": "outflows_expected", "type": "integer" },
+        { "name": "net_cashflow", "type": "integer" },
+        { "name": "closing_balance", "type": "integer" },
+        { "name": "gap_alert", "type": "text", "default": "false" },
+        { "name": "line_items", "type": "text" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "receivables": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "customer_name", "type": "text", "required": true },
+        { "name": "invoice_number", "type": "text" },
+        {
+          "name": "amount",
+          "type": "integer",
+          "required": true,
+          "role": "price"
+        },
+        { "name": "issued_date", "type": "text" },
+        { "name": "due_date", "type": "text", "required": true },
+        { "name": "paid_date", "type": "text" },
+        { "name": "status", "type": "text", "default": "outstanding" },
+        { "name": "days_overdue", "type": "integer", "default": 0 },
+        { "name": "aging_bucket", "type": "text" },
+        { "name": "collection_probability", "type": "integer", "default": 100 },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "payables": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "vendor_name", "type": "text", "required": true },
+        { "name": "invoice_number", "type": "text" },
+        {
+          "name": "amount",
+          "type": "integer",
+          "required": true,
+          "role": "price"
+        },
+        { "name": "issued_date", "type": "text" },
+        { "name": "due_date", "type": "text", "required": true },
+        { "name": "paid_date", "type": "text" },
+        { "name": "status", "type": "text", "default": "outstanding" },
+        { "name": "early_pay_discount_pct", "type": "integer" },
+        { "name": "early_pay_deadline", "type": "text" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "discount_strategies": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "strategy_type", "type": "text", "required": true },
+        { "name": "target_segment", "type": "text" },
+        { "name": "discount_pct", "type": "integer" },
+        { "name": "condition", "type": "text" },
+        { "name": "projected_revenue_impact", "type": "integer" },
+        { "name": "projected_margin_impact", "type": "integer" },
+        { "name": "ai_recommendation", "type": "text" },
+        { "name": "status", "type": "text", "default": "proposed" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "bank_product_recommendations": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "product_type", "type": "text", "required": true },
+        { "name": "product_name", "type": "text", "required": true },
+        { "name": "trigger_reason", "type": "text", "required": true },
+        { "name": "trigger_data", "type": "text" },
+        { "name": "estimated_amount", "type": "integer" },
+        { "name": "priority", "type": "text", "default": "medium" },
+        { "name": "status", "type": "text", "default": "new" },
+        { "name": "assigned_rm", "type": "text" },
+        { "name": "contacted_at", "type": "text" },
+        { "name": "outcome", "type": "text" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "business_health_metrics": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "period", "type": "text", "required": true },
+        { "name": "revenue", "type": "integer" },
+        { "name": "cogs", "type": "integer" },
+        { "name": "gross_margin_pct", "type": "integer" },
+        { "name": "operating_expenses", "type": "integer" },
+        { "name": "net_profit", "type": "integer" },
+        { "name": "net_margin_pct", "type": "integer" },
+        { "name": "current_ratio", "type": "text" },
+        { "name": "quick_ratio", "type": "text" },
+        { "name": "dso_days", "type": "integer" },
+        { "name": "dpo_days", "type": "integer" },
+        { "name": "cash_conversion_cycle", "type": "integer" },
+        { "name": "burn_rate", "type": "integer" },
+        { "name": "runway_months", "type": "integer" },
+        { "name": "health_score", "type": "integer" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    },
+    "coach_conversations_b2b": {
+      "fields": [
+        { "name": "id", "type": "integer", "auto": "increment" },
+        {
+          "name": "company_id",
+          "type": "text",
+          "required": true,
+          "ref": "company_profile"
+        },
+        { "name": "user_id", "type": "text", "required": true },
+        { "name": "question", "type": "text", "required": true },
+        { "name": "topic", "type": "text", "required": true },
+        { "name": "intent", "type": "text" },
+        { "name": "product_signal", "type": "text" },
+        { "name": "created_at", "type": "text", "role": "timestamp" }
+      ]
+    }
+  },
+  "primary": "business_transactions",
+  "timezone": "Asia/Ho_Chi_Minh"
+}

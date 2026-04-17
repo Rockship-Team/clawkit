@@ -1,0 +1,46 @@
+{
+  "deadlines": [
+    {
+      "tax_type": "vat",
+      "period": "monthly",
+      "rule": "Ngay 20 thang sau",
+      "note": "DN DT >50 ty"
+    },
+    {
+      "tax_type": "vat",
+      "period": "quarterly",
+      "rule": "Ngay cuoi thang dau quy sau",
+      "note": "DN DT <=50 ty"
+    },
+    {
+      "tax_type": "cit",
+      "period": "quarterly",
+      "rule": "Ngay 30 thang dau quy sau",
+      "note": "Tam nop TNDN"
+    },
+    {
+      "tax_type": "cit",
+      "period": "annually",
+      "rule": "Thang 3 nam sau",
+      "note": "Quyet toan TNDN"
+    },
+    {
+      "tax_type": "pit",
+      "period": "monthly",
+      "rule": "Ngay 20 thang sau",
+      "note": "Khau tru TNCN"
+    },
+    {
+      "tax_type": "financial_report",
+      "period": "annually",
+      "rule": "Thang 3 nam sau",
+      "note": "BCTC nam"
+    },
+    {
+      "tax_type": "license_fee",
+      "period": "annually",
+      "rule": "Ngay 30/01",
+      "note": "Le phi mon bai"
+    }
+  ]
+}

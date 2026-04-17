@@ -1,0 +1,90 @@
+[
+  {
+    "type": "working_capital",
+    "name": "Shinhan Revolving Credit Line",
+    "rate": "8.5%/nam",
+    "min": 200000000,
+    "max": 5000000000,
+    "description": "Han muc tin dung quay vong, giai ngan trong 24h"
+  },
+  {
+    "type": "invoice_financing",
+    "name": "Shinhan Invoice Factoring",
+    "rate": "7-9%/nam",
+    "min": 500000000,
+    "max": 20000000000,
+    "description": "Chiet khau cong no phai thu, nhan tien ngay"
+  },
+  {
+    "type": "supply_chain",
+    "name": "Shinhan Supply Chain Financing",
+    "rate": "6.5-8%/nam",
+    "min": 300000000,
+    "max": 10000000000,
+    "description": "Thanh toan NCC truoc, doanh nghiep tra sau"
+  },
+  {
+    "type": "expansion_loan",
+    "name": "Shinhan Business Growth Loan",
+    "rate": "7.9%/nam",
+    "min": 500000000,
+    "max": 50000000000,
+    "description": "Vay mo rong kinh doanh, thoi han 1-5 nam"
+  },
+  {
+    "type": "equipment",
+    "name": "Shinhan Equipment Financing",
+    "rate": "8-10%/nam",
+    "min": 200000000,
+    "max": 10000000000,
+    "description": "Tai tro mua thiet bi, tai san co dinh"
+  },
+  {
+    "type": "deposit",
+    "name": "Shinhan Business Term Deposit",
+    "rate": "5-6.5%/nam",
+    "min": 100000000,
+    "max": 0,
+    "description": "Gui tiet kiem doanh nghiep, lai suat uu dai"
+  },
+  {
+    "type": "trade_finance",
+    "name": "Shinhan Trade Finance / LC",
+    "rate": "varies",
+    "min": 500000000,
+    "max": 0,
+    "description": "Thu tin dung, bao lanh XNK"
+  },
+  {
+    "type": "fx_hedging",
+    "name": "Shinhan FX Hedging Account",
+    "rate": "varies",
+    "min": 0,
+    "max": 0,
+    "description": "Phong ngua rui ro ti gia cho DN nhap khau"
+  },
+  {
+    "type": "insurance",
+    "name": "Shinhan Group Insurance",
+    "rate": "varies",
+    "min": 0,
+    "max": 0,
+    "description": "Bao hiem nhom nhan vien"
+  },
+  {
+    "type": "payroll",
+    "name": "Shinhan Payroll Service",
+    "rate": "free",
+    "min": 0,
+    "max": 0,
+    "description": "Dich vu chi luong tu dong + bao hiem"
+  },
+  {
+    "type": "premium_account",
+    "name": "Shinhan Premium Business Account",
+    "rate": "varies",
+    "min": 0,
+    "max": 0,
+    "description": "Tai khoan DN cao cap voi uu dai dac biet"
+  }
+]

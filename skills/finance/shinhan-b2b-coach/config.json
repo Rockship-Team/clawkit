@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    {
+      "key": "company_name",
+      "label": "Ten doanh nghiep",
+      "placeholder": "Cong ty TNHH ABC"
+    },
+    {
+      "key": "industry",
+      "label": "Nganh nghe",
+      "placeholder": "wholesale/manufacturing/retail/service"
+    },
+    { "key": "tax_code", "label": "Ma so thue", "placeholder": "0312345678" }
+  ],
+  "exclude": ["cmd", "*.go", "*.tmp"]
+}

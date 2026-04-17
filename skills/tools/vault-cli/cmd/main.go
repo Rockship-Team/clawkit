@@ -41,22 +41,4 @@ func main() {
 	}
 }
 
-func cmdNote(args []string) {
-	errOut("not implemented")
-}
-
-func cmdMemory(args []string) {
-	errOut("not implemented")
-}
-
-func cmdSession(args []string) {
-	errOut("not implemented")
-}
-
-func cmdLearn(args []string) {
-	errOut("not implemented")
-}
-
-func cmdSearch(args []string) {
-	errOut("not implemented")
-}
+// Command implementations are in note.go, memory.go, session.go, learn.go

@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "requires_bins": ["vault-cli"],
+  "setup_prompts": [],
+  "exclude": ["cmd", "*.go"]
+}

@@ -212,3 +212,33 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
+
+## Memory Protocol
+
+You have persistent memory across sessions. At the start of each session:
+
+1. Check `vault-cli memory show` for stored context
+2. Check `vault-cli learn list` for saved procedures
+
+### When to save memory
+
+- User shares company info (tax code, address, preferences) → `vault-cli memory set MEMORY.md "<info>"`
+- User corrects you → `vault-cli memory set MEMORY.md "User prefers: <correction>"`
+- You discover environment details → `vault-cli memory set MEMORY.md "<detail>"`
+
+### When to save a skill
+
+- After completing a task with 5+ tool calls → `vault-cli learn save-skill`
+- After fixing a tricky error → save the solution
+- After discovering a non-obvious workflow → document it
+
+### When to update a skill
+
+- If a loaded skill was missing steps → `vault-cli learn patch-skill` before finishing
+- If user corrects a procedure → update the skill
+
+### Memory limits
+
+- MEMORY.md: 2,200 characters max. Consolidate before adding.
+- USER.md: 1,375 characters max. Only store user preferences.
+- Prioritize what reduces future user corrections.

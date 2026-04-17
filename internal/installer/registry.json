@@ -1,5 +1,16 @@
 {
   "skills": {
+    "agent-learner": {
+      "version": "1.0.0",
+      "description": "Tu hoc va cai thien — luu quy trinh thanh cong, cap nhat khi phat hien thieu sot, tim kiem kinh nghiem cu.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "bds-broker": {
       "version": "4.0.0",
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
@@ -29,6 +40,23 @@
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
       "requires_bins": [
         "gog"
+      ]
+    },
+    "knowledge-vault": {
+      "version": "1.0.0",
+      "description": "Quan ly kien thuc doanh nghiep trong Obsidian vault — ghi chep, tim kiem, lien ket, to chuc thong tin.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "setup_prompts": [
+        {
+          "key": "vault_path",
+          "label": ""
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
       ]
     },
     "rockship-support": {

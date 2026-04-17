@@ -111,6 +111,17 @@ func Serve(port int, registryData []byte) error {
 		}
 	})
 
+	// B2B Finance Coach dashboard API
+	mux.HandleFunc("/api/b2b/", func(w http.ResponseWriter, r *http.Request) {
+		handleB2B(w, r)
+	})
+
+	// Serve B2B dashboard HTML
+	mux.HandleFunc("/b2b", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprint(w, b2bPage)
+	})
+
 	// Serve dashboard HTML
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -870,6 +881,7 @@ table.sql-table td { padding: 6px 12px; border-bottom: 1px solid #1c1c1f; }
   <span>⚙️</span>
   <h1>Clawkit Dashboard</h1>
   <span class="badge" id="badge">loading…</span>
+  <a href="/b2b" style="margin-left:12px;padding:4px 12px;background:#0f4c81;color:#fff;border-radius:4px;font-size:11px;text-decoration:none;font-weight:500">B2B Dashboard</a>
 </header>
 
 <div class="app">

@@ -19,11 +19,11 @@ func main() {
 	case "txn":
 		cmdTxn(os.Args[2:])
 	case "cashflow":
-		errOut("not implemented")
+		cmdCashflow(os.Args[2:])
 	case "ar":
-		errOut("not implemented")
+		cmdAR(os.Args[2:])
 	case "ap":
-		errOut("not implemented")
+		cmdAP(os.Args[2:])
 	case "discount":
 		errOut("not implemented")
 	case "pricing":

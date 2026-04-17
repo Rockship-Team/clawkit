@@ -54,6 +54,12 @@ func main() {
 		installer.CmdUninstall(os.Args[2])
 	case "status":
 		installer.CmdStatus()
+	case "web":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit web <skill-name>")
+			os.Exit(1)
+		}
+		installer.CmdWeb(os.Args[2])
 	case "package":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit package <skill-name>")
@@ -93,6 +99,7 @@ Commands:
   uninstall <skill>     Uninstall a skill (restores prior workspace files)
   update  <skill>       Update an installed skill
   status                Show installed skills
+	web <skill>           Serve the skill web UI at http://localhost:7432
   dashboard             Start web dashboard (default port 7432)
   package <skill>       Package a skill for distribution (dev)
   version               Print version

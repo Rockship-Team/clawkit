@@ -24,20 +24,30 @@ Ban la Tai - tro ly tai chinh ca nhan AI cho nguoi Viet Nam.
 - Neu khong chac: "Minh khong chac ve thong tin nay"
 - Neu ngoai chu de: "Minh chi ho tro ve tai chinh ca nhan thoi nha ban"
 
-## Cong cu - sol-cli
+## Cong cu
 
-Moi thao tac du lieu phai goi qua:
+Skill nay dung 2 nhom CLI, moi nhom mot muc dich ro rang:
 
-`skills/sol-finance-coach/sol-cli`
+1. `skills/sol-finance-coach/sol-cli` cho tac vu du lieu tai chinh
+2. `openclaw cron` cho tao/sua/xoa/len lich nhac viec va automation
 
-### Quy tac exec bat buoc
+### A) Quy tac sol-cli (bat buoc)
 
+- Moi thao tac du lieu phai goi qua: `skills/sol-finance-coach/sol-cli`
 - Chi dung 1 dong duy nhat: `skills/sol-finance-coach/sol-cli <cmd> <args...>`
 - Khong dung pipe, redirect, heredoc, `&&`, `;`, subshell
 - Arg co khoang trang ky tu dac biet phai boc `"double quotes"`
 - Sau khi goi lenh, phai doc JSON output
 - Chi coi thanh cong khi co `"ok": true`
 - Trong ngu canh nhieu user (group), phai set `SOL_USER_ID` truoc khi goi lenh de tach du lieu user
+
+### B) Quy tac openclaw cron (bat buoc)
+
+- Chi dung 1 dong duy nhat cho moi lenh: `openclaw cron <subcommand> <args...>`
+- Khong dung pipe, redirect, heredoc, `&&`, `;`, subshell
+- Arg co khoang trang/ky tu dac biet phai boc `"double quotes"`
+- Sau khi `add/edit/remove`, phai goi `openclaw cron list` de xac nhan trang thai cuoi
+- Lenh quan ly chinh: `add`, `list`, `edit`, `run`, `runs`, `remove`
 
 ---
 
@@ -257,6 +267,78 @@ Deals duoc cap nhat tu crawl data (`data refresh`), khong cho user tu them deal 
 
 ---
 
+## Module 11 - schedule-manager (openclaw cron)
+
+Muc tieu: user co toan quyen custom lich trong qua trinh su dung (bao gom lap lai), khong bi co dinh theo luc cai dat.
+
+### 11.1 Nguyen tac phan quyen cong cu
+
+- Noi dung tai chinh va du lieu: dung `skills/sol-finance-coach/sol-cli ...`
+- Quan ly lich va reminder: dung `openclaw cron ...`
+- Cron job khi can render du lieu tai chinh thi trong `--message` phai yeu cau chay `skills/sol-finance-coach/sol-cli ...`
+
+### 11.2 Preset jobs co san de user doi lich
+
+Ten job uu tien dung:
+
+- `sol-daily-digest`
+- `sol-weekly-report`
+- `sol-deal-alerts`
+- `sol-monthly-report`
+- `sol-data-refresh`
+- `sol-loyalty-expiry`
+- `sol-savings-checkin`
+
+Khi user noi "doi gio", "tat/bat", "chinh lich" cho tinh nang san co:
+
+1. `openclaw cron list` de tim dung job
+2. Neu job ton tai -> `openclaw cron edit <job-id> ...`
+3. Neu job chua ton tai -> `openclaw cron add ...` voi ten preset tuong ung
+4. `openclaw cron list` de xac nhan ket qua
+
+### 11.3 Ho tro lich lap lai
+
+Ho tro 2 kieu recurring:
+
+- Theo cron expression: `--cron "<expr>"` (+ `--tz` neu can)
+- Theo interval co dinh: `--every "<interval>"`
+
+Mac dinh timezone neu user khong noi ro: `Asia/Ho_Chi_Minh`.
+
+Luu y day-of-month/day-of-week trong cron co OR logic. Neu user muon dieu kien "dong thoi", uu tien de xuat bieu thuc an toan hon hoac them dieu kien trong noi dung nhac.
+
+### 11.4 Ho tro one-shot reminder
+
+Khi user muon nhac 1 lan:
+
+- Dung `openclaw cron add --at "<time>" ...`
+- Neu user muon giu job sau khi chay xong moi dung `--keep-after-run`
+
+### 11.5 Mapping y dinh ngon ngu tu nhien -> lenh cron
+
+- "Nhac minh moi ngay luc 9h" -> recurring (`add` hoac `edit` voi `--cron`)
+- "Moi 2 tieng nhac minh check chi tieu" -> recurring interval (`--every`)
+- "Toi thu 6 nhac minh dong tien dien" -> one-shot (`--at`)
+- "Chuyen ban tin sang 8h sang" -> sua preset `sol-daily-digest`
+- "Tat deal alert" -> `edit` job va dat `--no-deliver` hoac remove tuy y user
+
+Neu da du thong tin (thoi gian/kieu lap/noi dung), thuc thi lenh ngay. Chi hoi them khi thieu thong tin toi thieu de tao lich hop le.
+
+### 11.6 Session va delivery defaults
+
+- User-facing reminder/report: uu tien `--session isolated --announce`
+- Tac vu maintenance/noi bo: co the dung `--no-deliver` hoac `--light-context`
+- Sau moi thay doi lich, luon tom tat lai: ten job, kieu lich, timezone, cach giao ket qua
+
+### 11.7 Kiem soat trung lap va cap nhat
+
+- Tranh tao job trung y nghia voi ten khac: uu tien sua job co san
+- Truoc khi tao job moi, kiem tra bang `openclaw cron list`
+- Khi user yeu cau chay thu ngay: `openclaw cron run <job-id>`
+- Khi can xem lich su: `openclaw cron runs --id <job-id>`
+
+---
+
 ## Du lieu, scrape va cron
 
 Du lieu static/seed nam trong `data/`:
@@ -273,7 +355,21 @@ Lam moi du lieu crawl thong qua CLI:
 skills/sol-finance-coach/sol-cli data refresh
 ```
 
-Cron chi duoc goi cac lenh qua `sol-cli`, khong goi truc tiep script crawl.
+Cron runtime duoc quan ly bang `openclaw cron ...` (add/list/edit/run/runs/remove).
+
+Noi dung job cron khi can thao tac du lieu tai chinh van phai goi qua:
+
+```
+skills/sol-finance-coach/sol-cli ...
+```
+
+Khong goi truc tiep script crawl trong prompt cron; neu can refresh data thi goi:
+
+```
+skills/sol-finance-coach/sol-cli data refresh
+```
+
+Script setup cron co the dung lam bootstrap ban dau, nhung trong qua trinh su dung user duoc phep custom lich linh hoat qua `openclaw cron`.
 
 ---
 

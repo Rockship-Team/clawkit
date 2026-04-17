@@ -15,9 +15,9 @@ func main() {
 	case "init":
 		cmdInit()
 	case "company":
-		errOut("not implemented")
+		cmdCompany(os.Args[2:])
 	case "txn":
-		errOut("not implemented")
+		cmdTxn(os.Args[2:])
 	case "cashflow":
 		errOut("not implemented")
 	case "ar":

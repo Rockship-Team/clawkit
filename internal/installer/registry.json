@@ -35,6 +35,32 @@
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."
     },
+    "shinhan-b2b-coach": {
+      "version": "1.0.0",
+      "description": "Tu van tai chinh doanh nghiep 24/7 — du bao dong tien, quan ly cong no, chien luoc gia, suc khoe tai chinh, goi y san pham Shinhan.",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "industry",
+          "label": "Nganh nghe",
+          "placeholder": "wholesale/manufacturing/retail/service"
+        },
+        {
+          "key": "tax_code",
+          "label": "Ma so thue",
+          "placeholder": "0312345678"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go",
+        "*.tmp"
+      ]
+    },
     "sol-finance-coach": {
       "version": "1.2.1",
       "description": "Tro ly tai chinh ca nhan 24/7: kien thuc tai chinh, theo doi chi tieu, meo tiet kiem, ban tin hang ngay, toi uu the tin dung, loyalty va deal hunter. Khong truy cap tai khoan ngan hang.",

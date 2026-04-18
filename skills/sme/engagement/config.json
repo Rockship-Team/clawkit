@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "requires_bins": ["curl", "jq"],
+  "setup_prompts": [
+    {
+      "key": "default_language",
+      "label": "Ngon ngu mac dinh cho daily briefing (vi hoac en)",
+      "placeholder": "vi"
+    },
+    {
+      "key": "user_timezone",
+      "label": "Timezone cho snooze (vd Asia/Ho_Chi_Minh)",
+      "placeholder": "Asia/Ho_Chi_Minh"
+    }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

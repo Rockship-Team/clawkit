@@ -1,1 +1,49 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Binaries
 clawkit
+clawkit.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Build / dist output
+/dist/
+/build/
+
+# Packaged skills
+*.tar.gz
+*.zip
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Env / local config
+.env
+.env.local
+
+# Logs
+*.log
+
+# Local scratch
+plans/

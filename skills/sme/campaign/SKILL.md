@@ -34,7 +34,7 @@ Dung cho workshop, webinar, networking, product launch.
 2. **Tao event:**
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh POST /v1/events '{
+   sme-cli cosmo api POST /v1/events '{
      "title":"AI for SME Workshop",
      "date":"2026-05-01T14:00:00+07:00",
      "venue":"Rockship HQ",
@@ -48,7 +48,7 @@ Dung cho workshop, webinar, networking, product launch.
 3. **Publish:**
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh PATCH /v1/events/UUID '{"status":"published"}'
+   sme-cli cosmo api PATCH /v1/events/UUID '{"status":"published"}'
    ```
 
 4. **(Optional) Tao campaign moi** cho contact list co san:
@@ -56,7 +56,7 @@ Dung cho workshop, webinar, networking, product launch.
 
 5. **Theo doi dang ky:**
    ```bash
-   ../_cli/scripts/cosmo_api.sh GET /v1/events/UUID
+   sme-cli cosmo api GET /v1/events/UUID
    ```
    Ai dang ky se tu dong tao contact trong CRM voi `business_stage = ENGAGED` va `source = event:{slug}`.
 
@@ -65,7 +65,7 @@ Dung cho workshop, webinar, networking, product launch.
 Neu can form dang ky stand-alone (ngoai event page):
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/inbound-lead-forms '{"name":"Workshop Apr","slug":"workshop-apr"}'
+sme-cli cosmo api POST /v1/inbound-lead-forms '{"name":"Workshop Apr","slug":"workshop-apr"}'
 ```
 
 ## B. CAMPAIGN LOAI ONLINE OUTREACH
@@ -78,13 +78,13 @@ Dung de gui email / LinkedIn theo playbook cho danh sach khach hang.
 Search CRM hoac dung segment:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v2/contacts/search '{"query":"fintech founder"}'
+sme-cli cosmo api POST /v2/contacts/search '{"query":"fintech founder"}'
 ```
 
 **2. Tao contact list** (neu chua co):
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/list-contacts '{
+sme-cli cosmo api POST /v1/list-contacts '{
   "name":"Q2 Fintech Outreach",
   "contact_ids":["UUID1","UUID2","UUID3"]
 }'
@@ -93,7 +93,7 @@ Search CRM hoac dung segment:
 **3. Lay agent (tai khoan email gui):**
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/agents/search '{"filter_":{}}'
+sme-cli cosmo api POST /v1/agents/search '{"filter_":{}}'
 ```
 
 Chon agent dau tien, DO NOT hoi user.
@@ -101,7 +101,7 @@ Chon agent dau tien, DO NOT hoi user.
 **4. Tao campaign o status DRAFT:**
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/campaigns '{
+sme-cli cosmo api POST /v1/campaigns '{
   "name":"Q2 Fintech Outreach",
   "playbook":"cold_outreach",
   "list_contact_id":"UUID_list",
@@ -119,25 +119,25 @@ Playbook mac dinh:
 **5. Generate AI templates cho campaign:**
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v3/campaigns/UUID/templates
+sme-cli cosmo api POST /v3/campaigns/UUID/templates
 ```
 
 Neu mot template chua hay, regenerate:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v3/campaigns/UUID/templates/TEMPLATE_UUID
+sme-cli cosmo api POST /v3/campaigns/UUID/templates/TEMPLATE_UUID
 ```
 
 **6. (Optional) Preview sample response:**
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v3/campaigns/UUID/generate-sample-response
+sme-cli cosmo api POST /v3/campaigns/UUID/generate-sample-response
 ```
 
 **7. Activate (PATCH — day la buoc trigger gui email):**
 
 ```bash
-../_cli/scripts/cosmo_api.sh PATCH /v1/campaigns/UUID '{"status":"active"}'
+sme-cli cosmo api PATCH /v1/campaigns/UUID '{"status":"active"}'
 ```
 
 ⚠️ **Khong activate → khong co email nao duoc gui.**
@@ -145,9 +145,9 @@ Neu mot template chua hay, regenerate:
 ### Theo doi campaign
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET  /v1/campaigns/UUID/intelligence   # open/reply rate
-../_cli/scripts/cosmo_api.sh POST /v2/campaigns/search '{"query":""}'
-../_cli/scripts/cosmo_api.sh POST /v2/emails/search '{"filter":{"campaign_id":"UUID"}}'
+sme-cli cosmo api GET  /v1/campaigns/UUID/intelligence   # open/reply rate
+sme-cli cosmo api POST /v2/campaigns/search '{"query":""}'
+sme-cli cosmo api POST /v2/emails/search '{"filter":{"campaign_id":"UUID"}}'
 ```
 
 ### Playbooks & automation rules
@@ -155,14 +155,14 @@ Neu mot template chua hay, regenerate:
 Neu can playbook moi (ngoai 3 cai mac dinh):
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET  /v1/playbooks
-../_cli/scripts/cosmo_api.sh POST /v1/playbooks '{"name":"Enterprise Nurture","strategy":"cold_outreach"}'
+sme-cli cosmo api GET  /v1/playbooks
+sme-cli cosmo api POST /v1/playbooks '{"name":"Enterprise Nurture","strategy":"cold_outreach"}'
 ```
 
 Automation rule (tu dong enroll contact khi thoa segment + score):
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/automation-rules '{
+sme-cli cosmo api POST /v1/automation-rules '{
   "segmentation_id":"UUID_segment",
   "playbook_id":"UUID_playbook",
   "min_score":70
@@ -176,7 +176,7 @@ Clawkit/COSMO **khong chay ads truc tiep**. Workflow:
 1. **Tao inbound lead form** de thu lead tu ads:
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh POST /v1/inbound-lead-forms '{"name":"FB Ads Q2","slug":"fb-ads-q2"}'
+   sme-cli cosmo api POST /v1/inbound-lead-forms '{"name":"FB Ads Q2","slug":"fb-ads-q2"}'
    ```
 
    Form se tao public URL; paste vao landing page cua ads.
@@ -184,7 +184,7 @@ Clawkit/COSMO **khong chay ads truc tiep**. Workflow:
 2. **Tao segmentation** cho lead tu ads:
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh POST /v1/segmentations '{"name":"From FB Ads Q2","description":"Leads from FB ads Q2/2026"}'
+   sme-cli cosmo api POST /v1/segmentations '{"name":"From FB Ads Q2","description":"Leads from FB ads Q2/2026"}'
    ```
 
 3. **Tao automation rule** de auto-enroll lead moi vao campaign nurture:
@@ -194,7 +194,7 @@ Clawkit/COSMO **khong chay ads truc tiep**. Workflow:
 
 5. **Track lead tu source:**
    ```bash
-   ../_cli/scripts/cosmo_api.sh POST /v2/contacts/search '{"filter":{"source":"fb_ads_q2"}}'
+   sme-cli cosmo api POST /v2/contacts/search '{"filter":{"source":"fb_ads_q2"}}'
    ```
 
 ## HAND-OFF: CAMPAIGN → ENGAGEMENT

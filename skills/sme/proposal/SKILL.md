@@ -47,13 +47,13 @@ Khi user noi "proposal", "quote", "bao gia", "viet de xuat" — theo dung 7 buoc
 
 ## Step 1 — Collect Client Input
 
-1. **Check CRM truoc**: `../_cli/scripts/cosmo_search_contact.sh "company"`
+1. **Check CRM truoc**: `sme-cli cosmo search-contact "company"`
    - Co → dung data tu CRM (profile, `ai_insights`, past interactions)
    - Khong co → hoi user hoac research Apollo
 2. Neu user cung cap meeting notes, extract: requirements, budget, timeline, decision maker, pain points, missing info.
 3. Neu user chi cung cap ten cong ty, research Apollo:
-   - `../_cli/scripts/apollo_search_company.sh "company"`
-   - `../_cli/scripts/apollo_search_people.sh "company" "c_suite,vp"`
+   - `sme-cli apollo search-company "company"`
+   - `sme-cli apollo search-people "company" "c_suite,vp"`
 
 ## Step 2 — Normalize Information
 
@@ -62,7 +62,7 @@ Standardize tat ca data vao unified client brief.
 
 Output: company profile, requirements, commercial terms, signals, missing info. Flag anything incomplete.
 
-Neu client chua co trong CRM, tao contact: `../_cli/scripts/cosmo_create_contact.sh`
+Neu client chua co trong CRM, tao contact: `sme-cli cosmo create-contact`
 
 ## Step 3 — Determine Proposal Type
 
@@ -113,10 +113,26 @@ Present outline cho user review:
 
 ## Step 7 — Generate & Export PDF via Manus AI (CHI SAU KHI user approve)
 
-> **MANDATORY PRE-CHECK:**
+> **MANDATORY PRE-CHECK — failing any of these = hard failure:**
 >
-> 1. User da approve Step 6 chua? Neu KHONG → STOP. Quay lai Step 6.
-> 2. **BANNED tools** — NEU dinh dung BAT KY cong cu nay, STOP IMMEDIATELY:
+> 1. **APPROVAL GATE (HARD STOP).** Tin nhan CUOI CUNG cua user phai chua mot
+>    trong cac tu khoa: `approve`, `duyet`, `OK`, `duoc roi`, `dong y`, `gen di`,
+>    `chot`. Khong duoc suy dien — neu thieu tu khoa → **STOP, quay lai Step 6**
+>    va present outline + hoi "Em chot luon nhe?". Vi pham = burn API credits ko ly do.
+> 2. **NO AUTO-RETRY.** Neu `sme-cli manus generate-proposal` tra error
+>    (timeout / rate limit / 5xx / "busy") → **STOP NGAY**. Bao user:
+>    "Manus dang loi, anh thu lai sau 2-3 phut nha." **TUYET DOI khong**
+>    chay lai cau lenh — moi lan retry = task moi tren Manus = double credits.
+> 2b. **HANDLE status=pending.** Neu output co `"status": "pending"` va `"task_id"`,
+>    NGHIA LA task van dang chay tren Manus (chua xong). **TUYET DOI khong**
+>    chay lai `manus generate-proposal`. Phai poll bang:
+>    `sme-cli manus get-task <task_id>` (tu output truoc).
+>    Cho ~1 phut roi check lai. Lap lai check toi da 5 lan, neu van pending
+>    thi bao user "Manus busy, em check lai sau 5 phut" — KHONG tao task moi.
+> 3. **PRESERVE FULL URL.** Khi share PDF link, paste **RAW URL day du**
+>    (bao gom `?Policy=...&Key-Pair-Id=...&Signature=...`). KHONG dung markdown
+>    `[text](url)` — Telegram parser cat query string. Cat query = link 403 broken.
+> 4. **BANNED tools** — NEU dinh dung BAT KY cong cu nay, STOP IMMEDIATELY:
 >    Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, generate_pdf.sh,
 >    wkhtmltopdf, Prince, Chrome headless, BAT KY HTML-to-PDF converter nao khac.
 >    Dung banned tool = **hard failure**.
@@ -134,7 +150,7 @@ Present outline cho user review:
 2. Chay script:
 
    ```bash
-   ../_cli/scripts/manus_generate_proposal.sh "{Company_Name}" /tmp/proposal_outline.md
+   sme-cli manus generate-proposal "{Company_Name}" /tmp/proposal_outline.md
    ```
 
    Script tu dong:
@@ -149,12 +165,12 @@ Present outline cho user review:
 
 3. Share PDF URL tu script output voi user.
 
-4. **Log interaction**: `../_cli/scripts/cosmo_log_interaction.sh <contact_id> "proposal_sent"`
+4. **Log interaction**: `sme-cli cosmo log-interaction <contact_id> "proposal_sent"`
 
 5. **PATCH business_stage**:
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh PATCH /v1/contacts/UUID '{"business_stage":"PROPOSAL"}'
+   sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"PROPOSAL"}'
    ```
 
 ## References
@@ -199,7 +215,7 @@ Sau khi update: confirm file nao da thay + summarize diff.
 
 ## Rules
 
-- **PDF = Manus AI ONLY.** `../_cli/scripts/manus_generate_proposal.sh "{Company}" /tmp/outline.md`. ONE command. NO EXCEPTIONS.
+- **PDF = Manus AI ONLY.** `sme-cli manus generate-proposal "{Company}" /tmp/outline.md`. ONE command. NO EXCEPTIONS.
 - **BANNED:** Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, wkhtmltopdf, Prince, Chrome headless. Using ANY banned tool = skill failure.
 - **Do NOT** build Manus JSON / prompt tay. Script handles everything.
 - **Step 6** = present outline → WAIT for approval.

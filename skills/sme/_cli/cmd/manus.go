@@ -19,7 +19,7 @@ var manusTemplates embed.FS
 const (
 	manusDefaultBaseURL = "https://api.manus.ai"
 	manusPollInterval   = 10 * time.Second
-	manusMaxRetries     = 30
+	manusMaxRetries     = 90
 	manusProposalPrompt = "Dựa trên outline dưới đây, tạo 1 bản PDF proposal format đẹp như " +
 		"1 bài thuyết trình. Style giống y chang file style_template.pdf " +
 		"đính kèm nha — giữ đúng màu sắc, layout, font chữ, card design. " +
@@ -254,13 +254,26 @@ func manusGenerateProposal(args []string) {
 		time.Sleep(manusPollInterval)
 	}
 
-	errOut(fmt.Sprintf("proposal generation timed out after %d minutes — the service may be busy",
-		manusMaxRetries*int(manusPollInterval.Seconds())/60))
+	// Polling window exhausted but task is still running on Manus. Return
+	// success with status=pending and the task_id so the caller can resume
+	// polling via `sme-cli manus get-task <task_id>` instead of submitting
+	// a new task and burning credits on a duplicate generation.
+	okOut(map[string]interface{}{
+		"task_id":  taskID,
+		"status":   "pending",
+		"message":  fmt.Sprintf("Manus dang xu ly (qua %d phut). KHONG tao task moi — dung 'sme-cli manus get-task %s' de check lai sau 1-2 phut.", manusMaxRetries*int(manusPollInterval.Seconds())/60, taskID),
+		"poll_cmd": "sme-cli manus get-task " + taskID,
+	})
 }
 
 func firstPDFURL(t manusTaskResponse) string {
 	for _, o := range t.Output {
 		for _, c := range o.Content {
+			// Skip the style reference PDF that we attached as input — Manus
+			// echoes it back in the task output alongside the generated file.
+			if c.FileName == "style_template.pdf" {
+				continue
+			}
 			if c.MimeType == "application/pdf" || strings.HasSuffix(c.FileName, ".pdf") {
 				return c.FileURL
 			}

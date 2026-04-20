@@ -60,6 +60,13 @@ func main() {
 		cmdDashboard(os.Args[2:])
 	case "report":
 		cmdReport(os.Args[2:])
+	// BD / Proposals (COSMO CRM + Apollo + Manus AI)
+	case "cosmo":
+		cmdCosmo(os.Args[2:])
+	case "apollo":
+		cmdApollo(os.Args[2:])
+	case "manus":
+		cmdManus(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
 		usage()
@@ -79,5 +86,6 @@ Legal:       legal licenses|add-license
 HR:          employee, payroll, leave
 Sales:       contact, lead, quote, order
 Ops:         task, document, license
-BI:          dashboard, report`)
+BI:          dashboard, report
+BD:          cosmo, apollo, manus`)
 }

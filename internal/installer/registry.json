@@ -50,9 +50,85 @@
         "*.go"
       ]
     },
+    "campaign": {
+      "version": "1.0.0",
+      "description": "Campaign cho SME — chay su kien gather interest, email/LinkedIn outreach theo plan, online ads. Dua khach hang tu NEW → ENGAGED.",
+      "requires_bins": [
+        "curl",
+        "jq"
+      ],
+      "setup_prompts": [
+        {
+          "key": "default_language",
+          "label": "Ngon ngu mac dinh cho email/content (vi hoac en)",
+          "placeholder": "vi"
+        },
+        {
+          "key": "default_playbook",
+          "label": "Playbook mac dinh khi khong chi dinh",
+          "placeholder": "cold_outreach"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
+    "crm": {
+      "version": "1.0.0",
+      "description": "CRM cho SME Viet Nam — quan ly danh ba, enrich thong tin, phan nhom, diem score, la nen tang cho cac skill ban hang & marketing khac.",
+      "requires_bins": [
+        "curl",
+        "jq"
+      ],
+      "setup_prompts": [
+        {
+          "key": "cosmo_base_url",
+          "label": "COSMO base URL",
+          "placeholder": "https://api.cosmo.example.com"
+        },
+        {
+          "key": "cosmo_auth_email",
+          "label": "COSMO login email",
+          "placeholder": "you@company.com"
+        },
+        {
+          "key": "apollo_api_key",
+          "label": "Apollo.io API key (optional — de lai trong neu khong co)"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "ecom-bot": {
       "version": "1.0.0",
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains."
+    },
+    "engagement": {
+      "version": "1.0.0",
+      "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON.",
+      "requires_bins": [
+        "curl",
+        "jq"
+      ],
+      "setup_prompts": [
+        {
+          "key": "default_language",
+          "label": "Ngon ngu mac dinh cho daily briefing (vi hoac en)",
+          "placeholder": "vi"
+        },
+        {
+          "key": "user_timezone",
+          "label": "Timezone cho snooze (vd Asia/Ho_Chi_Minh)",
+          "placeholder": "Asia/Ho_Chi_Minh"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
     },
     "finance-tracker": {
       "version": "2.0.0",
@@ -89,7 +165,7 @@
     },
     "marketing": {
       "version": "1.0.0",
-      "description": "Marketing SME Viet Nam — tao noi dung, quan ly mang xa hoi, email campaign, theo doi hieu qua.",
+      "description": "Marketing content cho SME Viet Nam — tao bai dang social media, noi dung blog/landing page, A/B copy. Khong quan ly email campaign (xem sme-campaign).",
       "requires_bins": [
         "sme-cli"
       ],
@@ -109,13 +185,37 @@
         "*.go"
       ]
     },
+    "proposal": {
+      "version": "1.0.0",
+      "description": "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF.",
+      "requires_bins": [
+        "curl",
+        "jq"
+      ],
+      "setup_prompts": [
+        {
+          "key": "manus_api_key",
+          "label": "Manus AI API key (bat buoc de tao PDF)",
+          "placeholder": "manus_..."
+        },
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep cua ban (hien len proposal)",
+          "placeholder": "Rockship"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "rockship-support": {
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."
     },
     "sales": {
       "version": "1.0.0",
-      "description": "Ban hang & CRM cho SME Viet Nam — quan ly khach hang, pipeline, bao gia, don hang.",
+      "description": "Ban hang fulfillment cho SME Viet Nam — bao gia local, don hang, payment terms. Khong lam CRM/campaign/engagement/proposal (xem sme-crm, sme-campaign, sme-engagement, sme-proposal).",
       "requires_bins": [
         "sme-cli"
       ],

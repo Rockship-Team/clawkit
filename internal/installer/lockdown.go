@@ -108,15 +108,48 @@ func LockdownWorkspace(skillsDir, skillDir, skillName string) {
 		ui.Warn("Could not reset sessions: %v", err)
 	}
 
-	// Step 6: set the agent skill allowlist to only this skill. This
-	// filters <available_skills> in the LLM's system prompt so the agent
-	// cannot invoke other skills it might otherwise try to use.
-	if err := setSkillsAllowlist(skillName); err != nil {
+	// Step 6: set the agent skill allowlist to only this skill. The
+	// allowlist must use the SKILL.md frontmatter `name`, since OpenClaw
+	// matches by that field — not by install/dir name. They differ for
+	// namespaced skills (e.g. dir `proposal` with frontmatter
+	// `name: sme-proposal`).
+	allowlistName := readSkillRuntimeName(skillDir, skillName)
+	if err := setSkillsAllowlist(allowlistName); err != nil {
 		ui.Warn("Could not set agents.defaults.skills: %v", err)
-		ui.Info("Run manually: openclaw config set agents.defaults.skills '[\"%s\"]'", skillName)
+		ui.Info("Run manually: openclaw config set agents.defaults.skills '[\"%s\"]'", allowlistName)
 	} else {
-		ui.Ok("Set agents.defaults.skills = [\"%s\"]", skillName)
+		ui.Ok("Set agents.defaults.skills = [\"%s\"]", allowlistName)
 	}
+}
+
+// readSkillRuntimeName returns the SKILL.md frontmatter `name` field,
+// falling back to the provided default when the frontmatter is missing or
+// the field cannot be parsed. OpenClaw identifies skills by this field at
+// runtime, so it is what the allowlist needs.
+func readSkillRuntimeName(skillDir, fallback string) string {
+	data, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return fallback
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, "---\n") {
+		return fallback
+	}
+	end := strings.Index(content[4:], "\n---")
+	if end == -1 {
+		return fallback
+	}
+	for _, line := range strings.Split(content[4:4+end], "\n") {
+		if !strings.HasPrefix(line, "name:") {
+			continue
+		}
+		v := strings.TrimSpace(line[len("name:"):])
+		v = strings.Trim(v, `"'`)
+		if v != "" {
+			return v
+		}
+	}
+	return fallback
 }
 
 // removePriorSkills finds other skill directories in skillsDir and prompts

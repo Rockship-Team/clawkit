@@ -91,7 +91,7 @@ func apolloSearchPeople(args []string) {
 			seniorities[i] = strings.TrimSpace(seniorities[i])
 		}
 	}
-	apolloPost("/v1/mixed_people/search", map[string]interface{}{
+	apolloPost("/v1/mixed_people/api_search", map[string]interface{}{
 		"q_organization_name": args[0],
 		"person_seniorities":  seniorities,
 		"page":                1,

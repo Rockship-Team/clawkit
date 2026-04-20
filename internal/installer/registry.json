@@ -16,13 +16,61 @@
         }
       ]
     },
+    "deadline-tracker": {
+      "version": "1.0.0",
+      "description": "Track application deadlines and send proactive alerts for Vietnamese students applying to universities. Use this skill whenever a student asks about deadlines, application status, mentions 'deadline', 'hạn nộp', 'lịch nộp hồ sơ', 'trạng thái hồ sơ', 'khi nào nộp', 'còn bao lâu nữa', 'đã submit chưa', or when proactively checking on upcoming deadlines. Also handles post-submission checklists.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
+    "ec-strategy": {
+      "version": "1.0.0",
+      "description": "Evaluate and improve extracurricular activities for Vietnamese students applying to US/UK/Canada/Australia universities. Use this skill whenever a student asks about extracurricular activities, mentions 'ngoại khoá', 'EC', 'hoạt động ngoại khoá', 'extracurricular', 'cải thiện hồ sơ', 'hoạt động nào mạnh', 'tier', or wants advice on how to strengthen their non-academic profile.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
     "ecom-bot": {
       "version": "1.0.0",
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains."
     },
+    "essay-review": {
+      "version": "1.0.0",
+      "description": "Guide Vietnamese students through college essay brainstorming, outlining, and multi-round feedback. Use this skill whenever a student mentions 'review essay', 'bài luận', 'common app', 'personal statement', 'supplemental essay', 'scholarship essay', 'essay', 'viết luận', 'feedback bài', 'sửa essay', 'học bổng essay', or submits text that looks like an essay draft. Never write the essay for the student — always coach, never ghostwrite.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
     "finance-tracker": {
       "version": "2.0.0",
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh."
+    },
+    "financial-aid": {
+      "version": "1.0.0",
+      "description": "Help Vietnamese students and families understand university costs, financial aid, and scholarships for studying abroad in USA, UK, Canada, and Australia. Use this skill whenever a student asks about costs, tuition, financial aid, scholarships, mentions 'học phí', 'financial aid', 'chi phí', 'cost', 'học bổng', 'scholarship', 'merit aid', 'CSS Profile', 'FAFSA', 'budget', 'Chevening', 'học bổng Anh', 'học bổng Canada', 'học bổng Úc', or wants to compare costs across schools. Also handles Early Decision (ED) strategy questions with required confirmation.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
     },
     "gog": {
       "version": "1.0.0",
@@ -31,9 +79,57 @@
         "gog"
       ]
     },
+    "offer-comparison": {
+      "version": "1.0.0",
+      "description": "Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
+    "pre-departure": {
+      "version": "1.0.0",
+      "description": "Guide Vietnamese students through all pre-departure steps after accepting an admission offer — covering USA (F-1/I-20/SEVIS/DS-160), UK (Student Visa/CAS/BRP), Canada (Study Permit/CAQ), and Australia (Student Visa subclass 500/CoE). Use this skill whenever a student mentions 'visa', 'F-1', 'I-20', 'SEVIS', 'DS-160', 'Student Visa UK', 'CAS', 'Study Permit Canada', 'visa Úc', 'CoE', 'chuẩn bị đi học', 'trước khi đi', 'chỗ ở', 'ký túc xá', 'bảo hiểm', 'vé máy bay', 'orientation', or has accepted an admission offer.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
+    "profile-assessment": {
+      "version": "1.0.0",
+      "description": "Guide Vietnamese students (grades 9-12) through study abroad onboarding and profile assessment. Use this skill whenever a student mentions starting their study abroad journey, wants to evaluate their profile, mentions 'đánh giá hồ sơ', 'bắt đầu', 'muốn du học', 'tư vấn du học', 'profile của em', or when a first-time user sends any message without an existing profile. This is the entry point for the entire platform — invoke it proactively whenever the student context suggests they are new or haven't completed onboarding.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
     "rockship-support": {
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."
+    },
+    "school-matching": {
+      "version": "1.0.0",
+      "description": "Help Vietnamese students find and evaluate universities matching their profile across USA, UK, Canada, and Australia. Use this skill whenever a student asks about choosing schools, wants school recommendations, mentions 'chọn trường', 'gợi ý trường', 'danh sách trường', 'trường nào phù hợp', 'nên apply đâu', 'Reach Target Safety', 'UCAS', 'trường Anh', 'trường Canada', 'trường Úc', or asks about a specific university. Invoke proactively when the student has a complete profile but no school list yet.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
     },
     "sol-finance-coach": {
       "version": "1.2.0",
@@ -47,7 +143,40 @@
     },
     "study-aboard": {
       "version": "1.0.0",
-      "description": "Aria — AI academic advisor for Vietnamese high school students (grades 9-12) applying to universities in USA, UK, Canada, and Australia. Covers the full study abroad journey: profile assessment, school matching, SAT/TOEFL prep, essay review, EC strategy, financial aid, deadline tracking, offer comparison, and pre-departure visa guidance."
+      "description": "Aria — AI academic advisor for Vietnamese high school students (grades 9-12) applying to universities in USA, UK, Canada, and Australia. Covers the full study abroad journey: profile assessment, school matching, SAT/TOEFL prep, essay review, EC strategy, financial aid, deadline tracking, offer comparison, and pre-departure visa guidance.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/",
+        "tests"
+      ]
+    },
+    "study-plan": {
+      "version": "1.0.0",
+      "description": "Create and manage personalized SAT/TOEFL/IELTS study plans for Vietnamese students. Use this skill whenever a student asks about test preparation, mentions 'lộ trình SAT', 'ôn thi', 'kế hoạch học', 'study plan', 'SAT prep', 'TOEFL plan', 'luyện thi', 'điểm SAT', 'thi lại', or shares a practice test score. Also use when a weekly check-in cron job fires for a student with an active study plan. Also invoke when a student asks about GPA improvement, course selection, 'nên chọn môn gì', 'học AP hay IB', 'GPA đang giảm', or wants advice on which courses to take for their target major.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
+    },
+    "weekly-checkin": {
+      "version": "1.0.0",
+      "description": "Proactively check in with Vietnamese students every week to review overall study abroad progress — SAT/TOEFL scores, essay drafts, EC updates, upcoming deadlines, and next priority actions. Use this skill whenever a weekly cron job fires for a student, or when a student asks for a general progress update, mentions 'tuần này', 'cập nhật tiến độ', 'tổng hợp', 'nhìn lại tuần này', 'mình đang ở đâu rồi', 'còn phải làm gì', or 'check-in'.",
+      "requires_bins": [
+        "sa-cli"
+      ],
+      "exclude": [
+        "__pycache__",
+        "*.pyc",
+        "db/"
+      ]
     }
   }
 }

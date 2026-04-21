@@ -47,3 +47,4 @@ go.work.sum
 
 # Local scratch
 plans/
+skills/sme/_cli/cmd/sme-cli

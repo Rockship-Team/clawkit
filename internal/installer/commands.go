@@ -39,7 +39,9 @@ func CmdList() {
 }
 
 // CmdInstall installs a skill with OAuth setup and configuration.
-func CmdInstall(skillName string, profileName string) {
+// If addMode is true, installs additively — existing skills stay and the
+// new skill is appended to the allowlist (workspace persona unchanged).
+func CmdInstall(skillName string, profileName string, addMode bool) {
 	// Check platform is installed and get skills directory.
 	skillsDir := config.Preflight()
 	fmt.Println()
@@ -114,7 +116,7 @@ func CmdInstall(skillName string, profileName string) {
 	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
 	//   5. Reset prior conversation sessions
 	//   6. Set agents.defaults.skills = [<skillName>]
-	LockdownWorkspace(skillsDir, targetDir, skillName)
+	LockdownWorkspace(skillsDir, targetDir, skillName, addMode)
 
 	// Remove bootstrap-files from the installed skill directory — they've
 	// already been applied to the workspace root by LockdownWorkspace and
@@ -195,7 +197,7 @@ func CmdUpdate(skillName string) {
 	existingCfg, err := config.LoadSkillConfig(targetDir)
 	if err != nil {
 		ui.Info("No existing config found, doing fresh install")
-		CmdInstall(skillName, "")
+		CmdInstall(skillName, "", false)
 		return
 	}
 

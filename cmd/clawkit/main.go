@@ -23,10 +23,11 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>]")
+			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>] [--add]")
 			os.Exit(1)
 		}
 		profileName := ""
+		addMode := false
 		for i := 3; i < len(os.Args); i++ {
 			switch os.Args[i] {
 			case "--profile":
@@ -37,9 +38,11 @@ func main() {
 					fmt.Println("--profile requires a name")
 					os.Exit(1)
 				}
+			case "--add":
+				addMode = true
 			}
 		}
-		installer.CmdInstall(os.Args[2], profileName)
+		installer.CmdInstall(os.Args[2], profileName, addMode)
 	case "update":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit update <skill-name>")
@@ -97,13 +100,16 @@ Commands:
   package <skill>       Package a skill for distribution (dev)
   version               Print version
 
-Note: clawkit enforces a 1-skill-at-a-time model. Installing a new skill
-will prompt to remove any previously installed skill first.
+Note: by default, clawkit dedicates the workspace to ONE skill (replaces
+persona files, removes prior skills). Use --add to install a new skill
+alongside existing ones (keeps persona; appends to allowlist). Use --add
+only when the skills share a compatible persona (e.g. sme-* family).
 
 Examples:
   clawkit list
   clawkit install shop-hoa
   clawkit install ecommerce-bot --profile shop-hoa
+  clawkit install sme-reminder --add    (stack alongside existing skill)
   clawkit uninstall shop-hoa
 `, version)
 }

@@ -1,18 +1,24 @@
-// Package installer — workspace lockdown for 1-skill-at-a-time model.
+// Package installer — workspace lockdown for skill installation.
 //
-// When a user installs a skill via `clawkit install <skill>`, their entire
-// OpenClaw workspace becomes dedicated to that skill:
-//   - Default workspace MD files (AGENTS.md, SOUL.md, IDENTITY.md, USER.md,
-//     BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md) are replaced/removed so the agent
-//     adopts the skill's persona.
-//   - The agent's skill allowlist is set to only this skill.
-//   - Any prior conversation sessions are cleared so the new persona takes
-//     effect on the next message.
-//   - If a different skill was previously installed, it is removed first.
+// Two install modes:
 //
-// This matches the "1 skill at a time, exclusive" model: to switch skills,
-// the user must uninstall the current one (clawkit does this automatically
-// during install with a prompt).
+//  1. EXCLUSIVE (default): workspace dedicates itself to ONE skill.
+//     - Default workspace MD files (AGENTS.md, SOUL.md, IDENTITY.md, USER.md,
+//       BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md) are replaced/removed so the
+//       agent adopts the skill's persona.
+//     - The agent's skill allowlist is set to only this skill.
+//     - Any prior conversation sessions are cleared.
+//     - If a different skill was previously installed, it is removed first.
+//
+//  2. ADDITIVE (`--add` flag): stack a skill alongside existing ones.
+//     - Prior skills stay installed.
+//     - Workspace persona files (SOUL.md/AGENTS.md/etc.) are KEPT from the
+//       first install; the new skill inherits that persona.
+//     - The new skill's runtime name is APPENDED to the allowlist.
+//     - Sessions are NOT reset.
+//     - Only safe when skills share a compatible persona (e.g. sme-*
+//       family sharing a "BD teammate" persona). Use exclusive mode when
+//       switching between unrelated domains.
 package installer
 
 import (
@@ -47,19 +53,44 @@ var genericWorkspaceFiles = []string{
 	"TOOLS.md",
 }
 
-// LockdownWorkspace performs the full 1-skill-at-a-time lockdown:
-//  1. Detects and removes any previously installed skill (with user prompt).
+// LockdownWorkspace performs the install-time workspace configuration.
+//
+// In EXCLUSIVE mode (addMode=false, default):
+//  1. Removes any previously installed skill (with user prompt).
 //  2. Backs up existing workspace MD files to .clawkit-backup/<timestamp>/.
 //  3. Copies bootstrap-files/* from the new skill to workspace root.
 //  4. Deletes generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md).
 //  5. Resets existing conversation sessions.
 //  6. Sets agents.defaults.skills = [<skillName>] via openclaw config.
 //
+// In ADDITIVE mode (addMode=true, --add flag):
+//  1. Leaves prior skills alone (no removal).
+//  2. Keeps existing workspace persona files untouched.
+//  3. Skips bootstrap-files copy (first-install persona wins).
+//  4. Does NOT delete generic files / reset sessions.
+//  5. APPENDS the runtime name to agents.defaults.skills allowlist.
+//
 // skillsDir is the OpenClaw skills directory (~/.openclaw/workspace/skills).
 // skillDir is the path where the new skill was just installed.
 // skillName is the skill being installed.
-func LockdownWorkspace(skillsDir, skillDir, skillName string) {
+func LockdownWorkspace(skillsDir, skillDir, skillName string, addMode bool) {
 	workspaceDir := filepath.Dir(skillsDir) // ~/.openclaw/workspace
+
+	allowlistName := readSkillRuntimeName(skillDir, skillName)
+
+	if addMode {
+		// Additive install — only touch the allowlist.
+		if err := appendSkillsAllowlist(allowlistName); err != nil {
+			ui.Warn("Could not append to agents.defaults.skills: %v", err)
+			ui.Info("Run manually: openclaw config set agents.defaults.skills '[..., \"%s\"]'", allowlistName)
+		} else {
+			ui.Ok("Added \"%s\" to agents.defaults.skills (existing skills kept)", allowlistName)
+		}
+		ui.Info("Additive install: workspace persona files (SOUL.md / AGENTS.md / etc.) unchanged")
+		return
+	}
+
+	// EXCLUSIVE mode below.
 
 	// Step 1: handle prior skill. If another skill is already installed,
 	// ask user whether to remove it — the 1-skill-at-a-time model forbids
@@ -113,7 +144,6 @@ func LockdownWorkspace(skillsDir, skillDir, skillName string) {
 	// matches by that field — not by install/dir name. They differ for
 	// namespaced skills (e.g. dir `proposal` with frontmatter
 	// `name: sme-proposal`).
-	allowlistName := readSkillRuntimeName(skillDir, skillName)
 	if err := setSkillsAllowlist(allowlistName); err != nil {
 		ui.Warn("Could not set agents.defaults.skills: %v", err)
 		ui.Info("Run manually: openclaw config set agents.defaults.skills '[\"%s\"]'", allowlistName)
@@ -341,17 +371,60 @@ func resetAgentSessions(workspaceDir string) error {
 // so the LLM only sees this skill in <available_skills>. Returns an error if
 // the openclaw CLI is not on PATH or the command fails.
 func setSkillsAllowlist(skillName string) error {
+	return writeSkillsAllowlist([]string{skillName})
+}
+
+// appendSkillsAllowlist reads the current agents.defaults.skills, adds
+// skillName (deduped), and writes it back. Used by additive install
+// (`clawkit install --add <skill>`).
+func appendSkillsAllowlist(skillName string) error {
+	current, err := readSkillsAllowlist()
+	if err != nil {
+		// If read fails (unset, empty, or CLI error), fall back to just
+		// setting this skill alone.
+		return writeSkillsAllowlist([]string{skillName})
+	}
+	for _, s := range current {
+		if s == skillName {
+			return nil // already present
+		}
+	}
+	current = append(current, skillName)
+	return writeSkillsAllowlist(current)
+}
+
+// readSkillsAllowlist returns the current agents.defaults.skills array, or
+// an empty slice if unset / unreadable.
+func readSkillsAllowlist() ([]string, error) {
+	openclawBin, err := exec.LookPath("openclaw")
+	if err != nil {
+		return nil, fmt.Errorf("openclaw binary not found on PATH: %w", err)
+	}
+	cmd := exec.Command(openclawBin, "config", "get", "agents.defaults.skills")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	trimmed := strings.TrimSpace(string(output))
+	if trimmed == "" || trimmed == "null" {
+		return []string{}, nil
+	}
+	var list []string
+	if err := json.Unmarshal([]byte(trimmed), &list); err != nil {
+		return nil, fmt.Errorf("parse allowlist: %w (raw: %s)", err, trimmed)
+	}
+	return list, nil
+}
+
+func writeSkillsAllowlist(skills []string) error {
 	openclawBin, err := exec.LookPath("openclaw")
 	if err != nil {
 		return fmt.Errorf("openclaw binary not found on PATH: %w", err)
 	}
-
-	// Pass the value as a JSON array literal. openclaw config set accepts it.
-	val, err := json.Marshal([]string{skillName})
+	val, err := json.Marshal(skills)
 	if err != nil {
 		return err
 	}
-
 	cmd := exec.Command(openclawBin, "config", "set", "agents.defaults.skills", string(val))
 	output, err := cmd.CombinedOutput()
 	if err != nil {

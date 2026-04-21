@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,28 +20,77 @@ import (
 	"github.com/rockship-co/clawkit/internal/ui"
 )
 
-// CmdList lists all available skills and their install status.
+// CmdList lists all available skills and groups with install status.
 func CmdList() {
 	reg, err := loadRegistry()
 	if err != nil {
 		ui.Fatal("%v", err)
 	}
 
+	skillsDir := config.GetSkillsDir()
+
+	// Skills that belong to a group — rendered under the group heading.
+	inGroup := make(map[string]string)
+	for group, members := range reg.Groups {
+		for _, m := range members {
+			inGroup[m] = group
+		}
+	}
+
+	if len(reg.Groups) > 0 {
+		fmt.Println("Available groups:")
+		fmt.Println()
+		groupNames := make([]string, 0, len(reg.Groups))
+		for name := range reg.Groups {
+			groupNames = append(groupNames, name)
+		}
+		sort.Strings(groupNames)
+		for _, name := range groupNames {
+			members := reg.Groups[name]
+			fmt.Printf("  %s (%d skills)\n", name, len(members))
+			for _, m := range members {
+				skill := reg.Skills[m]
+				installed := ""
+				if _, err := os.Stat(filepath.Join(skillsDir, m)); err == nil {
+					installed = " [installed]"
+				}
+				fmt.Printf("    %-25s %s%s\n", m, truncate(skill.Description, 80), installed)
+			}
+			fmt.Println()
+		}
+	}
+
 	fmt.Println("Available skills:")
 	fmt.Println()
-	for name, skill := range reg.Skills {
+	flatNames := make([]string, 0, len(reg.Skills))
+	for name := range reg.Skills {
+		if _, ok := inGroup[name]; ok {
+			continue
+		}
+		flatNames = append(flatNames, name)
+	}
+	sort.Strings(flatNames)
+	for _, name := range flatNames {
+		skill := reg.Skills[name]
 		installed := ""
-		skillDir := filepath.Join(config.GetSkillsDir(), name)
-		if _, err := os.Stat(skillDir); err == nil {
+		if _, err := os.Stat(filepath.Join(skillsDir, name)); err == nil {
 			installed = " [installed]"
 		}
-		fmt.Printf("  %-25s %s%s\n", name, skill.Description, installed)
+		fmt.Printf("  %-25s %s%s\n", name, truncate(skill.Description, 100), installed)
 	}
 }
 
-// CmdInstall installs a skill with OAuth setup and configuration.
-func CmdInstall(skillName string, profileName string) {
-	// Check platform is installed and get skills directory.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n-1] + "…"
+}
+
+// CmdInstall resolves name as a flat skill or a group, then installs one
+// or more skills. When name is a group, children selects a subset; empty
+// children means install all members.
+func CmdInstall(name string, children ...string) {
 	skillsDir := config.Preflight()
 	fmt.Println()
 
@@ -49,19 +99,65 @@ func CmdInstall(skillName string, profileName string) {
 		ui.Fatal("%v", err)
 	}
 
+	targets, err := resolveInstallTargets(reg, name, children)
+	if err != nil {
+		ui.Fatal("%v", err)
+	}
+
+	stdinReader := bufio.NewReader(os.Stdin)
+	for i, skillName := range targets {
+		if i > 0 {
+			fmt.Println()
+		}
+		installOne(skillsDir, reg, skillName, stdinReader)
+	}
+}
+
+// resolveInstallTargets maps name + children into a flat list of skill
+// names to install. Rules:
+//   - name is a flat skill and no children → [name]
+//   - name is a group and no children → all group members
+//   - name is a group and children non-empty → those children (must all
+//     be members of the group)
+//   - name is a skill and children non-empty → error
+func resolveInstallTargets(reg *Registry, name string, children []string) ([]string, error) {
+	_, isSkill := reg.GetSkill(name)
+	members := reg.GroupMembers(name)
+
+	if len(children) > 0 {
+		if members == nil {
+			return nil, fmt.Errorf("'%s' is not a group; extra arguments %v are not allowed", name, children)
+		}
+		memberSet := make(map[string]bool, len(members))
+		for _, m := range members {
+			memberSet[m] = true
+		}
+		for _, c := range children {
+			if !memberSet[c] {
+				return nil, fmt.Errorf("'%s' is not a member of group '%s' (members: %s)", c, name, strings.Join(members, ", "))
+			}
+		}
+		return children, nil
+	}
+
+	if members != nil {
+		return members, nil
+	}
+	if isSkill {
+		return []string{name}, nil
+	}
+	return nil, fmt.Errorf("'%s' not found. Run 'clawkit list' to see available skills and groups.", name)
+}
+
+func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *bufio.Reader) {
 	skill, exists := reg.GetSkill(skillName)
 	if !exists {
-		ui.Fatal("Skill '%s' not found. Run 'clawkit list' to see available skills.", skillName)
+		ui.Fatal("Skill '%s' not found in registry.", skillName)
 	}
 
 	ui.Info("Installing %s v%s", skillName, skill.Version)
 	fmt.Printf("  %s\n\n", skill.Description)
 
-	// Shared stdin reader — must be created once and reused throughout CmdInstall
-	// so bufio buffering doesn't silently consume lines meant for later prompts.
-	stdinReader := bufio.NewReader(os.Stdin)
-
-	// Check if already installed.
 	targetDir := filepath.Join(skillsDir, skillName)
 	if _, err := os.Stat(targetDir); err == nil {
 		fmt.Printf("  Skill already installed at %s\n", targetDir)
@@ -77,117 +173,100 @@ func CmdInstall(skillName string, profileName string) {
 		}
 	}
 
-	// Download skill (remote) or copy (local dev).
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
-	err = downloadSkill(skillName, targetDir, skill.Exclude)
-	if err != nil {
+	if err := downloadSkill(skillName, targetDir, skill.Exclude); err != nil {
 		os.RemoveAll(targetDir)
 		ui.Fatal("Failed to install: %v", err)
 	}
 	ui.Ok("Skill files installed to %s", targetDir)
 
-	// Apply profile overlay if specified.
-	var profileValues map[string]string
-	if profileName != "" {
-		var perr error
-		profileValues, perr = applyProfile(targetDir, profileName)
-		if perr != nil {
-			os.RemoveAll(targetDir)
-			ui.Fatal("Profile '%s': %v", profileName, perr)
-		}
-		ui.Ok("Applied profile '%s'", profileName)
-	}
-
-	// Install required CLI binaries.
 	if len(skill.RequiresBins) > 0 {
 		fmt.Println()
 		ui.Info("Installing required CLI tools...")
 		installRequiredBins(skill.RequiresBins)
 	}
 
-	// Set up the workspace for this skill:
-	//   - First skill: backup workspace files, apply persona, set allowlist
-	//   - Additional skills: append to allowlist, keep existing persona
-	SetupWorkspace(skillsDir, targetDir, skillName)
-
-	// Remove bootstrap-files from the installed skill directory — they've
-	// already been applied to the workspace root by LockdownWorkspace and
-	// are no longer needed inside the skill dir.
-	os.RemoveAll(filepath.Join(targetDir, BootstrapFilesDirName))
-
-	// Ensure image directories match catalog.
-	if err := template.EnsureImageDirs(targetDir); err != nil {
-		ui.Warn("Could not create image directories: %v", err)
-	}
-
-	// Load config early — profile merge writes to it.
-	cfg, _ := config.LoadSkillConfig(targetDir)
-	if cfg == nil {
-		cfg = &config.SkillConfig{}
-	}
-	cfg.SkillName = skillName
-	cfg.Profile = profileName
-	cfg.Version = skill.Version
-
-	// Merge profile values into UserInputs for template placeholder substitution.
-	if len(profileValues) > 0 {
-		if cfg.UserInputs == nil {
-			cfg.UserInputs = make(map[string]string)
-		}
-		for k, v := range profileValues {
-			cfg.UserInputs[k] = v
+	userInputs := make(map[string]string)
+	if len(skill.SetupPrompts) > 0 {
+		fmt.Println()
+		for _, p := range skill.SetupPrompts {
+			prompt := p.Label
+			if p.Placeholder != "" {
+				prompt = fmt.Sprintf("%s [%s]", p.Label, p.Placeholder)
+			}
+			fmt.Printf("  %s: ", prompt)
+			line, _ := stdinReader.ReadString('\n')
+			line = strings.TrimSpace(line)
+			if line == "" {
+				line = p.Placeholder
+			}
+			userInputs[p.Key] = line
 		}
 	}
 
-	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
-		ui.Fatal("Failed to save config: %v", err)
-	}
+	SetupWorkspace(skillsDir, skillName)
 
-	// Replace {key} placeholders in SKILL.md with user/profile input values
-	// (e.g. {shop_name}, {emoji}) so the skill prompt is customized.
-	if len(cfg.UserInputs) > 0 {
-		if err := template.Process(targetDir, cfg.UserInputs); err != nil {
+	if len(userInputs) > 0 {
+		if err := template.Process(targetDir, userInputs); err != nil {
 			os.RemoveAll(targetDir)
 			ui.Fatal("Template processing failed: %v", err)
 		}
 	}
 
-	// Replace {key} placeholders in SKILL.md with OAuth token values
-	// (e.g. {spreadsheet_id}, {gmail_account}) so the skill prompt is ready to use.
-	if len(cfg.Tokens) > 0 {
-		if err := template.ProcessTokens(targetDir, cfg.Tokens); err != nil {
-			os.RemoveAll(targetDir)
-			ui.Fatal("Could not replace SKILL.md placeholders: %v", err)
-		}
+	cfg := &config.SkillConfig{
+		Version:    skill.Version,
+		UserInputs: userInputs,
+	}
+	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
+		ui.Fatal("Failed to save config: %v", err)
 	}
 
 	fmt.Println()
 	ui.Ok("'%s' installed!", skillName)
 	fmt.Printf("  Location: %s\n", targetDir)
-	fmt.Println()
-	fmt.Println("  Next steps:")
-	fmt.Printf("  1. Open SKILL.md: %s\n", filepath.Join(targetDir, "SKILL.md"))
-	fmt.Println("  2. Restart the gateway: openclaw gateway restart")
 }
 
-// CmdUpdate updates an installed skill while preserving tokens and config.
-func CmdUpdate(skillName string) {
+// CmdUpdate resolves name as a flat skill or a group, then updates one or
+// more installed skills, re-baking stored user_inputs into the new SKILL.md.
+func CmdUpdate(name string, children ...string) {
+	reg, err := loadRegistry()
+	if err != nil {
+		ui.Fatal("%v", err)
+	}
+	targets, err := resolveInstallTargets(reg, name, children)
+	if err != nil {
+		ui.Fatal("%v", err)
+	}
+	for i, skillName := range targets {
+		if i > 0 {
+			fmt.Println()
+		}
+		updateOne(reg, skillName)
+	}
+}
+
+func updateOne(reg *Registry, skillName string) {
 	targetDir := filepath.Join(config.GetSkillsDir(), skillName)
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-		ui.Fatal("Skill '%s' is not installed. Run 'clawkit install %s' first.", skillName, skillName)
-	}
-
-	// Load existing config to preserve tokens.
-	existingCfg, err := config.LoadSkillConfig(targetDir)
-	if err != nil {
-		ui.Info("No existing config found, doing fresh install")
-		CmdInstall(skillName, "")
+		ui.Warn("'%s' is not installed — skipping. Run 'clawkit install %s' first.", skillName, skillName)
 		return
 	}
 
-	// Remove old files except clawkit.json (installed config).
+	existingCfg, cfgErr := config.LoadSkillConfig(targetDir)
+	if cfgErr != nil {
+		ui.Info("No existing config for '%s', doing fresh install", skillName)
+		CmdInstall(skillName)
+		return
+	}
+
+	skill, ok := reg.GetSkill(skillName)
+	if !ok {
+		ui.Warn("'%s' not found in registry — skipping.", skillName)
+		return
+	}
+
 	entries, _ := os.ReadDir(targetDir)
 	for _, e := range entries {
 		if e.Name() != config.ConfigFileName {
@@ -195,58 +274,29 @@ func CmdUpdate(skillName string) {
 		}
 	}
 
-	// Load registry to get exclude patterns.
-	var excludePatterns []string
-	if reg, regErr := loadRegistry(); regErr == nil {
-		if skill, ok := reg.GetSkill(skillName); ok {
-			excludePatterns = skill.Exclude
-		}
+	if err := downloadSkill(skillName, targetDir, skill.Exclude); err != nil {
+		ui.Fatal("Failed to update '%s': %v", skillName, err)
 	}
 
-	// Download new skill files.
-	if err := downloadSkill(skillName, targetDir, excludePatterns); err != nil {
-		ui.Fatal("Failed to update: %v", err)
-	}
-
-	// Re-apply profile overlay if the skill was installed with one.
-	if existingCfg.Profile != "" {
-		if _, err := applyProfile(targetDir, existingCfg.Profile); err != nil {
-			ui.Warn("Could not re-apply profile '%s': %v", existingCfg.Profile, err)
-		}
-	}
-
-	// Restore config.
-	if err := config.SaveSkillConfig(targetDir, existingCfg); err != nil {
-		ui.Warn("Could not restore config: %v", err)
-	}
-
-	// Re-process template with existing config values.
-	if existingCfg.UserInputs != nil {
-		template.EnsureImageDirs(targetDir)
+	if len(existingCfg.UserInputs) > 0 {
 		if err := template.Process(targetDir, existingCfg.UserInputs); err != nil {
 			ui.Warn("Template processing failed: %v", err)
 		}
 	}
 
-	// Re-inject OAuth tokens (spreadsheet_id, gmail_account, ...) into SKILL.md
-	// so the updated prompt keeps the real values instead of {placeholders}.
-	if len(existingCfg.Tokens) > 0 {
-		if err := template.ProcessTokens(targetDir, existingCfg.Tokens); err != nil {
-			ui.Warn("Could not re-inject token placeholders: %v", err)
-		}
+	cfg := &config.SkillConfig{
+		Version:    skill.Version,
+		UserInputs: existingCfg.UserInputs,
+	}
+	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
+		ui.Warn("Could not save config: %v", err)
 	}
 
-	ui.Ok("'%s' updated to latest version", skillName)
+	ui.Ok("'%s' updated to v%s", skillName, skill.Version)
 	ui.Info("Restart the gateway to pick up changes: openclaw gateway restart")
 }
 
-// CmdUninstall removes a skill and reverses the workspace lockdown applied
-// during install: restores backed-up workspace MD files, clears the skill
-// allowlist, resets sessions, and deletes the skill directory.
-//
-// After this runs, the user's OpenClaw returns to a generic-assistant state
-// (their pre-install workspace files are restored) and is ready to install
-// a different skill or run without any skill.
+// CmdUninstall removes a skill and its allowlist entry.
 func CmdUninstall(skillName string) {
 	skillsDir := config.Preflight()
 	fmt.Println()
@@ -258,7 +308,7 @@ func CmdUninstall(skillName string) {
 
 	ui.Info("Uninstalling %s", skillName)
 	fmt.Printf("  This will:\n")
-	fmt.Printf("    • Delete %s (including database and assets)\n", targetDir)
+	fmt.Printf("    • Delete %s\n", targetDir)
 	fmt.Printf("    • Remove '%s' from the skill allowlist\n\n", skillName)
 	fmt.Print("  Continue? [y/N]: ")
 	reader := bufio.NewReader(os.Stdin)
@@ -269,10 +319,8 @@ func CmdUninstall(skillName string) {
 		return
 	}
 
-	// Update allowlist — if this is the last skill, also restores workspace.
 	RemoveFromWorkspace(skillsDir, skillName)
 
-	// Remove the skill directory itself.
 	if err := os.RemoveAll(targetDir); err != nil {
 		ui.Fatal("Could not remove skill directory: %v", err)
 	}
@@ -283,7 +331,7 @@ func CmdUninstall(skillName string) {
 	ui.Info("Restart the gateway to apply: openclaw gateway restart")
 }
 
-// CmdStatus shows all installed skills with version and OAuth status.
+// CmdStatus shows all installed skills with their version.
 func CmdStatus() {
 	skillsDir := config.GetSkillsDir()
 	entries, err := os.ReadDir(skillsDir)
@@ -304,61 +352,11 @@ func CmdStatus() {
 			fmt.Printf("  %-25s (no config)\n", e.Name())
 			continue
 		}
-		profileInfo := ""
-		if cfg.Profile != "" {
-			profileInfo = fmt.Sprintf(" [profile: %s]", cfg.Profile)
-		}
-		oauthStatus := ""
-		if cfg.OAuthDone {
-			oauthStatus = " [oauth: connected]"
-		}
-		fmt.Printf("  %-25s v%s%s%s\n", cfg.SkillName, cfg.Version, profileInfo, oauthStatus)
+		fmt.Printf("  %-25s v%s\n", e.Name(), cfg.Version)
 	}
 }
 
-// CmdPackage packages a skill from skills/ into a .tar.gz for distribution.
-func CmdPackage(skillName string) {
-	sourceDir := filepath.Join("skills", skillName)
-	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-		ui.Fatal("Skill '%s' not found in skills/ directory", skillName)
-	}
-
-	// Load exclude patterns from registry if available.
-	var excludePatterns []string
-	if reg, regErr := loadRegistry(); regErr == nil {
-		if skill, ok := reg.GetSkill(skillName); ok {
-			excludePatterns = skill.Exclude
-		}
-	}
-
-	if err := os.MkdirAll("dist", 0o755); err != nil {
-		ui.Fatal("Failed to create dist directory: %v", err)
-	}
-	outputPath := filepath.Join("dist", skillName+".tar.gz")
-
-	ui.Info("Packaging %s...", skillName)
-	if len(excludePatterns) > 0 {
-		ui.Info("Excluding: %s", strings.Join(excludePatterns, ", "))
-	}
-	if err := archive.CreateTarGz(sourceDir, outputPath, excludePatterns); err != nil {
-		ui.Fatal("Failed to package: %v", err)
-	}
-
-	fi, err := os.Stat(outputPath)
-	if err != nil {
-		ui.Fatal("Failed to stat output: %v", err)
-	}
-	sizeMB := float64(fi.Size()) / 1024 / 1024
-
-	ui.Ok("Packaged: %s (%.1f MB)", outputPath, sizeMB)
-	fmt.Println()
-	fmt.Println("  Upload this file to GitHub Releases:")
-	fmt.Printf("  gh release upload latest %s\n", outputPath)
-}
-
-// fetchGogLatestVersion gets the latest release tag from GitHub.
 func fetchGogLatestVersion() (string, error) {
-	// GitHub redirects /releases/latest to /releases/tag/vX.Y.Z
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -379,7 +377,6 @@ func fetchGogLatestVersion() (string, error) {
 	if loc == "" {
 		return "", fmt.Errorf("no redirect from GitHub releases/latest")
 	}
-	// Location: https://github.com/steipete/gogcli/releases/tag/v0.12.0
 	parts := strings.Split(loc, "/")
 	tag := parts[len(parts)-1]
 	if tag == "" || tag[0] != 'v' {
@@ -388,8 +385,6 @@ func fetchGogLatestVersion() (string, error) {
 	return tag, nil
 }
 
-// installGogCLI installs the gog CLI binary from GitHub Releases.
-// Supports macOS (arm64/amd64), Linux (arm64/amd64), and Windows (arm64/amd64).
 func installGogCLI() (string, error) {
 	if path, err := exec.LookPath("gog"); err == nil {
 		return path, nil
@@ -400,13 +395,11 @@ func installGogCLI() (string, error) {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
-	// Fetch latest version tag from GitHub API.
 	version, err := fetchGogLatestVersion()
 	if err != nil {
 		return "", fmt.Errorf("could not determine latest gog version: %w", err)
 	}
 
-	// Determine download URL.
 	ext := "tar.gz"
 	if goos == "windows" {
 		ext = "zip"
@@ -417,7 +410,6 @@ func installGogCLI() (string, error) {
 	)
 	ui.Info("Downloading gog %s for %s/%s...", version, goos, goarch)
 
-	// Download to temp file.
 	dlCtx, dlCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer dlCancel()
 
@@ -446,7 +438,6 @@ func installGogCLI() (string, error) {
 	}
 	tmpFile.Close()
 
-	// Extract to temp dir.
 	tmpDir, err := os.MkdirTemp("", "gogcli-extract-*")
 	if err != nil {
 		return "", fmt.Errorf("create temp dir: %w", err)
@@ -463,14 +454,12 @@ func installGogCLI() (string, error) {
 		return "", fmt.Errorf("extract gog archive: %w", extractErr)
 	}
 
-	// Find the gog binary in extracted files.
 	binName := "gog"
 	if goos == "windows" {
 		binName = "gog.exe"
 	}
 	extractedBin := filepath.Join(tmpDir, binName)
 	if _, err := os.Stat(extractedBin); os.IsNotExist(err) {
-		// Fallback: search recursively in case archive has a nested structure.
 		found := ""
 		_ = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() && info.Name() == binName {
@@ -485,7 +474,6 @@ func installGogCLI() (string, error) {
 		extractedBin = found
 	}
 
-	// Determine install directory per platform.
 	installDir := installBinDir()
 	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		return "", fmt.Errorf("create install dir %s: %w", installDir, err)
@@ -497,7 +485,6 @@ func installGogCLI() (string, error) {
 		return "", fmt.Errorf("read extracted binary: %w", err)
 	}
 
-	// Try direct write first, fall back to sudo on Unix.
 	if err := os.WriteFile(destPath, data, 0o755); err != nil {
 		if goos != "windows" {
 			ui.Info("Need sudo to install to %s", installDir)
@@ -515,23 +502,18 @@ func installGogCLI() (string, error) {
 		}
 	}
 
-	// Ensure installDir is in PATH so the binary is discoverable.
 	ensureInPath(installDir, goos)
 
 	path, err := exec.LookPath("gog")
 	if err != nil {
-		return destPath, nil // not in PATH yet (restart terminal), but absolute path works
+		return destPath, nil
 	}
 	ui.Ok("Installed gog CLI to %s", path)
 	return path, nil
 }
 
-// ensureInPath adds dir to the user's persistent PATH if not already present.
-// On Windows it updates the user environment via PowerShell.
-// On Linux/macOS it warns the user if the dir is not already in PATH.
 func ensureInPath(dir, goos string) {
 	if goos == "windows" {
-		// Add to Windows user PATH via PowerShell (safe: reads current value first).
 		psCmd := fmt.Sprintf(
 			`$p=[Environment]::GetEnvironmentVariable('Path','User'); `+
 				`if($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path',"$p;%s",'User')}`,
@@ -543,7 +525,6 @@ func ensureInPath(dir, goos string) {
 		}
 		return
 	}
-	// Unix: check if dir is already in PATH.
 	for _, p := range strings.Split(os.Getenv("PATH"), string(os.PathListSeparator)) {
 		if p == dir {
 			return
@@ -560,8 +541,6 @@ func ensureInPath(dir, goos string) {
 	}
 }
 
-// installRequiredBins installs external CLI binaries required by a skill.
-// Each bin name maps to a dedicated installer function.
 func installRequiredBins(bins []string) {
 	for _, bin := range bins {
 		switch bin {
@@ -578,9 +557,6 @@ func installRequiredBins(bins []string) {
 	}
 }
 
-// installBinDir returns the appropriate directory for installing CLI binaries.
-// macOS/Linux: /usr/local/bin (standard), falls back to ~/.local/bin
-// Windows: %LOCALAPPDATA%\clawkit\bin
 func installBinDir() string {
 	if runtime.GOOS == "windows" {
 		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
@@ -592,7 +568,6 @@ func installBinDir() string {
 		}
 		return filepath.Join(home, "AppData", "Local", "clawkit", "bin")
 	}
-	// Unix: prefer /usr/local/bin if writable, else ~/.local/bin
 	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 		f.Close()
 		os.Remove("/usr/local/bin/.clawkit-test")

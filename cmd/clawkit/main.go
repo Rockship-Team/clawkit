@@ -23,29 +23,18 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>]")
+			fmt.Println("Usage: clawkit install <name> [<member>...]")
+			fmt.Println("  <name> is a flat skill, or a group to install all its members")
+			fmt.Println("  extra args select specific members of a group")
 			os.Exit(1)
 		}
-		profileName := ""
-		for i := 3; i < len(os.Args); i++ {
-			switch os.Args[i] {
-			case "--profile":
-				if i+1 < len(os.Args) {
-					i++
-					profileName = os.Args[i]
-				} else {
-					fmt.Println("--profile requires a name")
-					os.Exit(1)
-				}
-			}
-		}
-		installer.CmdInstall(os.Args[2], profileName)
+		installer.CmdInstall(os.Args[2], os.Args[3:]...)
 	case "update":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit update <skill-name>")
+			fmt.Println("Usage: clawkit update <name> [<member>...]")
 			os.Exit(1)
 		}
-		installer.CmdUpdate(os.Args[2])
+		installer.CmdUpdate(os.Args[2], os.Args[3:]...)
 	case "uninstall", "remove":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit uninstall <skill-name>")
@@ -60,13 +49,6 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdWeb(os.Args[2])
-	case "package":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit package <skill-name>")
-			fmt.Println("  Packages a skill from skills/ into a .tar.gz for distribution")
-			os.Exit(1)
-		}
-		installer.CmdPackage(os.Args[2])
 	case "dashboard":
 		port := 7432
 		for i, arg := range os.Args[2:] {
@@ -94,23 +76,14 @@ Usage:
   clawkit <command> [arguments]
 
 Commands:
-  list                  List available skills
-  install <skill> [--profile <name>]  Install a skill (locks workspace to its persona)
-  uninstall <skill>     Uninstall a skill (restores prior workspace files)
-  update  <skill>       Update an installed skill
+  list                            List available skills and groups
+  install <name> [<member>...]    Install a flat skill, a whole group, or
+                                  selected members of a group
+  update  <name> [<member>...]    Update (same resolution as install)
+  uninstall <skill>               Uninstall a single skill
   status                Show installed skills
-	web <skill>           Serve the skill web UI at http://localhost:7432
+  web <skill>           Serve the skill web UI at http://localhost:7432
   dashboard             Start web dashboard (default port 7432)
-  package <skill>       Package a skill for distribution (dev)
   version               Print version
-
-Note: clawkit enforces a 1-skill-at-a-time model. Installing a new skill
-will prompt to remove any previously installed skill first.
-
-Examples:
-  clawkit list
-  clawkit install shop-hoa
-  clawkit install ecommerce-bot --profile shop-hoa
-  clawkit uninstall shop-hoa
 `, version)
 }

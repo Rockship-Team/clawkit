@@ -3,7 +3,7 @@ BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test lint fmt clean dist package coverage generate check-generate npm-pack npm-publish help
+.PHONY: build test lint fmt clean dist coverage generate check-generate npm-pack npm-publish help
 
 ## build: Build for current platform
 build:
@@ -74,11 +74,6 @@ npm-publish: dist
 	cp dist/$(BINARY)-windows-amd64.exe npm/binaries/$(BINARY)-windows-amd64.exe
 	cd npm && npm version $(VERSION) --no-git-tag-version --allow-same-version
 	cd npm && npm publish --access public
-
-## package: Package a skill for distribution
-package:
-	@test -n "$(SKILL)" || (echo "Usage: make package SKILL=shop-hoa" && exit 1)
-	./$(BINARY) package $(SKILL)
 
 ## help: Show this help
 help:

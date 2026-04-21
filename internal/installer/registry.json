@@ -227,6 +227,17 @@
         "*.go"
       ]
     },
+    "reminder": {
+      "version": "1.0.0",
+      "description": "Daily BD coach cho SME — tu dong goi y 'hom nay/ngay mai nen outreach ai va lam gi' dua tren pipeline cell (research-backed). Kich hoat khi user noi 'nhac toi', 'ai can follow-up', 'daily outreach', 'remind me', hoac khi cron fire morning/evening briefing.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "rockship-support": {
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."

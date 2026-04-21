@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "requires_bins": ["curl", "jq"],
+  "requires_bins": ["sme-cli"],
   "setup_prompts": [
     {
       "key": "default_language",

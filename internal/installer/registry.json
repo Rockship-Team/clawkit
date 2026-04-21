@@ -54,8 +54,7 @@
       "version": "1.0.0",
       "description": "Campaign cho SME — chay su kien gather interest, email/LinkedIn outreach theo plan, online ads. Dua khach hang tu NEW → ENGAGED.",
       "requires_bins": [
-        "curl",
-        "jq"
+        "sme-cli"
       ],
       "setup_prompts": [
         {
@@ -78,8 +77,7 @@
       "version": "1.0.0",
       "description": "CRM cho SME Viet Nam — quan ly danh ba, enrich thong tin, phan nhom, diem score, la nen tang cho cac skill ban hang & marketing khac.",
       "requires_bins": [
-        "curl",
-        "jq"
+        "sme-cli"
       ],
       "setup_prompts": [
         {
@@ -110,8 +108,7 @@
       "version": "1.0.0",
       "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON.",
       "requires_bins": [
-        "curl",
-        "jq"
+        "sme-cli"
       ],
       "setup_prompts": [
         {
@@ -174,6 +171,28 @@
         "*.go"
       ]
     },
+    "openclaw-social": {
+      "version": "1.0.0",
+      "description": "Social media content planner cho OpenClaw — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san, validate cadence, draft → approve → schedule workflow.",
+      "setup_prompts": [
+        {
+          "key": "poster_name",
+          "label": "Ten nguoi post (hien tren draft, vd 'Khoa')",
+          "placeholder": "Khoa"
+        },
+        {
+          "key": "brand_name",
+          "label": "Ten brand chinh (default: OpenClaw)",
+          "placeholder": "OpenClaw"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go",
+        "go.mod",
+        "go.sum"
+      ]
+    },
     "ops": {
       "version": "1.0.0",
       "description": "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet.",
@@ -189,8 +208,7 @@
       "version": "1.0.0",
       "description": "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF.",
       "requires_bins": [
-        "curl",
-        "jq"
+        "sme-cli"
       ],
       "setup_prompts": [
         {

@@ -33,10 +33,7 @@ func noteAdd(args []string) {
 		errOut("usage: vault-cli note add <path> <body> [key=value...]")
 	}
 
-	relPath := args[0]
-	if !strings.HasSuffix(relPath, ".md") {
-		relPath += ".md"
-	}
+	relPath := sanitizeNotePath(args[0])
 	body := args[1]
 
 	meta := map[string]string{
@@ -77,10 +74,7 @@ func noteGet(args []string) {
 		errOut("usage: vault-cli note get <path>")
 	}
 
-	relPath := args[0]
-	if !strings.HasSuffix(relPath, ".md") {
-		relPath += ".md"
-	}
+	relPath := sanitizeNotePath(args[0])
 
 	vault := mustVaultPath()
 	content, err := readNote(vault, relPath)
@@ -207,6 +201,17 @@ func noteSearch(args []string) {
 	})
 }
 
+// sanitizeNotePath strips leading ~, absolute path prefixes, and ensures .md suffix.
+func sanitizeNotePath(p string) string {
+	p = strings.TrimPrefix(p, "~/")
+	p = strings.TrimPrefix(p, "~")
+	p = strings.TrimPrefix(p, "/")
+	if !strings.HasSuffix(p, ".md") {
+		p += ".md"
+	}
+	return p
+}
+
 // noteAppend appends text to an existing note, or creates a new one.
 // Usage: note append <path> <text>
 func noteAppend(args []string) {
@@ -214,10 +219,7 @@ func noteAppend(args []string) {
 		errOut("usage: vault-cli note append <path> <text>")
 	}
 
-	relPath := args[0]
-	if !strings.HasSuffix(relPath, ".md") {
-		relPath += ".md"
-	}
+	relPath := sanitizeNotePath(args[0])
 	text := args[1]
 
 	vault := mustVaultPath()

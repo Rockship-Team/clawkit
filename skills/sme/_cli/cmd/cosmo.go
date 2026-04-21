@@ -138,9 +138,15 @@ func cosmoRefreshToken(c Connections) (string, error) {
 	if c.COSMO.AuthEmail == "" {
 		return "", fmt.Errorf("cosmo.auth_email not set — run: sme-cli config set cosmo.auth_email <email>")
 	}
-	body, _ := json.Marshal(map[string]string{"email": c.COSMO.AuthEmail})
+	body, err := json.Marshal(map[string]string{"email": c.COSMO.AuthEmail})
+	if err != nil {
+		return "", fmt.Errorf("encode COSMO login payload: %w", err)
+	}
 	url := strings.TrimRight(c.COSMO.BaseURL, "/") + "/v1/auth/login"
-	req, _ := http.NewRequest("POST", url, bytes.NewReader(body))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("build COSMO login request (check cosmo.base_url): %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -150,7 +156,10 @@ func cosmoRefreshToken(c Connections) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	raw, _ := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read COSMO login response: %w", err)
+	}
 	var payload struct {
 		Status string `json:"status"`
 		Data   struct {

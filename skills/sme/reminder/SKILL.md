@@ -208,6 +208,23 @@ Anh muon em action cai nao?
   + 1 CTA" giong nhau cho moi contact. Do la pattern em nhan ra khi
   output sai.
 - **KHONG dump JSON** ra chat.
+
+### Empty-state — khi cells = 0
+
+Neu `cells` array rong (khong co viec urgent), KHONG noi "Em khong co
+gi de nhac". Thay vao do, positive wrap:
+
+Morning:
+> Chao buoi sang {user}! Hom nay khong co viec follow-up gap — chill di
+> anh. Em chi moi xem {loaded}/{total} contact — neu muon em scan sau
+> them (co the co deal cu), bao em "check ky hon".
+
+Evening:
+> 3h chieu roi — cuong pipeline hom nay clean, khong con viec ton. Neu
+> anh co contact moi dinh them toi/mai, cho em biet em set up thong tin
+> luon. Chuc tan lam!
+
+Luon kem warning section neu co (vd Gmail agent invalid).
 - **KHONG mention** "sme-cli", "daily-plan command", tool names
 - **KHONG tu che email template** — neu user muon full email, goi
   `sme-cli cosmo api POST /v3/campaigns/UUID/templates` (playbook da

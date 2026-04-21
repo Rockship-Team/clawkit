@@ -613,7 +613,12 @@ var cellTemplates = map[string]planCell{
 // --- build cells ---
 
 var morningCells = []string{"MEETING_TOMORROW", "PROPOSAL_HOT", "PROPOSAL_STUCK", "PROPOSAL_GHOST", "POST_MEETING", "CAMPAIGN_SENT_NO_REPLY", "QUALIFIED_OPEN"}
-var eveningCells = []string{"MEETING_TOMORROW", "POST_MEETING", "PROPOSAL_HOT", "QUALIFIED_OPEN"}
+
+// Evening includes CAMPAIGN_SENT_NO_REPLY because follow-up on active
+// campaigns is a classic "wrap up before going home" task, and also the
+// NEW_EVENT bucket so pilots that finished events during the day get a
+// reminder to send the 24h thank-you batch.
+var eveningCells = []string{"MEETING_TOMORROW", "POST_MEETING", "PROPOSAL_HOT", "PROPOSAL_STUCK", "QUALIFIED_OPEN", "CAMPAIGN_SENT_NO_REPLY", "NEW_EVENT"}
 
 func buildPlanCells(contacts []planContact, ctx planContext, now time.Time, mode string) []planCell {
 	buckets := make(map[string][]planContact)

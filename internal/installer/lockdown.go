@@ -377,12 +377,24 @@ func setSkillsAllowlist(skillName string) error {
 // appendSkillsAllowlist reads the current agents.defaults.skills, adds
 // skillName (deduped), and writes it back. Used by additive install
 // (`clawkit install --add <skill>`).
+//
+// Important: when the allowlist is UNSET before this call, OpenClaw
+// defaults to permissive ("all skills allowed"). Writing just
+// [skillName] here would REGRESS that — it would silently block all
+// previously installed skills. So when unset, we leave it unset and the
+// new skill picks up the default permissive mode alongside siblings.
 func appendSkillsAllowlist(skillName string) error {
 	current, err := readSkillsAllowlist()
 	if err != nil {
-		// If read fails (unset, empty, or CLI error), fall back to just
-		// setting this skill alone.
-		return writeSkillsAllowlist([]string{skillName})
+		// Allowlist unset / CLI read failed. Leave it unset — the runtime
+		// will default to permissive mode, which naturally includes the
+		// newly installed skill alongside any prior ones. Do not force
+		// a restrictive list here.
+		return nil
+	}
+	if len(current) == 0 {
+		// Explicitly empty array — treat like unset, don't clobber.
+		return nil
 	}
 	for _, s := range current {
 		if s == skillName {

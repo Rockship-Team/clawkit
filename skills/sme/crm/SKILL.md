@@ -37,31 +37,40 @@ sme-cli cosmo api POST  /v1/contacts '{"name":"...","email":"...","company":"...
 sme-cli cosmo api POST  /v1/contacts/bulk '[{"name":"A"},{"name":"B"}]'
 sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"QUALIFIED"}'
 sme-cli cosmo api POST  /v2/contacts/batch '{"contacts":[{"id":"UUID","business_stage":"LEAD"}]}'
-sme-cli cosmo api POST  /v1/contacts/import-csv   # multipart CSV
 ```
+
+### Import hang loat tu file
+
+```bash
+# Text file: moi dong "Ten — email" (em-dash hoac hyphen)
+sme-cli cosmo import-txt contacts.txt --source event --list-id <UUID>
+
+# CSV (Luma / OpenClaw event export)
+sme-cli cosmo import-csv attendees.csv --format luma --list-id <UUID>
+
+# CSV bat ki — header mapping tu dong (name/email/phone/company/job_title
+# len top-level, con lai vao custom_fields)
+sme-cli cosmo import-csv any.csv --format generic
+```
+
+Output JSON report: `{ok, total_parsed, created_count, created_ids, parse_errors, list_assigned?}`. Neu co `--list-id`, contacts moi tao duoc PATCH vao contact list tuong ung.
 
 ### Enrich & AI insights
 
-Khi danh ba thieu thong tin hoac can hieu sau hon:
+Khi danh ba thieu thong tin hoac can hieu sau hon, dung cac alias:
 
 ```bash
-# AI enrich tu cac nguon cong khai (LinkedIn, news, website)
-sme-cli cosmo api POST /v1/contacts/UUID/enrich
+sme-cli cosmo enrich <UUID>              # AI enrich tu LinkedIn / news / web
+sme-cli cosmo score-icp <UUID>           # Tinh diem ICP fit
+sme-cli cosmo score-relationship <UUID>  # Do manh moi quan he (freq + recency)
+sme-cli cosmo meeting-brief <UUID>       # Briefing cho meeting sap toi
+```
 
-# Tinh diem ICP / segment fit
-sme-cli cosmo api POST /v1/contacts/UUID/calculate-scores
+Feedback loop + extract-from-url goi qua `cosmo api`:
 
-# Tinh do manh cua moi quan he
-sme-cli cosmo api POST /v1/contacts/UUID/relationship-score
-
-# Tao briefing cho meeting sap toi
-sme-cli cosmo api POST /v1/contacts/UUID/generate-meeting-brief
-
-# Research findings tu URL (LinkedIn, company website)
+```bash
 sme-cli cosmo api POST /v1/contacts/UUID/extract-from-url '{"url":"https://linkedin.com/in/..."}'
 sme-cli cosmo api POST /v1/contacts/UUID/research-findings '{"findings":[...]}'
-
-# Xac nhan / tu choi mot AI insight (feedback loop)
 sme-cli cosmo api POST /v1/contacts/UUID/insights/validate '{"field":"pain_points","index":0,"action":"confirm"}'
 ```
 
@@ -75,12 +84,13 @@ sme-cli apollo enrich-person  "Nguyen Van A" "Acme"
 
 ### Tim kiem ngu nghia
 
-Khi user hoi kieu "tim founder SaaS" hoac "ai co interest ve AI":
+Khi user hoi kieu "tim founder SaaS" hoac "ai co interest ve AI" — dung
+alias (limit default = 10):
 
 ```bash
-sme-cli cosmo api POST /v1/intelligence/vector-search '{"query":"SaaS founders","limit":10}'
-sme-cli cosmo api POST /v1/intelligence/hybrid-search '{"query":"interested in AI","limit":10}'
-sme-cli cosmo api POST /v1/intelligence/search-interactions '{"query":"pricing discussion","limit":10}'
+sme-cli cosmo vector-search "SaaS founders" 10        # embedding-based
+sme-cli cosmo hybrid-search "interested in AI" 10     # vector + keyword
+sme-cli cosmo search-interactions "pricing discussion" 10
 ```
 
 ### Danh sach & phan nhom
@@ -127,13 +137,16 @@ sme-cli cosmo api GET  /v1/interactions?contact_id=UUID&limit=10
 ## VI DU
 
 **User:** "Tim contact ten Hoang Anh Dung o Techcombank"
-→ `cosmo_api.sh POST /v2/contacts/search '{"query":"Hoang Anh Dung Techcombank"}'` → tra ve profile.
+→ `sme-cli cosmo search-contact "Hoang Anh Dung Techcombank"` → tra ve profile.
 
 **User:** "Enrich contact nay" (dang mo profile)
-→ `cosmo_api.sh POST /v1/contacts/UUID/enrich` → doi vai giay → bao user thong tin moi (linkedin, role, company news).
+→ `sme-cli cosmo enrich <UUID>` → doi vai giay → bao user thong tin moi (linkedin, role, company news).
+
+**User:** "Import list attendees event thang 4 tu Luma CSV"
+→ `sme-cli cosmo import-csv attendees.csv --format luma --list-id <UUID>` → report 103 created.
 
 **User:** "Tao list khach hang tiem nang cho campaign webinar thang 5"
 → Search hoac tao segmentation → `POST /v1/list-contacts '{"name":"Webinar May 2026","contact_ids":[...]}'`.
 
 **User:** "Ai trong danh ba la founder SaaS?"
-→ `POST /v1/intelligence/vector-search '{"query":"SaaS founder","limit":10}'`.
+→ `sme-cli cosmo vector-search "SaaS founder" 10`.

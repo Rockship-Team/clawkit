@@ -29,9 +29,10 @@ import (
 //	sme-cli cosmo vector-search <query> [limit]
 //	sme-cli cosmo hybrid-search <query> [limit]
 //	sme-cli cosmo search-interactions <query> [limit]
+//	sme-cli cosmo daily-plan [--mode morning|evening|all] [--max-pages N]
 func cmdCosmo(args []string) {
 	if len(args) == 0 {
-		errOut("usage: cosmo api|search-contact|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions")
+		errOut("usage: cosmo api|search-contact|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions|daily-plan")
 		return
 	}
 	switch args[0] {
@@ -65,6 +66,8 @@ func cmdCosmo(args []string) {
 		cosmoHybridSearch(args[1:])
 	case "search-interactions":
 		cosmoSearchInteractions(args[1:])
+	case "daily-plan":
+		cosmoDailyPlan(args[1:])
 	default:
 		errOut("unknown cosmo command: " + args[0])
 	}

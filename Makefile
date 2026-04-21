@@ -59,6 +59,7 @@ npm-pack: dist
 	cp dist/$(BINARY)-darwin-arm64      npm/binaries/$(BINARY)-darwin-arm64
 	cp dist/$(BINARY)-darwin-amd64      npm/binaries/$(BINARY)-darwin-amd64
 	cp dist/$(BINARY)-linux-amd64       npm/binaries/$(BINARY)-linux-amd64
+	cp dist/$(BINARY)-linux-arm64       npm/binaries/$(BINARY)-linux-arm64
 	cp dist/$(BINARY)-windows-amd64.exe npm/binaries/$(BINARY)-windows-amd64.exe
 	@echo "Updating npm package version to $(VERSION)..."
 	cd npm && npm version $(VERSION) --no-git-tag-version --allow-same-version
@@ -71,6 +72,7 @@ npm-publish: dist
 	cp dist/$(BINARY)-darwin-arm64      npm/binaries/$(BINARY)-darwin-arm64
 	cp dist/$(BINARY)-darwin-amd64      npm/binaries/$(BINARY)-darwin-amd64
 	cp dist/$(BINARY)-linux-amd64       npm/binaries/$(BINARY)-linux-amd64
+	cp dist/$(BINARY)-linux-arm64       npm/binaries/$(BINARY)-linux-arm64
 	cp dist/$(BINARY)-windows-amd64.exe npm/binaries/$(BINARY)-windows-amd64.exe
 	cd npm && npm version $(VERSION) --no-git-tag-version --allow-same-version
 	cd npm && npm publish --access public

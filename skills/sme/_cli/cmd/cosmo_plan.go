@@ -71,6 +71,7 @@ type planContact struct {
 	Name              string `json:"name"`
 	Company           string `json:"company,omitempty"`
 	JobTitle          string `json:"job_title,omitempty"`
+	Industry          string `json:"industry,omitempty"`
 	Email             string `json:"email,omitempty"`
 	Source            string `json:"source,omitempty"`
 	BusinessStage     string `json:"business_stage,omitempty"`
@@ -82,6 +83,12 @@ type planContact struct {
 	HasEmail          bool   `json:"has_email"`
 	HasLinkedIn       bool   `json:"has_linkedin"`
 	HasPhone          bool   `json:"has_phone"`
+
+	// EnrichmentStatus signals whether the contact has enough business
+	// context for a personalized action hint. "enriched" if company AND
+	// (job_title OR industry) are set; "partial" if one is set; "needed"
+	// if neither.
+	EnrichmentStatus string `json:"enrichment_status"`
 }
 
 type planCell struct {
@@ -93,6 +100,15 @@ type planCell struct {
 	Count    int           `json:"count"`
 	Action   planAction    `json:"action"`
 	Contacts []planContact `json:"contacts"`
+
+	// EnrichmentSummary reports how many contacts in this cell have
+	// enough context for a personalized action. Populated by
+	// buildPlanCells.
+	EnrichmentSummary struct {
+		Enriched int `json:"enriched"`
+		Partial  int `json:"partial"`
+		Needed   int `json:"needed"`
+	} `json:"enrichment_summary"`
 }
 
 type planAction struct {
@@ -158,11 +174,22 @@ func flattenContact(e map[string]interface{}) planContact {
 		Name:          get("name"),
 		Company:       get("company"),
 		JobTitle:      get("job_title"),
+		Industry:      get("industry"),
 		Email:         get("email"),
 		Source:        get("source"),
 		BusinessStage: strings.ToUpper(get("business_stage")),
 		NextStep:      get("next_step"),
 		LastOutcome:   get("last_outcome"),
+	}
+	hasCompany := strings.TrimSpace(c.Company) != ""
+	hasRole := strings.TrimSpace(c.JobTitle) != "" || strings.TrimSpace(c.Industry) != ""
+	switch {
+	case hasCompany && hasRole:
+		c.EnrichmentStatus = "enriched"
+	case hasCompany || hasRole:
+		c.EnrichmentStatus = "partial"
+	default:
+		c.EnrichmentStatus = "needed"
 	}
 	c.HasEmail = c.Email != "" && strings.Contains(c.Email, "@")
 	c.HasLinkedIn = get("linkedin_url") != ""
@@ -424,6 +451,17 @@ func buildPlanCells(contacts []planContact, now time.Time, mode string) []planCe
 			continue
 		}
 		sortByIdleDesc(list)
+		// Tally enrichment over the FULL bucket before we truncate for display.
+		for _, c := range buckets[id] {
+			switch c.EnrichmentStatus {
+			case "enriched":
+				tpl.EnrichmentSummary.Enriched++
+			case "partial":
+				tpl.EnrichmentSummary.Partial++
+			default:
+				tpl.EnrichmentSummary.Needed++
+			}
+		}
 		limit := 5
 		if mode == "evening" {
 			limit = 3

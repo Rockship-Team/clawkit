@@ -62,47 +62,86 @@ trigger:
 - Cron DAILY_MORNING_BRIEFING → `--mode morning`
 - Cron DAILY_EVENING_REVIEW → `--mode evening`
 
-### Step 2 — Format ra chat (user-friendly)
+### Step 2 — Format ra chat (DATA-AWARE, khong lap template)
 
-Output JSON co shape:
-```json
-{
-  "ok": true,
-  "mode": "morning",
-  "generated_at": "2026-04-21T08:00:00+07:00",
-  "total_contacts": 182,
-  "cells": [
-    {
-      "id": "PROPOSAL_HOT",
-      "emoji": "🔥",
-      "name": "Can follow-up gap",
-      "priority": 1,
-      "why": "Day 3 sweet spot cho touch #2 (+31% reply...)",
-      "count": 2,
-      "action": {
-        "playbook": "cold_outreach",
-        "subject_hint": "...",
-        "length": "50-125 words",
-        "cta": "..."
-      },
-      "contacts": [{"id":"...","name":"John","company":"Acme","idle_days":4,...}]
-    }
-  ],
-  "warnings": [{"type": "email_agent_invalid_cred", "message": "..."}]
-}
-```
+Output JSON co field quan trong:
+- `cells[].enrichment_summary: {enriched, partial, needed}` — count contacts
+  co business context day du vs chi co email/ten.
+- `cells[].contacts[].enrichment_status`: `"enriched"` | `"partial"` | `"needed"`.
+- `cells[].contacts[]`: name, company, job_title, industry, email, idle_days,
+  last_outcome, next_step, interactions_30d, ...
 
-Format chat theo template:
+### 🔑 QUY TAC VANG: personalize theo context co san
+
+Khi render moi contact, ap dung nguyen tac sau:
+
+**Neu contact `enrichment_status = "enriched"` (co company + role):**
+
+Compose action **CU THE** dua tren:
+- Company + job_title (vd "anh Tuan — CTO Acme")
+- Last_outcome / next_step neu co (vd "proposal gui 4 ngay, chua reply")
+- Industry / pain point (infer tu company)
+
+Vi du GOOD:
+> 🔥 **Acme (Tran Minh, CTO)** — proposal 4 ngay, chua reply
+> → Gui email 60w nhac nhe: "Minh, case Acme-sized thay 60% reduction
+> tickets trong 3 thang — muon call 15p thao luan timeline?"
+
+Vi du **BAD** (mechanical, KHONG lam):
+> 🔥 **Tran Minh** — idle 4d
+> → Gui email 50-125 words signal-led + 1 CTA call 15p
+
+**Neu contact `enrichment_status = "needed"` (chi email + ten):**
+
+KHONG gia vo personalize. **HAY GOM NHOM VA SUGGEST ENRICH:**
+
+Vi du GOOD:
+> 🎫 **Event attendees — 192 contacts (183 chua enrich)**
+>
+> Hau het la luma import chi co email + ten, thieu company/role nen em
+> khong co context personalize. **2 path:**
+>
+> **(a) Enrich truoc (recommend):**
+> Chay `sme-cli cosmo api POST /v1/contacts/UUID/enrich` cho top 20
+> contact co email corporate (ignore @gmail/@outlook). Sau 5 phut co
+> LinkedIn + company info → chay lai "nhac toi" de thay action cu the.
+>
+> **(b) Treat luon la batch campaign (no personalize):**
+> Tao 1 campaign playbook `event_invite` cho toan bo 192 contact:
+> - Subject: "Thank you for joining OpenClaw Setup Day" hoac similar
+> - Body template 50-125w: thank + 1 takeaway (Rockship capability) + 1
+>   CTA (20-min discovery call)
+> - Send within 24h of event = optimal
+>
+> Anh pick (a) hay (b)?
+
+Vi du **BAD** (lap template, KHONG lam):
+> 🎫 Event attendee (192)
+> - Test User — idle 1d, từ event openclaw
+>   → Gửi email 50-125 words: cảm ơn + 1 takeaway + CTA call 20 phút
+> - Quan Nguyen — idle 1d
+>   → Nhắc booths/session cụ thể, gửi trong 24h sau event
+
+**Neu contact `enrichment_status = "partial"`:**
+
+Dung nhung gi co, noi ro gi thieu.
+Vi du: "Acme (company biet) — role chua xac dinh → doan CTO/founder vi
+Acme la tech startup → if right, gui email email...; neu sai role, enrich
+truoc."
+
+### Format chat (overall shape)
 
 ```
 {Greeting theo mode — "Chao buoi sang @user" cho morning, "4h chieu roi @user" cho evening, "Oke" cho manual}
 
-{emoji} **{Name} ({count})**
-- **{company} ({contact.name}, {contact.job_title})** — idle {idle_days}d
-  → {1-line custom action dua tren action.subject_hint + cta, viet gon}
-- ... (max 5 morning / 3 evening / 7 all)
+{emoji} **{Name} ({count})** {optional: " — {N}/{count} chua enrich"}
 
-{next cell...}
+  [Neu enriched chiem majority]:
+  Moi contact 1-2 dong voi action PERSONALIZED bang company/role/history.
+
+  [Neu needed/partial chiem majority]:
+  Bao ro so luong chua enrich + 2 path (enrich vs batch). Khong list
+  tung contact mechanical.
 
 {warning section neu co — "⚠️ {warning.message}"}
 
@@ -112,11 +151,11 @@ Anh muon em action cai nao?
 ### Rang buoc format
 
 - **Toi da 7 cells hien thi**. Neu >7 co data, hien top priority + bao
-  "Con {X} cells khac ({list}) — anh muon chi tiet?"
-- **Per contact 1-2 dong max** — khong dai dong
-- **Suggest action ngan** (1 cau, dua tren `action.subject_hint` +
-  `action.cta` cua cell — ko copy nguyen van action.length etc.)
-- **KHONG dump JSON** ra chat
+  "Con {X} cells khac ({list}) — anh muon chi tiet?".
+- **KHONG render mechanical** — KHONG liet ke "send email 50-125 words
+  + 1 CTA" giong nhau cho moi contact. Do la pattern em nhan ra khi
+  output sai.
+- **KHONG dump JSON** ra chat.
 - **KHONG mention** "sme-cli", "daily-plan command", tool names
 - **KHONG tu che email template** — neu user muon full email, goi
   `sme-cli cosmo api POST /v3/campaigns/UUID/templates` (playbook da

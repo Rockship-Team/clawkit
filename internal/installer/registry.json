@@ -2,7 +2,7 @@
   "skills": {
     "agent-learner": {
       "version": "1.0.0",
-      "description": "Tu hoc va cai thien — luu quy trinh thanh cong, cap nhat khi phat hien thieu sot, tim kiem kinh nghiem cu.",
+      "description": "Self-learn and improve — save successful workflows, update when gaps are found, search past experience.",
       "requires_bins": [
         "vault-cli"
       ],
@@ -92,22 +92,16 @@
     },
     "knowledge-vault": {
       "version": "1.0.0",
-      "description": "Quan ly kien thuc doanh nghiep trong Obsidian vault — ghi chep, tim kiem, lien ket, to chuc thong tin.",
+      "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
       "requires_bins": [
         "vault-cli"
-      ],
-      "setup_prompts": [
-        {
-          "key": "vault_path",
-          "label": ""
-        }
       ],
       "exclude": [
         "cmd",
         "*.go"
       ]
     },
-     "offer-comparison": {
+    "offer-comparison": {
       "version": "1.0.0",
       "description": "Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.",
       "requires_bins": [

@@ -7,10 +7,12 @@ Generic scaffolding for a new skill. Copy `skill/` into `skills/` and customize.
 ```
 skills/
   [...skill]/               Flat skill
+    _bootstrap/             Markdown persona files (IDENTITY.md, SOUL.md, …)
     _cli/                   cli.js (and any helpers)
     config.json             version, setup_prompts, exclude
     SKILL.md                name, description, metadata.openclaw.*
   [...group]/               Grouped skills
+    _bootstrap/             Persona files shared across the group
     _cli/                   cli.js shared across the group
     [...skill]/
       config.json

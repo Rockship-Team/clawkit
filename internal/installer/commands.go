@@ -215,6 +215,12 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 		}
 	}
 
+	if n, err := applyBootstrap(targetDir, skillsDir); err != nil {
+		ui.Warn("Could not apply bootstrap files: %v", err)
+	} else if n > 0 {
+		ui.Ok("Applied %d bootstrap file(s) to workspace", n)
+	}
+
 	cfg := &config.SkillConfig{
 		Version:    skill.Version,
 		UserInputs: userInputs,
@@ -226,6 +232,38 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 	fmt.Println()
 	ui.Ok("'%s' installed!", skillName)
 	fmt.Printf("  Location: %s\n", targetDir)
+}
+
+// applyBootstrap copies top-level .md files from the skill's _bootstrap/
+// directory into the workspace root (parent of skillsDir), overwriting
+// any existing files there. Returns the number of files copied.
+func applyBootstrap(skillDir, skillsDir string) (int, error) {
+	bootstrapDir := filepath.Join(skillDir, "_bootstrap")
+	entries, err := os.ReadDir(bootstrapDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	workspaceDir := filepath.Dir(skillsDir)
+	count := 0
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		src := filepath.Join(bootstrapDir, e.Name())
+		dst := filepath.Join(workspaceDir, e.Name())
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return count, fmt.Errorf("read %s: %w", e.Name(), err)
+		}
+		if err := os.WriteFile(dst, data, 0644); err != nil {
+			return count, fmt.Errorf("write %s: %w", e.Name(), err)
+		}
+		count++
+	}
+	return count, nil
 }
 
 // CmdUpdate resolves name as a flat skill or a group, then updates one or

@@ -152,7 +152,10 @@ func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) err
 		if err := copyDir(localDir, targetDir, patterns); err != nil {
 			return err
 		}
-		return mergeGroupCLI(localDir, targetDir)
+		if err := mergeGroupDir(localDir, targetDir, "_cli"); err != nil {
+			return err
+		}
+		return mergeGroupDir(localDir, targetDir, "_bootstrap")
 	}
 
 	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
@@ -160,7 +163,10 @@ func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) err
 		if err := copyEmbeddedSkill(embeddedPath, targetDir, patterns); err != nil {
 			return err
 		}
-		return mergeEmbeddedGroupCLI(embeddedPath, targetDir)
+		if err := mergeEmbeddedGroupDir(embeddedPath, targetDir, "_cli"); err != nil {
+			return err
+		}
+		return mergeEmbeddedGroupDir(embeddedPath, targetDir, "_bootstrap")
 	}
 
 	dlURL := fmt.Sprintf("%s/%s.tar.gz", remoteSkillBaseURL, skillName)
@@ -222,34 +228,35 @@ func findLocalSkill(skillName string) string {
 	return ""
 }
 
-// mergeGroupCLI copies the parent group's _cli/ directory into targetDir if
-// the skill lives under a group (skills/<group>/<skill>) and the skill itself
-// has no _cli/. Existing _cli/ in the skill takes precedence.
-func mergeGroupCLI(localDir, targetDir string) error {
-	if _, err := os.Stat(filepath.Join(targetDir, "_cli")); err == nil {
+// mergeGroupDir copies the parent group's <name>/ directory into targetDir
+// if the skill lives under a group (skills/<group>/<skill>) and the skill
+// itself has no <name>/. Existing <name>/ in the skill takes precedence.
+// Used for _cli/ and _bootstrap/.
+func mergeGroupDir(localDir, targetDir, name string) error {
+	if _, err := os.Stat(filepath.Join(targetDir, name)); err == nil {
 		return nil
 	}
-	parentCLI := filepath.Join(filepath.Dir(localDir), "_cli")
-	if info, err := os.Stat(parentCLI); err != nil || !info.IsDir() {
+	parent := filepath.Join(filepath.Dir(localDir), name)
+	if info, err := os.Stat(parent); err != nil || !info.IsDir() {
 		return nil
 	}
-	return copyDir(parentCLI, filepath.Join(targetDir, "_cli"), nil)
+	return copyDir(parent, filepath.Join(targetDir, name), nil)
 }
 
-// mergeEmbeddedGroupCLI is the embedded-FS equivalent of mergeGroupCLI.
-func mergeEmbeddedGroupCLI(embeddedPath, targetDir string) error {
-	if _, err := os.Stat(filepath.Join(targetDir, "_cli")); err == nil {
+// mergeEmbeddedGroupDir is the embedded-FS equivalent of mergeGroupDir.
+func mergeEmbeddedGroupDir(embeddedPath, targetDir, name string) error {
+	if _, err := os.Stat(filepath.Join(targetDir, name)); err == nil {
 		return nil
 	}
 	parent := filepath.Dir(embeddedPath)
 	if parent == "." || parent == "" {
 		return nil
 	}
-	cliPath := parent + "/_cli"
-	if _, err := fs.Stat(skills.FS, cliPath); err != nil {
+	src := parent + "/" + name
+	if _, err := fs.Stat(skills.FS, src); err != nil {
 		return nil
 	}
-	return copyEmbeddedDir(cliPath, filepath.Join(targetDir, "_cli"))
+	return copyEmbeddedDir(src, filepath.Join(targetDir, name))
 }
 
 // shouldExclude checks whether relPath matches any of the exclude patterns.

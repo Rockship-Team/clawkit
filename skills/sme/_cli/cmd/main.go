@@ -60,13 +60,11 @@ func main() {
 		cmdDashboard(os.Args[2:])
 	case "report":
 		cmdReport(os.Args[2:])
-	// BD / Proposals (COSMO CRM + Apollo + Manus AI)
+	// BD / Proposals (COSMO CRM + Apollo + local PDF rendering)
 	case "cosmo":
 		cmdCosmo(os.Args[2:])
 	case "apollo":
 		cmdApollo(os.Args[2:])
-	case "manus":
-		cmdManus(os.Args[2:])
 	case "proposal":
 		cmdProposal(os.Args[2:])
 	default:
@@ -89,5 +87,5 @@ HR:          employee, payroll, leave
 Sales:       contact, lead, quote, order
 Ops:         task, document, license
 BI:          dashboard, report
-BD:          cosmo, apollo, manus, proposal`)
+BD:          cosmo, apollo, proposal`)
 }

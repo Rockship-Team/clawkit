@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	osexec "os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -49,31 +48,29 @@ var proposalTiers = []proposalTier{
 	{
 		Name:                 "Starter",
 		PriceVND:             15_000_000,
-		AgentsMax:            1,
-		TransactionsPerMonth: 5000,
+		AgentsMax:            3,
+		TransactionsPerMonth: 10_000,
 		Features: []string{
-			"1 AI Agent",
-			"Up to 5,000 transactions/month",
-			"Basic analytics",
-			"Email support",
-			"Template-based responses",
+			"Up to 3 AI agents",
+			"10,000 transactions/month",
+			"Standard pipeline automation",
+			"Email + basic support",
 		},
-		BestFor: "Small businesses, testing AI automation",
+		BestFor: "Small teams piloting AI automation (<20 employees)",
 	},
 	{
 		Name:                 "Pro",
 		PriceVND:             400_000_000,
-		AgentsMax:            3,
-		TransactionsPerMonth: 50000,
+		AgentsMax:            10,
+		TransactionsPerMonth: 100_000,
 		Features: []string{
-			"3 AI Agents (multi-channel)",
-			"Up to 50,000 transactions/month",
-			"Advanced analytics + reporting",
-			"Priority support (24h)",
-			"Custom training on company data",
-			"CRM integration",
+			"Up to 10 AI agents",
+			"100,000 transactions/month",
+			"Advanced workflow customization",
+			"Priority support",
+			"Dedicated onboarding session",
 		},
-		BestFor: "Mid-size companies with multi-channel needs",
+		BestFor: "Growth-stage companies scaling operations (20-200 employees)",
 	},
 	{
 		Name:                  "Enterprise",
@@ -81,22 +78,18 @@ var proposalTiers = []proposalTier{
 		AgentsUnlimited:       true,
 		TransactionsUnlimited: true,
 		Features: []string{
-			"Unlimited AI Agents",
-			"Unlimited conversations",
-			"Custom integrations",
-			"Dedicated account manager",
-			"On-premise option",
-			"SLA 99.9%",
-			"Custom model training",
+			"Unlimited AI agents",
+			"Unlimited transactions",
+			"Full custom integrations",
+			"SLA & dedicated CSM",
+			"On-prem / VPC deployment option",
 		},
-		BestFor: "Large enterprises with complex requirements",
+		BestFor: "Enterprises with complex multi-department workflows (200+ employees)",
 	},
 }
 
 var proposalAddOns = []string{
-	"Dedicated Account Manager (beyond Enterprise default)",
-	"On-premise deployment with hardened networking",
-	"Custom SLA upgrade (99.95%+ uptime)",
+	"Custom Vietnamese NLP model tuning",
 	"Additional fine-tuning modules on customer data",
 	"Extended BI / analytics integration",
 }
@@ -123,6 +116,10 @@ func validProposalTier(name string) (string, bool) {
 	return "", false
 }
 
+// proposalGenerate builds a branded HTML proposal from an approved outline
+// and renders it to PDF locally using whichever headless browser / PDF
+// engine is available on the host (chromium > chrome > wkhtmltopdf).
+// Returns { pdf_path, proposal, next_action }.
 func proposalGenerate(args []string) {
 	if len(args) < 4 {
 		errOut("usage: proposal generate <company> <contact_id> <tier> <outline_file>")
@@ -136,7 +133,6 @@ func proposalGenerate(args []string) {
 	if !ok {
 		errOut(fmt.Sprintf("invalid tier %q — only Starter, Pro, Enterprise are allowed. Do not invent tiers.", tierIn))
 	}
-
 	if strings.TrimSpace(contactID) == "" {
 		errOut("contact_id is required — run `sme-cli cosmo search-contact <company>` first. If no match, create via `sme-cli cosmo create-contact`, then pass the returned id.")
 	}
@@ -144,64 +140,28 @@ func proposalGenerate(args []string) {
 		errOut(fmt.Sprintf("contact_id %q must be a UUID from COSMO CRM — Step 1 CRM check is mandatory. Run `sme-cli cosmo search-contact <company>` first.", contactID))
 	}
 
-	info, err := os.Stat(outlinePath)
+	outlineBytes, err := os.ReadFile(outlinePath)
 	if err != nil {
 		errOut("outline file not found: " + outlinePath)
 	}
-	if info.Size() < 200 {
-		errOut(fmt.Sprintf("outline file too small (%d bytes) — provide a real approved outline, not a placeholder.", info.Size()))
+	if len(outlineBytes) < 200 {
+		errOut(fmt.Sprintf("outline file too small (%d bytes) — provide a real approved outline, not a placeholder.", len(outlineBytes)))
 	}
 
-	self, err := os.Executable()
-	if err != nil || self == "" {
-		self = "sme-cli"
-	}
+	html := buildProposalHTML(company, contactID, tier, string(outlineBytes))
+	ts := time.Now().Format("20060102_150405")
+	safeCo := sanitizeFilename(company)
+	htmlPath := filepath.Join(os.TempDir(), fmt.Sprintf("proposal_%s_%s.html", safeCo, ts))
+	pdfPath := filepath.Join(os.TempDir(), fmt.Sprintf("proposal_%s_%s.pdf", safeCo, ts))
 
-	// Step 1 — submit task to Manus, get task_id quickly.
-	submitOut, err := runSMECmd(self, "manus", "submit-proposal", company, outlinePath)
+	if err := os.WriteFile(htmlPath, []byte(html), 0o644); err != nil {
+		errOut("write html: " + err.Error())
+	}
+	engine, err := renderPDF(htmlPath, pdfPath)
 	if err != nil {
-		errOut("manus submit failed: " + err.Error())
-	}
-	taskID, _ := submitOut["task_id"].(string)
-	if taskID == "" {
-		errOut(fmt.Sprintf("manus did not return task_id: %v", submitOut["error"]))
+		errOut(err.Error())
 	}
 
-	// Step 2 — short poll loop (~90s total: 9 retries x 10s).
-	// Avoids bot tool-execution timeout. If not done, return pending + task_id
-	// so the caller can poll via `sme-cli manus get-task <task_id>`.
-	for i := 0; i < 9; i++ {
-		time.Sleep(10 * time.Second)
-		pollOut, err := runSMECmd(self, "manus", "get-task", taskID)
-		if err != nil {
-			continue
-		}
-		status, _ := pollOut["status"].(string)
-		switch status {
-		case "completed":
-			pdfURL := strings.TrimSpace(pickPDFURL(pollOut))
-			if pdfURL == "" {
-				errOut("the proposal task completed but no PDF URL could be determined")
-			}
-			okOut(map[string]interface{}{
-				"proposal": map[string]interface{}{
-					"company":      company,
-					"contact_id":   contactID,
-					"tier":         tier,
-					"outline_path": outlinePath,
-				},
-				"pdf_url":     pdfURL,
-				"task_id":     taskID,
-				"status":      "completed",
-				"next_action": fmt.Sprintf("sme-cli cosmo log-interaction %s proposal_sent && sme-cli cosmo api PATCH /v1/contacts/%s '{\"business_stage\":\"PROPOSAL\"}'", contactID, contactID),
-			})
-			return
-		case "failed":
-			errOut("manus marked the task as failed — adjust the outline and retry")
-		}
-	}
-
-	// Still running. Return task_id so caller can poll later without creating a duplicate task.
 	okOut(map[string]interface{}{
 		"proposal": map[string]interface{}{
 			"company":      company,
@@ -209,61 +169,268 @@ func proposalGenerate(args []string) {
 			"tier":         tier,
 			"outline_path": outlinePath,
 		},
-		"status":   "pending",
-		"task_id":  taskID,
-		"poll_cmd": "sme-cli manus get-task " + taskID,
-		"message":  fmt.Sprintf("Manus dang xu ly. KHONG tao task moi — check lai sau 2-3 phut bang `sme-cli manus get-task %s`.", taskID),
+		"pdf_path":    pdfPath,
+		"html_path":   htmlPath,
+		"engine":      engine,
+		"status":      "completed",
+		"next_action": fmt.Sprintf("Attach %s to the user's chat, then: sme-cli cosmo log-interaction %s proposal_sent && sme-cli cosmo api PATCH /v1/contacts/%s '{\"business_stage\":\"PROPOSAL\"}'", pdfPath, contactID, contactID),
 	})
 }
 
-func runSMECmd(self string, args ...string) (map[string]interface{}, error) {
-	cmd := osexec.Command(self, args...)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	runErr := cmd.Run()
-	var out map[string]interface{}
-	if jerr := json.Unmarshal(stdout.Bytes(), &out); jerr != nil {
-		return nil, fmt.Errorf("non-JSON from %s: %s%s", strings.Join(args, " "), stderr.String(), stdout.String())
+// --- PDF rendering (chromium-first, fallback chain) ---
+
+// renderPDF shells out to the first available engine and returns its name
+// on success. No silent fallbacks beyond the chain — caller gets a single
+// actionable error if none work.
+func renderPDF(htmlPath, pdfPath string) (string, error) {
+	absHTML, err := filepath.Abs(htmlPath)
+	if err != nil {
+		return "", fmt.Errorf("abs path: %w", err)
 	}
-	if runErr != nil && out["ok"] != true {
-		if errMsg, ok := out["error"].(string); ok {
-			return out, fmt.Errorf("%s", errMsg)
+	fileURL := "file://" + absHTML
+	chromiumArgs := []string{
+		"--headless=new", "--disable-gpu", "--no-sandbox",
+		"--no-pdf-header-footer", "--run-all-compositor-stages-before-draw",
+		"--virtual-time-budget=3000",
+		"--print-to-pdf=" + pdfPath, fileURL,
+	}
+	candidates := [][]string{
+		append([]string{"chromium"}, chromiumArgs...),
+		append([]string{"chromium-browser"}, chromiumArgs...),
+		append([]string{"google-chrome"}, chromiumArgs...),
+		append([]string{"google-chrome-stable"}, chromiumArgs...),
+		{"wkhtmltopdf", "--quiet", htmlPath, pdfPath},
+		{"pandoc", htmlPath, "-o", pdfPath},
+	}
+	var lastErr error
+	for _, argv := range candidates {
+		if _, err := osexec.LookPath(argv[0]); err != nil {
+			continue
 		}
-		return out, runErr
+		cmd := osexec.Command(argv[0], argv[1:]...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			lastErr = fmt.Errorf("%s failed: %v — %s", argv[0], err, strings.TrimSpace(string(out)))
+			continue
+		}
+		if info, err := os.Stat(pdfPath); err == nil && info.Size() > 0 {
+			return argv[0], nil
+		}
+		lastErr = fmt.Errorf("%s produced no output", argv[0])
 	}
-	return out, nil
+	if lastErr != nil {
+		return "", fmt.Errorf("no working PDF engine: %v", lastErr)
+	}
+	return "", fmt.Errorf("no PDF engine found on PATH — install chromium, wkhtmltopdf, or pandoc")
 }
 
-func pickPDFURL(pollOut map[string]interface{}) string {
-	output, ok := pollOut["output"].([]interface{})
-	if !ok {
+func sanitizeFilename(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "proposal"
+	}
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == ' ', r == '-', r == '_':
+			b.WriteRune('_')
+		}
+	}
+	out := strings.Trim(b.String(), "_")
+	if out == "" {
+		return "proposal"
+	}
+	if len(out) > 40 {
+		out = out[:40]
+	}
+	return out
+}
+
+// --- HTML builder ---
+
+func buildProposalHTML(company, contactID, tier, outlineMD string) string {
+	t, _ := findTier(tier)
+	date := time.Now().Format("2006-01-02")
+	body := mdToHTML(outlineMD)
+	pricingBlock := renderPricingBlock(t)
+
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proposal — ` + htmlEscape(company) + `</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+         color: #1f2937; line-height: 1.55; font-size: 11pt; }
+  h1 { font-size: 22pt; margin: 0 0 4px; color: #0f172a; }
+  h2 { font-size: 14pt; margin: 22px 0 8px; color: #0f172a; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+  h3 { font-size: 12pt; margin: 16px 0 6px; color: #334155; }
+  p, li { margin: 4px 0; }
+  ul, ol { margin: 6px 0 10px 20px; }
+  code { font-family: Menlo, Consolas, monospace; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; font-size: 10pt; }
+  strong { color: #0f172a; }
+  em { color: #374151; }
+  .header { border-bottom: 3px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+  .meta { color: #6b7280; font-size: 10pt; margin-top: 6px; }
+  .pricing { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;
+             padding: 14px 18px; margin: 20px 0; }
+  .pricing .tier-name { font-size: 13pt; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+  .pricing .price { font-size: 16pt; font-weight: 700; color: #0f766e; margin: 4px 0 10px; }
+  .pricing ul { margin-left: 18px; }
+  .footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+            color: #6b7280; font-size: 9pt; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Proposal for ` + htmlEscape(company) + `</h1>
+    <div class="meta">Tier: <strong>` + htmlEscape(tier) + `</strong> · Date: ` + date + ` · Ref: ` + htmlEscape(contactID) + `</div>
+  </div>
+
+  ` + body + `
+
+  ` + pricingBlock + `
+
+  <div class="footer">
+    Prepared by Rockship · ` + date + ` · Reference ` + htmlEscape(contactID) + `
+  </div>
+</body>
+</html>`
+}
+
+func findTier(name string) (proposalTier, bool) {
+	for _, t := range proposalTiers {
+		if strings.EqualFold(t.Name, name) {
+			return t, true
+		}
+	}
+	return proposalTier{}, false
+}
+
+func renderPricingBlock(t proposalTier) string {
+	if t.Name == "" {
 		return ""
 	}
-	for _, o := range output {
-		om, ok := o.(map[string]interface{})
-		if !ok {
-			continue
+	feat := "<ul>"
+	for _, f := range t.Features {
+		feat += "<li>" + htmlEscape(f) + "</li>"
+	}
+	feat += "</ul>"
+	return `<div class="pricing">
+    <div class="tier-name">` + htmlEscape(t.Name) + ` Tier</div>
+    <div class="price">` + formatVND(t.PriceVND) + ` VND / year</div>
+    ` + feat + `
+    <div style="color:#6b7280;font-size:10pt;">Best for: ` + htmlEscape(t.BestFor) + `</div>
+  </div>`
+}
+
+func formatVND(n int64) string {
+	s := fmt.Sprintf("%d", n)
+	// insert thousands separator
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			b.WriteByte(',')
 		}
-		content, ok := om["content"].([]interface{})
-		if !ok {
-			continue
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// --- Minimal markdown-to-HTML ---
+
+// mdToHTML handles: headers, unordered lists, bold, italic, inline code,
+// paragraphs. Enough for a proposal. Tables / images / nested blocks are
+// out of scope — proposal outlines don't need them.
+func mdToHTML(md string) string {
+	lines := strings.Split(md, "\n")
+	var out strings.Builder
+	inList := false
+	var para []string
+
+	flushPara := func() {
+		if len(para) == 0 {
+			return
 		}
-		for _, c := range content {
-			cm, ok := c.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			name, _ := cm["fileName"].(string)
-			if name == "style_template.pdf" {
-				continue
-			}
-			mime, _ := cm["mimeType"].(string)
-			url, _ := cm["fileUrl"].(string)
-			if url != "" && (mime == "application/pdf" || strings.HasSuffix(name, ".pdf")) {
-				return url
-			}
+		text := strings.Join(para, " ")
+		out.WriteString("<p>" + inlineMD(text) + "</p>\n")
+		para = para[:0]
+	}
+	closeList := func() {
+		if inList {
+			out.WriteString("</ul>\n")
+			inList = false
 		}
 	}
-	return ""
+
+	for _, raw := range lines {
+		line := strings.TrimRight(raw, " \t")
+		trim := strings.TrimSpace(line)
+		if trim == "" {
+			flushPara()
+			closeList()
+			continue
+		}
+		// Headers
+		if strings.HasPrefix(trim, "### ") {
+			flushPara()
+			closeList()
+			out.WriteString("<h3>" + inlineMD(strings.TrimPrefix(trim, "### ")) + "</h3>\n")
+			continue
+		}
+		if strings.HasPrefix(trim, "## ") {
+			flushPara()
+			closeList()
+			out.WriteString("<h2>" + inlineMD(strings.TrimPrefix(trim, "## ")) + "</h2>\n")
+			continue
+		}
+		if strings.HasPrefix(trim, "# ") {
+			flushPara()
+			closeList()
+			out.WriteString("<h2>" + inlineMD(strings.TrimPrefix(trim, "# ")) + "</h2>\n")
+			continue
+		}
+		// Unordered list
+		if strings.HasPrefix(trim, "- ") || strings.HasPrefix(trim, "* ") {
+			flushPara()
+			if !inList {
+				out.WriteString("<ul>\n")
+				inList = true
+			}
+			out.WriteString("<li>" + inlineMD(trim[2:]) + "</li>\n")
+			continue
+		}
+		// Horizontal rule
+		if trim == "---" || trim == "***" {
+			flushPara()
+			closeList()
+			out.WriteString("<hr>\n")
+			continue
+		}
+		closeList()
+		para = append(para, trim)
+	}
+	flushPara()
+	closeList()
+	return out.String()
 }
+
+var (
+	reBold   = regexp.MustCompile(`\*\*([^\*]+)\*\*`)
+	reItalic = regexp.MustCompile(`\*([^\*]+)\*`)
+	reCode   = regexp.MustCompile("`([^`]+)`")
+)
+
+func inlineMD(s string) string {
+	s = htmlEscape(s)
+	s = reBold.ReplaceAllString(s, "<strong>$1</strong>")
+	s = reItalic.ReplaceAllString(s, "<em>$1</em>")
+	s = reCode.ReplaceAllString(s, "<code>$1</code>")
+	return s
+}
+
+var htmlEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+
+func htmlEscape(s string) string { return htmlEscaper.Replace(s) }

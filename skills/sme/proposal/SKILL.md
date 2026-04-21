@@ -1,6 +1,6 @@
 ---
 name: sme-proposal
-description: "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF."
+description: "Proposal generator cho SME — viet proposal chuyen nghiep, render PDF tai cho (chromium headless), gui file thang vao chat. 7-step pipeline tu client data → outline → approve → PDF."
 metadata: { "openclaw": { "emoji": "📝" } }
 ---
 
@@ -121,36 +121,22 @@ Present outline cho user review:
 3. Neu user yeu cau sua → update outline, present lai.
 4. **Doi user approve** (noi OK, "duyet", "duoc roi"...) truoc khi qua Step 7.
 
-## Step 7 — Generate & Export PDF via Manus AI (CHI SAU KHI user approve)
+## Step 7 — Render PDF Locally + Send File to User (CHI SAU KHI user approve)
 
 > **MANDATORY PRE-CHECK — failing any of these = hard failure:**
 >
 > 1. **APPROVAL GATE (HARD STOP).** Tin nhan CUOI CUNG cua user phai chua mot
 >    trong cac tu khoa: `approve`, `duyet`, `OK`, `duoc roi`, `dong y`, `gen di`,
 >    `chot`. Khong duoc suy dien — neu thieu tu khoa → **STOP, quay lai Step 6**
->    va present outline + hoi "Em chot luon nhe?". Vi pham = burn API credits ko ly do.
-> 2. **NO AUTO-RETRY.** Neu `sme-cli manus generate-proposal` tra error
->    (timeout / rate limit / 5xx / "busy") → **STOP NGAY**. Bao user:
->    "Manus dang loi, anh thu lai sau 2-3 phut nha." **TUYET DOI khong**
->    chay lai cau lenh — moi lan retry = task moi tren Manus = double credits.
-> 2b. **HANDLE status=pending.** Neu output co `"status": "pending"` va `"task_id"`,
->    NGHIA LA task van dang chay tren Manus (chua xong). **TUYET DOI khong**
->    chay lai `manus generate-proposal`. Phai check bang:
->    `sme-cli manus get-task <task_id>` (tu output truoc).
->    Luu y: lenh nay da tu poll/wait san, co the dung vai phut moi tra ket qua.
->    Cu de lenh chay xong; neu sau khi doi ma van chua xong / Manus van busy thi
->    bao user "Manus busy, em check lai sau 5 phut" — KHONG tao task moi.
-> 3. **PRESERVE FULL URL.** Khi share PDF link, paste **RAW URL day du**
->    (bao gom `?Policy=...&Key-Pair-Id=...&Signature=...`). KHONG dung markdown
->    `[text](url)` — Telegram parser cat query string. Cat query = link 403 broken.
-> 4. **BANNED tools** — NEU dinh dung BAT KY cong cu nay, STOP IMMEDIATELY:
->    Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, generate_pdf.sh,
->    wkhtmltopdf, Prince, Chrome headless, BAT KY HTML-to-PDF converter nao khac.
->    Dung banned tool = **hard failure**.
+>    va present outline + hoi "Em chot luon nhe?".
+> 2. **NO AUTO-RETRY.** Neu `sme-cli proposal generate` tra error → **STOP**
+>    va bao user. Moi lan retry se ghi de file output. Doc error message,
+>    sua root cause (outline qua ngan / contact_id sai format / chromium
+>    chua cai), roi chay lai **1 lan**.
 
 **How to generate PDF — ONE command only:**
 
-1. Save approved outline vao temp file (TUYET DOI khong noi "saved at /tmp/..." voi user — im lang, day la thao tac noi bo):
+1. Save approved outline vao temp file (IM LANG — khong noi "saved at /tmp/..." voi user):
 
    ```bash
    cat > /tmp/proposal_outline.md << 'OUTLINE_EOF'
@@ -158,30 +144,39 @@ Present outline cho user review:
    OUTLINE_EOF
    ```
 
-2. Chay **deterministic wrapper** (validate tier + contact_id + outline size, roi goi Manus):
+2. Chay **deterministic wrapper** — validate tier + contact_id + outline size,
+   build HTML tu outline (voi header company + pricing block tu tier), render
+   PDF tai cho bang chromium headless:
 
    ```bash
    sme-cli proposal generate "{Company_Name}" "{contact_id}" "{Starter|Pro|Enterprise}" /tmp/proposal_outline.md
    ```
 
-   - `contact_id` = UUID tu `sme-cli cosmo search-contact` (Step 1). CLI reject neu khong phai UUID.
-   - Tier phai la 1 trong 3 ten chinh xac. CLI reject "Enterprise Plus", "Pro Plus", "Custom", v.v.
-   - Outline phai > 200 bytes. CLI reject placeholder.
-   - Neu CLI return `"ok": false` → **STOP**, bao user roi dung (khong retry).
+   Validation:
+   - `contact_id` = UUID tu `sme-cli cosmo search-contact` (Step 1). CLI reject neu sai format.
+   - Tier phai la 1 trong 3 (Starter / Pro / Enterprise). CLI reject "Enterprise Plus", "Custom", v.v.
+   - Outline > 200 bytes. CLI reject placeholder.
+   - Neu CLI return `"ok": false` → **STOP**, doc error, sua root cause.
 
-   Fallback cu (khong khuyen): `sme-cli manus generate-proposal "{Company}" /tmp/proposal_outline.md` — bo qua guards.
+   Output: `{"pdf_path": "/tmp/proposal_<company>_<timestamp>.pdf", "engine": "...", "status": "completed"}`.
 
-   Script tu dong:
-   - Load `.env` (API keys)
-   - Encode `assets/templates/style_template.pdf` as base64 attachment
-   - Build Manus prompt (hardcoded, KHONG modify)
-   - Create Manus task
-   - Poll den khi complete
-   - In PDF download URL
+   Dependencies: chromium (hoac chromium-browser / google-chrome) phai co san
+   tren PATH. Fallback thu tu: chromium → chromium-browser → google-chrome →
+   google-chrome-stable → wkhtmltopdf → pandoc. Neu all fail, CLI report
+   "no PDF engine found on PATH" — cai `chromium` bang package manager.
 
-   **Do NOT** build JSON tay. Do NOT upload file thu cong. Do NOT modify prompt. Do NOT sua script.
+3. **Gui PDF file vao chat** — KHONG share link, KHONG paste URL:
 
-3. Share PDF URL tu script output voi user.
+   ```bash
+   # Attach truc tiep qua channel cua openclaw (telegram auto-handle)
+   openclaw channel send --file "/tmp/proposal_<company>_<ts>.pdf"
+   ```
+
+   Neu `openclaw channel send` khong co trong environment, agent su dung
+   built-in file-attach mechanism cua runtime (vd Telegram `sendDocument`
+   auto khi reply co field `file_path` tren Canvas / message metadata).
+   KHONG cat paste file path vao chat lam link — chat runtime phai attach
+   file binary, khong phai text path.
 
 4. **Log interaction**: `sme-cli cosmo log-interaction <contact_id> "proposal_sent"`
 
@@ -205,14 +200,12 @@ Doc khi can — khong preload.
 | [pricing-strategy.md](references/pricing-strategy.md)           | Step 4-5                                             |
 | [cosmo-api.md](references/cosmo-api.md)                         | COSMO endpoints                                      |
 | [apollo-api.md](references/apollo-api.md)                       | Apollo endpoints                                     |
-| [manus-api.md](references/manus-api.md)                         | Manus AI endpoints                                   |
 
 ## Assets
 
-| File                                  | Purpose                                            |
-| ------------------------------------- | -------------------------------------------------- |
-| `assets/templates/`                   | 5 proposal outlines by type + `style_template.pdf` |
-| `assets/templates/style_template.pdf` | PDF style reference — Manus MUST match exactly     |
+| File                | Purpose                        |
+| ------------------- | ------------------------------ |
+| `assets/templates/` | 5 proposal outlines by type    |
 
 ## Data Updates
 
@@ -222,7 +215,6 @@ User co the update bat ky file nao trong skill:
 | ---------------------------- | ------------------------------------- |
 | Pricing, packages, discounts | `references/pricing-packages.md`      |
 | Pricing strategy             | `references/pricing-strategy.md`      |
-| Brand colors, fonts, layout  | `assets/templates/style_template.pdf` |
 | Template changes             | `assets/templates/{type}.md`          |
 | COSMO API changes            | `references/cosmo-api.md`             |
 | Apollo API changes           | `references/apollo-api.md`            |
@@ -233,14 +225,13 @@ Sau khi update: confirm file nao da thay + summarize diff.
 
 ## Rules
 
-- **PDF = Manus AI ONLY.** Preferred: `sme-cli proposal generate "{Company}" "{contact_id}" "{tier}" /tmp/outline.md` (validates tier + CRM + outline). Fallback: `sme-cli manus generate-proposal "{Company}" /tmp/outline.md` (no guards). ONE command. NO EXCEPTIONS.
+- **PDF render = `sme-cli proposal generate` ONLY.** Validates tier + contact_id UUID + outline size > 200 bytes, builds branded HTML, then shells out to chromium (fallback chain to wkhtmltopdf/pandoc). ONE command, local render, no external API.
 - **Pricing = `sme-cli proposal pricing` ONLY.** Khong tu viet gia tu tri nho. Khong doc markdown pricing.
-- **BANNED:** Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, wkhtmltopdf, Prince, Chrome headless. Using ANY banned tool = skill failure.
-- **Do NOT** build Manus JSON / prompt tay. Script handles everything.
+- **Gui PDF qua file attachment**, khong paste link. PDF o local `/tmp/` — dung runtime's file-send mechanism de attach vao chat.
 - **Step 6** = present outline → WAIT for approval.
-- **Step 7** = save outline to file → run `manus_generate_proposal.sh` → share URL.
+- **Step 7** = save outline to file → `sme-cli proposal generate` → attach PDF file to chat.
 - Never invent client info — chi dung API data / user input.
-- Always read `pricing-packages.md` truoc khi dinh gia — never invent prices.
+- Always use `sme-cli proposal pricing` output — never invent prices or tiers.
 - Never expose walk-away prices or competitor data in client-facing output.
 - Flag missing info de BD biet hoi follow-up.
 - Always check CRM truoc Apollo (tranh duplicate contacts).

@@ -20,9 +20,18 @@ import (
 //	sme-cli cosmo create-contact              (JSON on stdin)
 //	sme-cli cosmo get-interactions <contact_id> [limit]
 //	sme-cli cosmo log-interaction <contact_id> <type>
+//	sme-cli cosmo import-txt <file> [--list-id UUID] [--source STRING]
+//	sme-cli cosmo import-csv <file> [--list-id UUID] [--source STRING] [--format luma|generic]
+//	sme-cli cosmo enrich <contact_id>
+//	sme-cli cosmo score-icp <contact_id>
+//	sme-cli cosmo score-relationship <contact_id>
+//	sme-cli cosmo meeting-brief <contact_id>
+//	sme-cli cosmo vector-search <query> [limit]
+//	sme-cli cosmo hybrid-search <query> [limit]
+//	sme-cli cosmo search-interactions <query> [limit]
 func cmdCosmo(args []string) {
 	if len(args) == 0 {
-		errOut("usage: cosmo api|search-contact|get-contact|create-contact|get-interactions|log-interaction")
+		errOut("usage: cosmo api|search-contact|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions")
 		return
 	}
 	switch args[0] {
@@ -38,6 +47,24 @@ func cmdCosmo(args []string) {
 		cosmoGetInteractions(args[1:])
 	case "log-interaction":
 		cosmoLogInteraction(args[1:])
+	case "import-txt":
+		cosmoImportTXT(args[1:])
+	case "import-csv":
+		cosmoImportCSV(args[1:])
+	case "enrich":
+		cosmoEnrich(args[1:])
+	case "score-icp":
+		cosmoScoreICP(args[1:])
+	case "score-relationship":
+		cosmoScoreRelationship(args[1:])
+	case "meeting-brief":
+		cosmoMeetingBrief(args[1:])
+	case "vector-search":
+		cosmoVectorSearch(args[1:])
+	case "hybrid-search":
+		cosmoHybridSearch(args[1:])
+	case "search-interactions":
+		cosmoSearchInteractions(args[1:])
 	default:
 		errOut("unknown cosmo command: " + args[0])
 	}

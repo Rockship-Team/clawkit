@@ -206,7 +206,7 @@
     },
     "proposal": {
       "version": "2.0.0",
-      "description": "Proposal generator cho SME — viet proposal chuyen nghiep, render PDF tai cho (chromium headless), gui file thang vao chat. 7-step pipeline tu client data → outline → approve → PDF.",
+      "description": "Proposal generator cho SME — viet proposal chuyen nghiep cho BAT KY loai dich vu nao (AI agent, consulting, custom-dev, SaaS, managed-services, data engineering, training, v.v.), render PDF tai cho (chromium headless), gui file thang vao chat. 6-step pipeline tu client data → outline → approve → PDF.",
       "requires_bins": [
         "sme-cli",
         "chromium"

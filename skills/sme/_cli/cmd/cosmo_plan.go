@@ -49,7 +49,8 @@ func cosmoDailyPlan(args []string) {
 	}
 
 	now := vnNow()
-	cells := buildPlanCells(contacts, now, mode)
+	ctx := fetchPlanContext()
+	cells := buildPlanCells(contacts, ctx, now, mode)
 
 	okOut(map[string]interface{}{
 		"mode":           mode,
@@ -232,8 +233,180 @@ func daysSince(iso string) int {
 
 // --- categorization ---
 
+// planMeeting is a scheduled meeting relevant to a contact.
+type planMeeting struct {
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	ScheduledAt time.Time `json:"scheduled_at"`
+	ContactID   string    `json:"contact_id"`
+}
+
+// planCampaignRef summarises a campaign the contact is currently inside.
+type planCampaignRef struct {
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	Playbook     string  `json:"playbook"`
+	Status       string  `json:"status"`
+	Sent         int     `json:"sent"`
+	Reply        int     `json:"reply"`
+	ReplyRate    float64 `json:"reply_rate"`
+	CreatedDaysAgo int   `json:"created_days_ago"`
+}
+
+// planContext carries aggregate lookups reused across many contacts.
+type planContext struct {
+	MeetingsTomorrow map[string][]planMeeting    // contact_id → meetings scheduled tomorrow (ICT)
+	ActiveCampaigns  map[string][]planCampaignRef // contact_id → live campaigns with sent>0 and reply_rate=0
+}
+
+func fetchPlanContext() planContext {
+	return planContext{
+		MeetingsTomorrow: fetchTomorrowMeetings(),
+		ActiveCampaigns:  fetchNoReplyCampaignMemberships(),
+	}
+}
+
+func fetchTomorrowMeetings() map[string][]planMeeting {
+	out := map[string][]planMeeting{}
+	raw, code, err := cosmoRequest("GET", "/v1/outreach/meetings", nil)
+	if err != nil || code >= 400 {
+		return out
+	}
+	var resp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return out
+	}
+	now := vnNow()
+	tomorrowStart := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	tomorrowEnd := tomorrowStart.Add(24 * time.Hour)
+	for _, m := range resp.Data {
+		contactID, _ := m["contact_id"].(string)
+		if contactID == "" {
+			continue
+		}
+		timeStr, _ := m["time"].(string)
+		if timeStr == "" {
+			timeStr, _ = m["scheduled_at"].(string)
+		}
+		scheduledAt, err := time.Parse(time.RFC3339, timeStr)
+		if err != nil {
+			continue
+		}
+		scheduledICT := scheduledAt.In(now.Location())
+		if scheduledICT.Before(tomorrowStart) || !scheduledICT.Before(tomorrowEnd) {
+			continue
+		}
+		title, _ := m["title"].(string)
+		id, _ := m["id"].(string)
+		out[contactID] = append(out[contactID], planMeeting{
+			ID:          id,
+			Title:       title,
+			ScheduledAt: scheduledICT,
+			ContactID:   contactID,
+		})
+	}
+	return out
+}
+
+// fetchNoReplyCampaignMemberships lists active campaigns that have sent
+// emails but received zero replies, then fetches each campaign's list
+// of contacts. Returns map from contact_id → campaigns.
+func fetchNoReplyCampaignMemberships() map[string][]planCampaignRef {
+	out := map[string][]planCampaignRef{}
+	raw, code, err := cosmoRequest("POST", "/v1/campaigns/search", []byte(`{"filter_":{}}`))
+	if err != nil || code >= 400 {
+		return out
+	}
+	var resp struct {
+		Data struct {
+			List []struct {
+				Entity map[string]interface{} `json:"entity"`
+				Sent   float64                `json:"sent"`
+				Reply  float64                `json:"reply"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return out
+	}
+	now := vnNow()
+	processed := 0
+	const maxCampaigns = 10
+	for _, c := range resp.Data.List {
+		if processed >= maxCampaigns {
+			break
+		}
+		status, _ := c.Entity["status"].(string)
+		if strings.ToLower(status) != "active" {
+			continue
+		}
+		if int(c.Sent) <= 0 || int(c.Reply) > 0 {
+			continue // only want sent>0, reply=0 campaigns
+		}
+		listID, _ := c.Entity["list_contact_id"].(string)
+		if listID == "" {
+			continue
+		}
+		processed++
+		ref := planCampaignRef{
+			ID:       stringField(c.Entity, "id"),
+			Name:     stringField(c.Entity, "name"),
+			Playbook: stringField(c.Entity, "playbook"),
+			Status:   status,
+			Sent:     int(c.Sent),
+			Reply:    int(c.Reply),
+		}
+		if createdAt := stringField(c.Entity, "created_at"); createdAt != "" {
+			ref.CreatedDaysAgo = daysSince(createdAt)
+		}
+		// Fetch list contacts
+		listRaw, listCode, listErr := cosmoRequest("GET", "/v1/list-contacts/"+listID, nil)
+		if listErr != nil || listCode >= 400 {
+			continue
+		}
+		var listResp struct {
+			Data struct {
+				Contacts []map[string]interface{} `json:"contacts"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(listRaw, &listResp); err != nil {
+			continue
+		}
+		for _, contact := range listResp.Data.Contacts {
+			cid, _ := contact["id"].(string)
+			if cid == "" {
+				continue
+			}
+			out[cid] = append(out[cid], ref)
+		}
+	}
+	_ = now
+	return out
+}
+
+func stringField(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
 // classify returns the pipeline cell ID for a contact. Top-down match.
-func classify(c planContact) string {
+func classify(c planContact, ctx planContext) string {
+	// Urgent operational signals override stage-based classification.
+	if _, ok := ctx.MeetingsTomorrow[c.ID]; ok {
+		return "MEETING_TOMORROW"
+	}
+	if _, ok := ctx.ActiveCampaigns[c.ID]; ok {
+		// Only bump into this cell if the stage-based flow wouldn't
+		// already put them somewhere more urgent (PROPOSAL*). Otherwise
+		// campaign-in-flight is the most actionable signal.
+		if c.BusinessStage != "PROPOSAL" {
+			return "CAMPAIGN_SENT_NO_REPLY"
+		}
+	}
 	src := strings.ToLower(c.Source)
 	switch c.BusinessStage {
 	case "PROPOSAL":
@@ -290,6 +463,25 @@ func classify(c planContact) string {
 // --- cell templates ---
 
 var cellTemplates = map[string]planCell{
+	"MEETING_TOMORROW": {
+		ID: "MEETING_TOMORROW", Emoji: "📆", Name: "Meeting ngay mai — can prep", Priority: 1,
+		Why: "Meeting sap toi can brief truoc. Prep thieu = meeting yeu",
+		Action: planAction{
+			SubjectHint: "N/A (prep noi bo)",
+			Length:      "Internal brief: goals / 3 questions to ask / objection preps / demo / proposal draft",
+			CTA:         "Review interaction history + chuan bi 3 slide topic ho quan tam nhat",
+		},
+	},
+	"CAMPAIGN_SENT_NO_REPLY": {
+		ID: "CAMPAIGN_SENT_NO_REPLY", Emoji: "📧", Name: "Da gui campaign, chua co phan hoi", Priority: 4,
+		Why: "Campaign da gui nhung chua ai reply. 42% replies den tu follow-up, khong phai email dau",
+		Action: planAction{
+			Playbook:    "cold_outreach",
+			SubjectHint: "Khac voi campaign subject — personal, short",
+			Length:      "50-80 words, 1-1 not mass",
+			CTA:         "Follow-up tay sau 3 ngay (NOT re-send campaign) — reference 1 detail cu the",
+		},
+	},
 	"PROPOSAL_HOT": {
 		ID: "PROPOSAL_HOT", Emoji: "🔥", Name: "Can follow-up gap", Priority: 1,
 		Why: "Day 3 sweet spot cho touch #2 (+31% reply vs next-day, -11% neu chua day 1)",
@@ -420,13 +612,13 @@ var cellTemplates = map[string]planCell{
 
 // --- build cells ---
 
-var morningCells = []string{"PROPOSAL_HOT", "PROPOSAL_STUCK", "PROPOSAL_GHOST", "POST_MEETING", "QUALIFIED_OPEN"}
-var eveningCells = []string{"POST_MEETING", "PROPOSAL_HOT", "QUALIFIED_OPEN"}
+var morningCells = []string{"MEETING_TOMORROW", "PROPOSAL_HOT", "PROPOSAL_STUCK", "PROPOSAL_GHOST", "POST_MEETING", "CAMPAIGN_SENT_NO_REPLY", "QUALIFIED_OPEN"}
+var eveningCells = []string{"MEETING_TOMORROW", "POST_MEETING", "PROPOSAL_HOT", "QUALIFIED_OPEN"}
 
-func buildPlanCells(contacts []planContact, now time.Time, mode string) []planCell {
+func buildPlanCells(contacts []planContact, ctx planContext, now time.Time, mode string) []planCell {
 	buckets := make(map[string][]planContact)
 	for _, c := range contacts {
-		id := classify(c)
+		id := classify(c, ctx)
 		if id == "" {
 			continue
 		}

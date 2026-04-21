@@ -31,7 +31,7 @@ func TestClassify(t *testing.T) {
 		{"lost 60+d revive", planContact{BusinessStage: "LOST", IdleDays: 60}, "LOST_REVIVE"},
 	}
 	for _, tc := range cases {
-		got := classify(tc.c)
+		got := classify(tc.c, planContext{})
 		if got != tc.want {
 			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
 		}
@@ -48,7 +48,7 @@ func TestBuildPlanCellsFiltersByMode(t *testing.T) {
 	}
 	now := time.Now()
 
-	morning := buildPlanCells(contacts, now, "morning")
+	morning := buildPlanCells(contacts, planContext{}, now, "morning")
 	hasCell := func(cells []planCell, id string) bool {
 		for _, c := range cells {
 			if c.ID == id {
@@ -73,7 +73,7 @@ func TestBuildPlanCellsFiltersByMode(t *testing.T) {
 		t.Error("morning should NOT include WON_CHECKIN")
 	}
 
-	all := buildPlanCells(contacts, now, "all")
+	all := buildPlanCells(contacts, planContext{}, now, "all")
 	if !hasCell(all, "NEW_EVENT") {
 		t.Error("all-mode should include NEW_EVENT")
 	}
@@ -98,7 +98,7 @@ func TestBuildPlanCellsLimitsContacts(t *testing.T) {
 			IdleDays:      i + 2,
 		}
 	}
-	cells := buildPlanCells(contacts, time.Now(), "morning")
+	cells := buildPlanCells(contacts, planContext{}, time.Now(), "morning")
 	var hot *planCell
 	for i := range cells {
 		if cells[i].ID == "PROPOSAL_HOT" {
@@ -135,12 +135,49 @@ func TestDaysSince(t *testing.T) {
 	}
 }
 
+func TestClassifyMeetingTomorrow(t *testing.T) {
+	c := planContact{ID: "c1", BusinessStage: "QUALIFIED", IdleDays: 5}
+	ctx := planContext{
+		MeetingsTomorrow: map[string][]planMeeting{
+			"c1": {{ID: "m1", Title: "demo", ContactID: "c1"}},
+		},
+	}
+	if got := classify(c, ctx); got != "MEETING_TOMORROW" {
+		t.Errorf("got %q, want MEETING_TOMORROW", got)
+	}
+}
+
+func TestClassifyCampaignSentNoReply(t *testing.T) {
+	c := planContact{ID: "c1", BusinessStage: "ENGAGED", IdleDays: 7, Interactions30d: 1}
+	ctx := planContext{
+		ActiveCampaigns: map[string][]planCampaignRef{
+			"c1": {{ID: "camp1", Status: "active", Sent: 50, Reply: 0}},
+		},
+	}
+	if got := classify(c, ctx); got != "CAMPAIGN_SENT_NO_REPLY" {
+		t.Errorf("got %q, want CAMPAIGN_SENT_NO_REPLY", got)
+	}
+}
+
+func TestClassifyProposalOverridesCampaign(t *testing.T) {
+	// Campaign context should NOT override PROPOSAL_HOT — urgency rule
+	c := planContact{ID: "c1", BusinessStage: "PROPOSAL", IdleDays: 4}
+	ctx := planContext{
+		ActiveCampaigns: map[string][]planCampaignRef{
+			"c1": {{ID: "camp1", Status: "active", Sent: 50, Reply: 0}},
+		},
+	}
+	if got := classify(c, ctx); got != "PROPOSAL_HOT" {
+		t.Errorf("got %q, want PROPOSAL_HOT (proposal urgency wins)", got)
+	}
+}
+
 func TestEveningModeLimitsSmaller(t *testing.T) {
 	contacts := make([]planContact, 10)
 	for i := range contacts {
 		contacts[i] = planContact{BusinessStage: "PROPOSAL", IdleDays: i + 2}
 	}
-	cells := buildPlanCells(contacts, time.Now(), "evening")
+	cells := buildPlanCells(contacts, planContext{}, time.Now(), "evening")
 	for _, c := range cells {
 		if len(c.Contacts) > 3 {
 			t.Errorf("evening mode should limit to 3 per cell, got %d in %s", len(c.Contacts), c.ID)

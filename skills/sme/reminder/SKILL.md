@@ -65,11 +65,35 @@ trigger:
 ### Step 2 — Format ra chat (DATA-AWARE, khong lap template)
 
 Output JSON co field quan trong:
+- `cells[].id`: identifier cua nhom (vd "PROPOSAL_HOT", "MEETING_TOMORROW",
+  "CAMPAIGN_SENT_NO_REPLY")
 - `cells[].enrichment_summary: {enriched, partial, needed}` — count contacts
   co business context day du vs chi co email/ten.
 - `cells[].contacts[].enrichment_status`: `"enriched"` | `"partial"` | `"needed"`.
 - `cells[].contacts[]`: name, company, job_title, industry, email, idle_days,
   last_outcome, next_step, interactions_30d, ...
+
+### Priority cells & lable tieng Viet tu nhien
+
+Dich cell ID sang tieng Viet khi render:
+
+| Cell ID | Label tieng Viet |
+|---|---|
+| `MEETING_TOMORROW` | "Cuoc hen ngay mai — can chuan bi" |
+| `PROPOSAL_HOT` | "Da gui de xuat, chua phan hoi" |
+| `PROPOSAL_STUCK` | "De xuat bi ngung, can nhac lai" |
+| `PROPOSAL_GHOST` | "Het phan hoi — can quyet dinh" |
+| `POST_MEETING` | "Chua gui recap sau meeting" |
+| `CAMPAIGN_SENT_NO_REPLY` | "Da gui email hang loat, chua ai tra loi" |
+| `QUALIFIED_OPEN` | "Da quan tam, can dat lich meeting" |
+| `ENGAGED_WARM` | "Co quan he am, can nurture" |
+| `ENGAGED_COLD` | "Quan he nguoi, can phuc hoi" |
+| `NEW_EVENT` | "Moi gap o su kien, chua follow-up" |
+| `NEW_APOLLO_FULL` | "Khach moi (tim tu dich vu tra cuu)" |
+| `NEW_APOLLO_LINKEDIN` | "Khach moi — chi co LinkedIn" |
+| `NEW_NO_CHANNEL` | "Thieu thong tin lien he" |
+| `WON_CHECKIN` | "Khach da chot, check-in dinh ky" |
+| `LOST_REVIVE` | "Khach mat deal lau, thu phuc hoi" |
 
 ### 🔑 QUY TAC VANG #1: PLAIN LANGUAGE — KHONG dung thuat ngu tech
 

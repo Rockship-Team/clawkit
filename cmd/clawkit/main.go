@@ -10,7 +10,9 @@ import (
 	"github.com/rockship-co/clawkit/internal/installer"
 )
 
-var version = "0.1.0"
+// version is injected via -ldflags at build time (see Makefile).
+// The default is only seen on `go install` / `go build` without ldflags.
+var version = "dev"
 
 func main() {
 	if len(os.Args) < 2 {

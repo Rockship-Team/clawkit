@@ -3,15 +3,20 @@ BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test lint fmt clean dist coverage generate check-generate npm-pack npm-publish help
+.PHONY: build test test-race lint fmt clean dist coverage generate check-generate \
+        release-check bump npm-pack npm-publish help
 
 ## build: Build for current platform
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o $(BINARY) $(CMD)
 
-## test: Run all tests with race detector
+## test: Run all tests
 test:
 	CGO_ENABLED=0 go test -v ./...
+
+## test-race: Run tests with the race detector (requires CGO)
+test-race:
+	CGO_ENABLED=1 go test -race ./...
 
 ## coverage: Run tests with coverage report
 coverage:
@@ -20,7 +25,7 @@ coverage:
 	@echo ""
 	@echo "HTML report: go tool cover -html=coverage.out"
 
-## generate: Generate registry.json from skills/*/SKILL.md frontmatter
+## generate: Generate registry.json from skills/**/{SKILL.md,config.json}
 generate:
 	go run ./cmd/gen-registry
 
@@ -39,10 +44,11 @@ fmt:
 
 ## clean: Remove build artifacts
 clean:
-	rm -rf $(BINARY) dist/ coverage.out
+	rm -rf $(BINARY) dist/ release/ coverage.out
 
-## dist: Cross-compile for all platforms
-dist: clean
+## dist: Cross-compile for all platforms into dist/
+dist:
+	@rm -rf dist/
 	@mkdir -p dist
 	@echo "Building $(BINARY) v$(VERSION)..."
 	CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o dist/$(BINARY)-darwin-arm64 $(CMD)
@@ -52,6 +58,21 @@ dist: clean
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/$(BINARY)-windows-amd64.exe $(CMD)
 	@echo "Done. Binaries in dist/"
 	@ls -lh dist/
+
+## release-check: Run everything the release workflow will run (dry run)
+release-check: fmt check-generate test dist
+	@echo ""
+	@echo "Release check passed. To release:"
+	@echo "  make bump V=x.y.z"
+	@echo "  git commit -am 'Release vx.y.z' && git tag vx.y.z && git push && git push --tags"
+
+## bump: Sync VERSION across Makefile and npm/package.json (pass V=x.y.z)
+bump:
+	@test -n "$(V)" || (echo "Usage: make bump V=x.y.z" && exit 1)
+	@sed -i.bak 's/^VERSION := .*/VERSION := $(V)/' Makefile && rm Makefile.bak
+	@cd npm && npm version $(V) --no-git-tag-version --allow-same-version
+	@echo "Bumped to $(V). Review changes, then:"
+	@echo "  git commit -am 'Release v$(V)' && git tag v$(V) && git push && git push --tags"
 
 ## npm-pack: Build all platform binaries, copy into npm package, and pack
 npm-pack: dist

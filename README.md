@@ -12,18 +12,19 @@ Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [
 
 ## Requirements
 
-- **Node.js 18+** — [nodejs.org](https://nodejs.org)
 - **OpenClaw** — [install guide](https://docs.openclaw.ai/installation)
+- Any runtime your skill's `_cli/` needs (Node.js, Go, Python, …)
 
 ---
 
 ## Quick Start
 
 ```bash
-clawkit list                                    # See available skills
-clawkit install ecom-bot --profile shop-hoa     # Install with a domain profile
-clawkit install ecom-bot --profile carehub-baby # Same skill, different domain
-clawkit status                                  # Check installed skills
+clawkit list                    # See available skills
+clawkit install ecom-bot        # Install (prompts for setup values)
+clawkit status                  # Check installed skills
+clawkit update ecom-bot         # Update to latest, keep your settings
+clawkit uninstall ecom-bot
 ```
 
 ---
@@ -32,117 +33,121 @@ clawkit status                                  # Check installed skills
 
 | Command | Description |
 |---------|-------------|
-| `clawkit list` | List available skills |
-| `clawkit install <skill> [--profile <name>] [--skip-oauth]` | Install a skill |
-| `clawkit update <skill>` | Update, preserving config and tokens |
-| `clawkit uninstall <skill>` | Uninstall and restore workspace |
-| `clawkit status` | Show installed skills with profile and OAuth status |
-| `clawkit package <skill>` | Package a skill for distribution |
+| `clawkit list` | List available skills and groups |
+| `clawkit install <skill>` | Install a flat skill |
+| `clawkit install <group>` | Install every skill in a group |
+| `clawkit install <group> <member>...` | Install selected members of a group |
+| `clawkit update <name> [<member>...]` | Update (same resolution as install) |
+| `clawkit uninstall <skill>` | Uninstall and remove from the allowlist |
+| `clawkit status` | Show installed skills |
+| `clawkit dashboard` | Start the local web dashboard |
+| `clawkit web <skill>` | Serve a skill's `web/` directory |
 | `clawkit version` | Print version |
 
 ---
 
-## Architecture
+## Skill Layout
+
+Flat skill:
 
 ```
-clawkit (Go CLI)
-  │
-  ├── Install flow: preflight → download → profile overlay → OAuth → lockdown → schema init → config save
-  │
-  ├── schema.json       Declarative data model (multi-table, field roles, statuses)
-  ├── cli.js            Generic Node.js runtime (CRUD, images, Telegram upload)
-  └── profile.yaml      Domain-specific overrides (catalog, images, persona)
+skills/<skill>/
+  _cli/                 cli.js or any runtime helpers
+  config.json           { version, setup_prompts, exclude }
+  SKILL.md              frontmatter + agent prompt
 ```
 
-### Storage Backends
-
-Skills support three database targets, configured via `db_target` in profile.yaml:
-
-| Target | Storage | Use Case |
-|--------|---------|----------|
-| `local` | JSON files (1 per table) | Development, small shops |
-| `supabase` | Supabase REST API | Cloud database, no server needed |
-| `api` | Customer's own REST API | Existing backend integration |
-
-### Project Structure
+Grouped skills share one `_cli/`:
 
 ```
-cmd/
-  clawkit/              CLI entry point
-  gen-registry/         Registry generator (scans SKILL.md frontmatter)
-internal/
-  archive/              tar.gz / zip extraction and creation
-  config/               SkillConfig struct, OpenClaw detection
-  installer/            Install/update/uninstall commands, schema, profiles
-  template/             SKILL.md placeholder substitution, catalog processing
-  ui/                   Terminal output helpers (Info/Ok/Warn/Fatal)
-oauth/                  OAuth providers (self-registering via init())
-skills/                 Built-in skills grouped by vertical
-  ecommerce/            shop-hoa, carehub-baby
-  utilities/            finance-tracker
-  tools/                gog (Google Workspace CLI)
-templates/              Reusable templates for new skills
-  cli.js                Generic schema-driven CLI
-  verticals/            Pre-built schemas per business vertical
-    ecommerce/          Orders, products, contacts (4 tables)
-    education/          Enrollments, courses, contacts (3 tables)
-    consulting/         Students, applications, test scores (4 tables)
-    gold/               Transactions, products, price board (4 tables)
-    food-distribution/  Orders, inventory, products (5 tables)
+skills/<group>/
+  _cli/                 shared runtime for every child skill
+  <skill-a>/
+    config.json
+    SKILL.md
+  <skill-b>/
+    config.json
+    SKILL.md
 ```
+
+The installer merges the group's `_cli/` into each child at install time.
+
+---
+
+## Metadata
+
+Skill metadata is split into two files so each consumer only sees what it
+needs:
+
+**`SKILL.md` frontmatter** (OpenClaw-native):
+
+```yaml
+---
+name: my-skill
+description: What this skill does
+metadata:
+  openclaw:
+    os: [darwin, linux, windows]
+    requires:
+      bins: [node]
+      config: []
+---
+```
+
+**`config.json`** (clawkit-only dev metadata):
+
+```json
+{
+  "version": "1.0.0",
+  "setup_prompts": [{"key": "shop_name", "label": "Shop name"}],
+  "exclude": ["*.tmp"]
+}
+```
+
+**`registry.json`** is generated from both by `make generate`. CI enforces
+sync via `make check-generate`.
+
+**`clawkit.json`** is written into the installed skill directory and holds
+`{ version, user_inputs }` — used on update to re-bake placeholders without
+re-prompting.
 
 ---
 
 ## Creating a New Skill
 
 ```bash
-# 1. Copy a vertical template
-cp -r templates/verticals/ecommerce skills/ecommerce/my-shop
+cp -r templates/skill skills/my-skill       # flat
+# or
+cp -r templates/group skills/my-group       # grouped
 
-# 2. Copy the generic CLI
-cp templates/cli.js skills/ecommerce/my-shop/cli.js
+# Edit SKILL.md, config.json, and _cli/ to taste.
 
-# 3. Customize SKILL.md (AI prompt) and schema.json (data model)
-
-# 4. Register and build
-make generate
-make build
+make generate                               # Refresh registry.json
+make build                                  # Build the CLI
+./clawkit install my-skill                  # Try it
 ```
 
-See [templates/README.md](templates/README.md) for detailed guides per vertical.
+See [templates/README.md](templates/README.md) for the scaffold layout.
 
-### Schema Format
+---
 
-```json
-{
-  "tables": {
-    "orders": {
-      "fields": [
-        {"name": "id", "type": "integer", "auto": "increment"},
-        {"name": "status", "type": "text", "default": "new", "role": "status"},
-        {"name": "customer", "type": "text", "required": true},
-        {"name": "total", "type": "integer", "role": "price"},
-        {"name": "sender_id", "type": "text", "role": "owner"},
-        {"name": "created_at", "type": "text", "auto": "timestamp", "role": "timestamp"}
-      ],
-      "statuses": ["new", "completed", "cancelled"]
-    }
-  },
-  "primary": "orders",
-  "timezone": "Asia/Ho_Chi_Minh"
-}
+## Project Structure
+
 ```
-
-### Profiles
-
-Profiles enable one skill base to serve multiple domains:
-
-```bash
-clawkit install ecom-bot --profile shop-hoa   # Flower shop
-clawkit install ecom-bot --profile bakery     # Bakery
+cmd/
+  clawkit/              CLI entry point
+  gen-registry/         Registry generator (frontmatter + config.json → registry.json)
+internal/
+  archive/              tar.gz / zip
+  config/               SkillConfig, OpenClaw detection
+  installer/            Install, update, uninstall, registry, allowlist
+  template/             {key} placeholder substitution in SKILL.md
+  dashboard/            Web dashboard
+  ui/                   Terminal output helpers
+skills/                 Built-in skills (grouped by vertical)
+templates/              Skill scaffolding (flat + grouped examples)
+npm/                    npm package wrapper with platform binaries
 ```
-
-Each profile overrides: `catalog.json`, product images, `bootstrap-files/`, `schema.json` (with extend support), and template placeholders via `profile.yaml`.
 
 ---
 
@@ -150,18 +155,18 @@ Each profile overrides: `catalog.json`, product images, `bootstrap-files/`, `sch
 
 ```bash
 make build          # Build binary → ./clawkit
-make test           # Run all tests
+make test           # Run tests
 make fmt            # go fmt + go vet
-make generate       # Regenerate registry.json from skills
-make check-generate # Verify registry.json is in sync (CI check)
+make generate       # Regenerate registry.json from skills/
+make check-generate # CI check: registry.json is in sync
 make dist           # Cross-compile for all platforms
 ```
 
 ### Key Constraints
 
-- **Zero external Go dependencies** — stdlib only
+- **Zero external Go dependencies** — stdlib only (the frontmatter parser
+  is hand-written)
 - **Cross-platform** — macOS, Linux, Windows (arm64 + amd64)
-- **No Python** — all runtime is Go (install) + Node.js (skill CLI)
 
 ---
 
@@ -172,7 +177,8 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-GitHub Actions cross-compiles, creates a Release, and publishes to npm as `@rockship/clawkit`.
+GitHub Actions cross-compiles, creates a Release, and publishes to npm as
+`@rockship/clawkit`.
 
 ---
 

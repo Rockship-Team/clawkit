@@ -22,37 +22,42 @@ type vaultConfig struct {
 }
 
 // loadVaultConfig reads config from the OpenClaw workspace config file.
-// Falls back to ~/ObsidianVault if the config file is missing.
+// Auto-creates vault-config.json with defaults if missing.
 func loadVaultConfig() vaultConfig {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return vaultConfig{VaultPath: "ObsidianVault", DBPath: "sessions.db"}
 	}
 
-	configPath := filepath.Join(home, ".openclaw", "workspace", "skills", "knowledge-vault", "vault-config.json")
+	skillDir := filepath.Join(home, ".openclaw", "workspace", "skills", "knowledge-vault")
+	configPath := filepath.Join(skillDir, "vault-config.json")
+
+	defaultCfg := vaultConfig{
+		VaultPath: skillDir,
+		DBPath:    filepath.Join(skillDir, "session.db"),
+	}
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		vaultPath := filepath.Join(home, "ObsidianVault")
-		return vaultConfig{
-			VaultPath: vaultPath,
-			DBPath:    filepath.Join(vaultPath, ".vault-cli", "sessions.db"),
+		// Auto-create with defaults
+		if mkErr := os.MkdirAll(skillDir, 0755); mkErr == nil {
+			if encoded, encErr := json.MarshalIndent(defaultCfg, "", "  "); encErr == nil {
+				_ = os.WriteFile(configPath, append(encoded, '\n'), 0644)
+			}
 		}
+		return defaultCfg
 	}
 
 	var cfg vaultConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		vaultPath := filepath.Join(home, "ObsidianVault")
-		return vaultConfig{
-			VaultPath: vaultPath,
-			DBPath:    filepath.Join(vaultPath, ".vault-cli", "sessions.db"),
-		}
+		return defaultCfg
 	}
 
 	if cfg.VaultPath == "" {
-		cfg.VaultPath = filepath.Join(home, "ObsidianVault")
+		cfg.VaultPath = skillDir
 	}
 	if cfg.DBPath == "" {
-		cfg.DBPath = filepath.Join(cfg.VaultPath, ".vault-cli", "sessions.db")
+		cfg.DBPath = filepath.Join(cfg.VaultPath, "session.db")
 	}
 
 	return cfg

@@ -135,10 +135,11 @@ Present outline cho user review:
 >    chay lai cau lenh — moi lan retry = task moi tren Manus = double credits.
 > 2b. **HANDLE status=pending.** Neu output co `"status": "pending"` va `"task_id"`,
 >    NGHIA LA task van dang chay tren Manus (chua xong). **TUYET DOI khong**
->    chay lai `manus generate-proposal`. Phai poll bang:
+>    chay lai `manus generate-proposal`. Phai check bang:
 >    `sme-cli manus get-task <task_id>` (tu output truoc).
->    Cho ~1 phut roi check lai. Lap lai check toi da 5 lan, neu van pending
->    thi bao user "Manus busy, em check lai sau 5 phut" — KHONG tao task moi.
+>    Luu y: lenh nay da tu poll/wait san, co the dung vai phut moi tra ket qua.
+>    Cu de lenh chay xong; neu sau khi doi ma van chua xong / Manus van busy thi
+>    bao user "Manus busy, em check lai sau 5 phut" — KHONG tao task moi.
 > 3. **PRESERVE FULL URL.** Khi share PDF link, paste **RAW URL day du**
 >    (bao gom `?Policy=...&Key-Pair-Id=...&Signature=...`). KHONG dung markdown
 >    `[text](url)` — Telegram parser cat query string. Cat query = link 403 broken.

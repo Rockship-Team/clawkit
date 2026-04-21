@@ -32,10 +32,20 @@ func cmdEvent(args []string) {
 		eventPostActions(args[1:])
 	case "types":
 		eventTypes()
+	case "gen-content":
+		eventGenContent(args[1:])
+	case "save-links":
+		eventSaveLinks(args[1:])
+	case "set-payment-info":
+		eventSetPaymentInfo(args[1:])
+	case "process-registrations":
+		errOut("process-registrations not yet implemented — Phase 2 (follows after Gmail reauth + email sync validation).")
+	case "confirm-payment":
+		errOut("confirm-payment not yet implemented — Phase 2 (follows process-registrations).")
 	case "sync-luma":
-		errOut("sync-luma not yet implemented — follows in a later commit once LUMA_API_KEY flow is wired.")
+		errOut("sync-luma not yet implemented — follows once LUMA_API_KEY flow is wired.")
 	case "create-survey":
-		errOut("create-survey not yet implemented — follows in a later commit once Google Forms OAuth is wired.")
+		errOut("create-survey not yet implemented — follows once Google Forms OAuth is wired.")
 	default:
 		errOut("unknown event command: " + args[0])
 	}
@@ -268,10 +278,10 @@ func eventList(args []string) {
 }
 
 // eventCreate POSTs a new event to /v1/events. Supports --type --title
-// --date --venue --capacity --luma-url flags.
+// --date --venue --capacity --luma-url --pricing --price flags.
 func eventCreate(args []string) {
-	var typeID, title, date, venue, lumaURL string
-	capacity := 0
+	var typeID, title, date, venue, lumaURL, pricing string
+	capacity, priceVND := 0, 0
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--type":
@@ -304,6 +314,16 @@ func eventCreate(args []string) {
 				lumaURL = args[i+1]
 				i++
 			}
+		case "--pricing":
+			if i+1 < len(args) {
+				pricing = args[i+1] // "free" or "paid"
+				i++
+			}
+		case "--price":
+			if i+1 < len(args) {
+				fmt.Sscanf(args[i+1], "%d", &priceVND)
+				i++
+			}
 		}
 	}
 	if title == "" || date == "" {
@@ -313,13 +333,29 @@ func eventCreate(args []string) {
 		errOut(fmt.Sprintf("invalid --type %q — run `sme-cli event types` to see supported values", typeID))
 	}
 
+	// Default pricing based on type if not explicit
+	if pricing == "" {
+		switch strings.ToLower(typeID) {
+		case "webinar":
+			pricing = "free"
+		case "workshop", "demo-day":
+			pricing = "paid"
+		default:
+			pricing = "free"
+		}
+	}
+	metadata := map[string]interface{}{
+		"event_type_id": strings.ToLower(typeID),
+		"pricing_model": pricing,
+	}
+	if priceVND > 0 {
+		metadata["price_vnd"] = priceVND
+	}
 	payload := map[string]interface{}{
-		"title":  title,
-		"date":   date,
-		"status": "published",
-		"metadata": map[string]interface{}{
-			"event_type_id": strings.ToLower(typeID),
-		},
+		"title":    title,
+		"date":     date,
+		"status":   "published",
+		"metadata": metadata,
 	}
 	if venue != "" {
 		payload["venue"] = venue

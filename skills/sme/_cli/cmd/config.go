@@ -45,9 +45,10 @@ type Connections struct {
 
 	// Organization defaults
 	Org struct {
-		ID      string `json:"id"`
-		Name    string `json:"name"`
-		TaxCode string `json:"tax_code"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		TaxCode     string `json:"tax_code"`
+		PaymentInfo string `json:"payment_info"` // Bank info for paid events (STK/NH/ND/...)
 	} `json:"org"`
 
 	// COSMO CRM (Rockship)
@@ -115,9 +116,6 @@ func cmdConfig(args []string) {
 		}
 		if c.Apollo.APIKey != "" {
 			c.Apollo.APIKey = "***"
-		}
-		if c.Manus.APIKey != "" {
-			c.Manus.APIKey = "***"
 		}
 		okOut(map[string]interface{}{"connections": c, "path": cfgPath()})
 

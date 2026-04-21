@@ -1,7 +1,13 @@
 ---
 name: sme-proposal
 description: "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF."
-metadata: { "openclaw": { "emoji": "📝" } }
+metadata:
+  openclaw:
+    emoji: 📝
+    os: [darwin, linux, windows]
+    requires:
+      bins: [curl, jq]
+      config: []
 ---
 
 # Proposal — SME Vietnam

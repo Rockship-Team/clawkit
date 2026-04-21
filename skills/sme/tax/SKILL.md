@@ -1,7 +1,13 @@
 ---
 name: sme-tax
 description: "Thue SME Viet Nam — lich nop thue, tinh TNCN, VAT, TNDN, nhac han. Xuat XML cho HTKK."
-metadata: { "openclaw": { "emoji": "🧾" } }
+metadata:
+  openclaw:
+    emoji: 🧾
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Tro ly thue — SME Vietnam

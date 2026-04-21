@@ -1,7 +1,13 @@
 ---
 name: sme-marketing
 description: "Marketing content cho SME Viet Nam — tao bai dang social media, noi dung blog/landing page, A/B copy. Khong quan ly email campaign (xem sme-campaign)."
-metadata: { "openclaw": { "emoji": "📢" } }
+metadata:
+  openclaw:
+    emoji: 📢
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Marketing Content — SME Vietnam

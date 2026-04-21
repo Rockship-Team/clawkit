@@ -1,7 +1,13 @@
 ---
 name: sme-campaign
 description: "Campaign cho SME — chay su kien gather interest, email/LinkedIn outreach theo plan, online ads. Dua khach hang tu NEW → ENGAGED."
-metadata: { "openclaw": { "emoji": "📣" } }
+metadata:
+  openclaw:
+    emoji: 📣
+    os: [darwin, linux, windows]
+    requires:
+      bins: [curl, jq]
+      config: []
 ---
 
 # Campaign — SME Vietnam

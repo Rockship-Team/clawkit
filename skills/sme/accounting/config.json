@@ -1,6 +1,5 @@
 {
   "version": "1.0.0",
-  "requires_bins": ["sme-cli"],
   "setup_prompts": [
     {
       "key": "company_name",

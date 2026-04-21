@@ -1,7 +1,13 @@
 ---
 name: sme-engagement
 description: "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON."
-metadata: { "openclaw": { "emoji": "🎯" } }
+metadata:
+  openclaw:
+    emoji: 🎯
+    os: [darwin, linux, windows]
+    requires:
+      bins: [curl, jq]
+      config: []
 ---
 
 # Customer Engagement — SME Vietnam

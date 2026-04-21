@@ -1,7 +1,13 @@
 ---
 name: sme-crm
 description: "CRM cho SME Viet Nam — quan ly danh ba, enrich thong tin, phan nhom, diem score, la nen tang cho cac skill ban hang & marketing khac."
-metadata: { "openclaw": { "emoji": "👥" } }
+metadata:
+  openclaw:
+    emoji: 👥
+    os: [darwin, linux, windows]
+    requires:
+      bins: [curl, jq]
+      config: []
 ---
 
 # CRM — SME Vietnam

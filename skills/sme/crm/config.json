@@ -1,6 +1,5 @@
 {
   "version": "1.0.0",
-  "requires_bins": ["curl", "jq"],
   "setup_prompts": [
     {
       "key": "cosmo_base_url",

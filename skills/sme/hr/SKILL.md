@@ -1,7 +1,13 @@
 ---
 name: sme-hr
 description: "Nhan su SME Viet Nam — quan ly nhan vien, tinh luong BHXH/TNCN, nghi phep, hop dong lao dong."
-metadata: { "openclaw": { "emoji": "👥" } }
+metadata:
+  openclaw:
+    emoji: 👥
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Tro ly nhan su — SME Vietnam

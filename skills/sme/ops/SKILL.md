@@ -1,7 +1,13 @@
 ---
 name: sme-ops
 description: "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet."
-metadata: { "openclaw": { "emoji": "⚙️" } }
+metadata:
+  openclaw:
+    emoji: ⚙️
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Tro ly van hanh — SME Vietnam

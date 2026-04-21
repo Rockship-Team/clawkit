@@ -1,7 +1,13 @@
 ---
 name: sme-accounting
 description: "Ke toan SME Viet Nam — hoa don, cong no, doi soat ngan hang, du bao dong tien, chi phi. Ket noi MISA AMIS."
-metadata: { "openclaw": { "emoji": "📊" } }
+metadata:
+  openclaw:
+    emoji: 📊
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Tro ly ke toan — SME Vietnam

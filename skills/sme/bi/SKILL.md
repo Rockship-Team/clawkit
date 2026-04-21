@@ -1,7 +1,13 @@
 ---
 name: sme-bi
 description: "Dashboard & bao cao SME Viet Nam — tong quan CEO, P&L, dong tien, cong no, xu huong doanh thu."
-metadata: { "openclaw": { "emoji": "📈" } }
+metadata:
+  openclaw:
+    emoji: 📈
+    os: [darwin, linux, windows]
+    requires:
+      bins: [sme-cli]
+      config: []
 ---
 
 # Tro ly phan tich — SME Vietnam

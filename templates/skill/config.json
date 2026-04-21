@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    {"key": "skill_title", "label": "Skill title"}
+  ],
+  "exclude": ["*.tmp"]
+}

@@ -1,62 +1,47 @@
 # Templates
 
-Everything needed to create a new skill. Pick a vertical, copy, customize.
+Generic scaffolding for a new skill. Copy `skill/` into `skills/` and customize.
 
-## Structure
+## Layout
 
 ```
-templates/
-  cli.js                          Generic CLI (copy to every skill)
-  verticals/
-    ecommerce/                    Online/chat shop bot
-      schema.json                 4 tables: orders, order_items, products, contacts
-      SKILL.md                    AI prompt skeleton
-      README.md                   Setup guide
-    education/                    Course enrollment bot
-      schema.json                 3 tables: enrollments, courses, contacts
+skills/
+  [...skill]/               Flat skill
+    _bootstrap/             Markdown persona files (IDENTITY.md, SOUL.md, …)
+    _cli/                   cli.js (and any helpers)
+    config.json             version, setup_prompts, exclude
+    SKILL.md                name, description, metadata.openclaw.*
+  [...group]/               Grouped skills
+    _bootstrap/             Persona files shared across the group
+    _cli/                   cli.js shared across the group
+    [...skill]/
+      config.json
       SKILL.md
-      README.md
-    consulting/                   Study abroad consulting bot
-      schema.json                 4 tables: students, applications, test_scores, contacts
-      SKILL.md
-      README.md
-    gold/                         Jewelry & gold trading bot
-      schema.json                 4 tables: transactions, products, price_board, contacts
-      SKILL.md
-      README.md
-    food-distribution/            Food wholesale/distribution bot
-      schema.json                 5 tables: orders, order_items, products, inventory, contacts
-      SKILL.md
-      README.md
 ```
 
-## Creating a New Skill
+## SKILL.md frontmatter
 
-```bash
-# 1. Pick a vertical and copy it
-cp -r templates/verticals/ecommerce skills/my-shop
-
-# 2. Copy the generic CLI
-cp templates/cli.js skills/my-shop/cli.js
-
-# 3. Customize
-#    - SKILL.md: your shop name, products, prices, AI persona
-#    - schema.json: add/remove fields for your domain
-
-# 4. Register and install
-make generate
-clawkit install my-shop
+```yaml
+name: my-skill
+description: One-line purpose
+metadata:
+  openclaw:
+    os: [darwin, linux, windows]
+    requires:
+      bins: [node]
+      config: []
 ```
 
-## Standard Skill Layout
+Fields: `name`, `description`, `metadata.openclaw.os`, `metadata.openclaw.requires.bins`, `metadata.openclaw.requires.config`.
 
+## config.json
+
+```json
+{
+  "version": "1.0.0",
+  "setup_prompts": [{"key": "skill_title", "label": "Skill title"}],
+  "exclude": ["*.tmp"]
+}
 ```
-skills/my-skill/
-  SKILL.md              Required  AI prompt (YAML frontmatter + markdown)
-  schema.json           Required  Database schema (tables, fields, roles)
-  cli.js                Required  Generic CLI (copy from templates/cli.js)
-  catalog.json          Optional  Product categories for image directories
-  bootstrap-files/      Optional  MD files to override agent persona
-  products/             Optional  Product images organized by folder
-  profiles/             Optional  Domain-specific overrides
-```
+
+Fields: `version`, `setup_prompts`, `exclude`.

@@ -11,18 +11,15 @@ User Machine                          External
 ┌──────────────────────────┐         ┌──────────────────┐
 │ clawkit CLI (Go)         │         │ npm registry     │
 │   ├── install/update     │◄────────│ GitHub Releases  │
-│   ├── schema.json parser │         │ Supabase         │
-│   └── profile overlay    │         │ Customer API     │
-│                          │         └──────────────────┘
-│ cli.js (Node.js)         │
-│   ├── JsonStore (local)  │
-│   ├── RemoteStore (API)  │
-│   └── Telegram upload    │
+│   ├── registry lookup    │         │                  │
+│   └── template render    │         └──────────────────┘
+│                          │
+│ Skill runtime (per skill)│
+│   └── _cli/ (any lang)   │
 │                          │
 │ OpenClaw Runtime         │
 │   ├── AI agent           │
-│   ├── Telegram channel   │
-│   └── Zalo channel       │
+│   └── Channels           │
 └──────────────────────────┘
 ```
 
@@ -31,116 +28,146 @@ User Machine                          External
 ## Install Flow
 
 ```
-clawkit install <skill> [--profile <name>]
+clawkit install <skill>
   │
   ├── 1. Preflight: detect OpenClaw
   ├── 2. Registry lookup: load skill metadata
   ├── 3. Download: local dev → embedded → GitHub Releases
-  ├── 4. Profile overlay: catalog, schema, images, bootstrap-files
-  ├── 5. Install bins: download required CLIs (e.g. gog)
-  ├── 8. Lockdown: backup workspace → apply overrides → reset sessions → set allowlist
-  ├── 9. Schema init: load schema.json → validate → create DB (local/supabase/api)
-  ├── 10. Save clawkit.json: skill_name, profile, version, db_target, tokens
-  └── 11. Template processing: replace {placeholders} in SKILL.md
+  ├── 4. Group _cli merge: if skill is under skills/<group>/<skill>/ and has
+  │      no _cli/ of its own, copy the group's shared _cli/ into the install
+  ├── 5. Install bins: download required CLIs declared in requires_bins
+  ├── 6. Collect setup prompts: read user_inputs interactively
+  ├── 7. Allowlist update: openclaw config set agents.defaults.skills [...]
+  ├── 8. Template processing: replace {key} placeholders in SKILL.md
+  └── 9. Save clawkit.json: { version, user_inputs }
 ```
+
+Update re-runs steps 3, 4, 8, and 9, reusing the stored `user_inputs` —
+setup prompts are not asked again.
 
 ---
 
-## Schema System
+## Skill Layout
 
-### Format
+Flat skill:
+
+```
+skills/<skill>/
+  _cli/                   cli.js or any runtime helpers
+  config.json             { version, setup_prompts, exclude }
+  SKILL.md                frontmatter + agent prompt
+```
+
+Grouped skills share one `_cli/` at the group level:
+
+```
+skills/<group>/
+  _cli/                   shared runtime for every child skill
+  <skill-a>/
+    config.json
+    SKILL.md
+  <skill-b>/
+    config.json
+    SKILL.md
+```
+
+The installer copies the group's `_cli/` into each installed child skill if
+the child doesn't define its own.
+
+---
+
+## Metadata Sources
+
+Skill metadata is split into two files:
+
+**`SKILL.md` frontmatter** — OpenClaw-native fields, consumed by the agent
+runtime and by `gen-registry`:
+
+```yaml
+---
+name: my-skill
+description: What this skill does
+metadata:
+  openclaw:
+    os: [darwin, linux, windows]
+    requires:
+      bins: [node]
+      config: []
+---
+```
+
+**`config.json`** — clawkit-specific, consumed only by `gen-registry`:
 
 ```json
 {
-  "tables": {
-    "orders":      { "fields": [...], "statuses": [...] },
-    "order_items": { "fields": [...] },
-    "contacts":    { "fields": [...] }
-  },
-  "primary": "orders",
-  "timezone": "Asia/Ho_Chi_Minh",
-  "images_dir": "products"
+  "version": "1.0.0",
+  "setup_prompts": [{"key": "shop_name", "label": "Shop name"}],
+  "exclude": ["*.tmp"]
 }
 ```
 
-Legacy single-table format (`"table"` + `"fields"`) is auto-normalized to multi-table on load.
+**`registry.json`** — generated from both; each entry contains:
+`description, os, requires_bins, requires_config, version, setup_prompts, exclude`.
+Regenerate with `make generate`; CI enforces sync via `make check-generate`.
 
-### Field Properties
+**`clawkit.json`** — written at install time into the installed skill
+directory:
 
-| Property | Values | Purpose |
-|----------|--------|---------|
-| `type` | `text`, `integer` | Data type |
-| `auto` | `increment`, `timestamp` | Auto-generated at insert time |
-| `default` | any string | Default value (excluded from positional args) |
-| `required` | `true` | Validation: must be non-empty |
-| `role` | `owner`, `status`, `price`, `timestamp` | Semantic role for CLI commands |
-| `ref` | table name | Documents a relationship (not enforced) |
-
-### Store Backends
-
-```
-cli.js --table <name> <command> <args>
-  │
-  ├── db_target: local    → <table>.json per table (read/write JSON files)
-  ├── db_target: supabase → <supabase_url>/rest/v1/<table> (PostgREST API)
-  └── db_target: api      → <base_url>/<table> (customer's REST endpoints)
+```json
+{
+  "version": "1.0.0",
+  "user_inputs": {"shop_name": "Hoa Xuan"}
+}
 ```
 
-API contract for remote backends:
-- `GET /<table>` → `[{record}, ...]`
-- `POST /<table>` → `{record}` (with server-assigned id)
-- `PATCH /<table>/<id>` → `{record}` (updated)
+Used on update to re-bake placeholders without re-prompting.
 
 ---
 
-## Profile System
+## Registry Generation
 
-```
-skills/<vertical>/<skill>/
-  profiles/
-    shop-hoa/
-      profile.yaml            Key-value pairs → template placeholders
-      catalog.json            Overrides base catalog
-      schema.json             Extends or replaces base schema
-      products/               Product images
-      bootstrap-files/    Agent persona files
-```
+`cmd/gen-registry` walks `skills/` recursively, skipping any `_cli/`
+directory. For each `SKILL.md` it finds, it:
 
-Profile overlay order: catalog → schema (with extend-merge) → images → bootstrap-files → cleanup.
+1. Parses the YAML frontmatter with a hand-written indent-aware parser
+   (zero deps) — supports nested maps and inline flow arrays `[a, b, c]`.
+2. Flattens `metadata.openclaw.os`, `metadata.openclaw.requires.bins`,
+   `metadata.openclaw.requires.config` into the entry.
+3. Reads the sibling `config.json` for `version`, `setup_prompts`, `exclude`.
+4. Emits a merged record keyed by directory name.
 
-Schema extend: profile schema with `"extend": true` appends new fields/tables to base. Without extend, full replace.
+The directory name is the canonical skill key — the `name:` field in
+frontmatter is informational only.
 
 ---
 
-## Workspace Lockdown
+## Skill Resolution Order
 
-clawkit enforces a 1-skill-at-a-time model:
+When installing `<name>`:
 
-1. **Remove prior skills** — prompt user to confirm
-2. **Backup workspace files** — AGENTS.md, SOUL.md, etc. to `.clawkit-backup/<timestamp>/`
-3. **Apply bootstrap files** — copy skill's persona files to workspace root
-4. **Delete generic files** — BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md
-5. **Reset sessions** — archive existing .jsonl, empty sessions.json
-6. **Set allowlist** — `openclaw config set agents.defaults.skills '["<skill>"]'`
+1. **Local dev** — `skills/<name>/` or `skills/<group>/<name>/` (one level
+   of nesting). `findLocalSkill` returns the first match with a `SKILL.md`.
+2. **Embedded** — `skills.FindSkill` searches the `//go:embed` FS.
+3. **Remote** — `.tar.gz` from
+   `github.com/Rockship-Team/clawkit/releases/latest/download/<name>.tar.gz`.
 
-Reversible via `clawkit uninstall` which restores from backup.
+For local and embedded sources, if the matched path is under a group and
+the skill has no `_cli/`, the group's `_cli/` is merged into the target
+directory after the main copy.
 
 ---
 
-## OAuth Provider Architecture
+## Workspace Allowlist
 
-Self-registering pattern — each provider is a separate file:
+clawkit updates OpenClaw's skill allowlist so installed skills show up in
+`<available_skills>`:
 
-```go
-// oauth/my_provider.go
-type myProvider struct{}
-func (p myProvider) Name() string    { return "my_provider" }
-func (p myProvider) Display() string { return "My Service" }
-func (p myProvider) Authenticate() (map[string]string, error) { ... }
-func init() { Register(myProvider{}) }
-```
+- **Install** appends the skill to `agents.defaults.skills`.
+- **Uninstall** removes it; when the last skill is removed, the allowlist
+  entry is cleared (`openclaw config unset agents.defaults.skills`).
 
-Tokens are saved to `clawkit.json` (installed skill) and used for template placeholder substitution in SKILL.md.
+No workspace persona files, backups, or bootstrap copies are managed —
+skills customise behaviour purely through their own SKILL.md and `_cli/`.
 
 ---
 
@@ -150,26 +177,18 @@ Tokens are saved to `clawkit.json` (installed skill) and used for template place
 clawkit/
   cmd/
     clawkit/                CLI entry point
-    gen-registry/           Registry generator (recursive SKILL.md scan)
+    gen-registry/           Registry generator + frontmatter parser
   internal/
     archive/                tar.gz / zip
     config/                 SkillConfig, OpenClaw detection
-    installer/              Commands, schema, profiles, lockdown, registry
-    template/               Placeholder substitution, catalog, image dirs
-    ui/                     Terminal output (Info/Ok/Warn/Fatal)
-  oauth/                    Self-registering OAuth providers
-  skills/                   Built-in skills
-    ecommerce/              shop-hoa, carehub-baby
-    utilities/              finance-tracker
-    tools/                  gog
-  templates/                Reusable templates
-    cli.js                  Generic schema-driven CLI
-    verticals/              Per-vertical starter kits
-      ecommerce/            4 tables: orders, order_items, products, contacts
-      education/            3 tables: enrollments, courses, contacts
-      consulting/           4 tables: students, applications, test_scores, contacts
-      gold/                 4 tables: transactions, products, price_board, contacts
-      food-distribution/    5 tables: orders, order_items, products, inventory, contacts
+    installer/              Commands, registry, allowlist
+    template/               {key} placeholder substitution
+    dashboard/              Web dashboard
+    ui/                     Terminal output helpers
+  skills/                   Built-in skills (grouped by vertical)
+  templates/                Scaffolding for new skills
+    skill/                  Flat-skill template
+    group/                  Group-with-shared-_cli template
   npm/                      npm package wrapper with platform binaries
 ```
 
@@ -177,9 +196,25 @@ clawkit/
 
 ## Release
 
-Push a version tag → GitHub Actions builds all platforms, packages skills, creates Release, publishes to npm:
+1. `make release-check` — local dry run: `fmt + check-generate + test + dist`.
+2. `make bump V=1.2.0` — syncs VERSION in `Makefile` and `npm/package.json`
+   so dev view and published view can't drift.
+3. Commit, tag `v1.2.0`, push tag:
 
 ```bash
+git commit -am 'Release v1.2.0'
 git tag v1.2.0
-git push origin v1.2.0
+git push && git push --tags
 ```
+
+The `v*` tag triggers `.github/workflows/release.yml`, which:
+
+- Re-runs `make check-generate` and `make test` on the tag
+- Runs `make dist` to cross-compile 5 binaries
+- Packages each Unix binary into `clawkit-v<ver>-<os>-<arch>.tar.gz`,
+  keeps Windows as a raw `.exe`, and uploads them to the GitHub Release
+- Copies the raw `dist/` binaries into `npm/binaries/` and
+  `npm publish --access public` as `@rockship/clawkit`
+
+The workflow also `sed`s the Makefile VERSION in-place as a safety net
+in case step 2 was skipped, but the canonical flow is `make bump` first.

@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "requires_bins": [],
+  "setup_prompts": [
+    {
+      "key": "poster_name",
+      "label": "Ten nguoi post (hien tren draft, vd 'Khoa')",
+      "placeholder": "Khoa"
+    },
+    {
+      "key": "brand_name",
+      "label": "Ten brand chinh (default: OpenClaw)",
+      "placeholder": "OpenClaw"
+    }
+  ],
+  "exclude": ["cmd", "*.go", "go.mod", "go.sum"]
+}

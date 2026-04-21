@@ -45,6 +45,8 @@ func cmdManus(args []string) {
 		manusGetTask(args[1:])
 	case "generate-proposal":
 		manusGenerateProposal(args[1:])
+	case "submit-proposal":
+		manusSubmitProposal(args[1:])
 	case "template":
 		manusPrintTemplate(args[1:])
 	case "list-templates":
@@ -161,13 +163,9 @@ type manusTaskResponse struct {
 	} `json:"output"`
 }
 
-func manusGenerateProposal(args []string) {
-	if len(args) < 2 {
-		errOut("usage: manus generate-proposal <company_name> <outline_file|->")
-	}
-	company := args[0]
-	outlinePath := args[1]
-
+// buildProposalTask constructs the Manus task payload (prompt + style PDF
+// attachment) from an outline file path or "-" for stdin.
+func buildProposalTask(company, outlinePath string) map[string]interface{} {
 	var outline []byte
 	var err error
 	if outlinePath == "-" {
@@ -176,7 +174,7 @@ func manusGenerateProposal(args []string) {
 		outline, err = os.ReadFile(outlinePath)
 	}
 	if err != nil || len(bytes.TrimSpace(outline)) == 0 {
-		errOut("manus generate-proposal: outline is empty")
+		errOut("outline is empty")
 	}
 
 	styleBytes, err := manusTemplates.ReadFile("templates/style_template.pdf")
@@ -188,7 +186,7 @@ func manusGenerateProposal(args []string) {
 	prompt := fmt.Sprintf("%s\n\nOutline:\n\n%s\n\nOutput: 1 file PDF tên %s_proposal.pdf",
 		manusProposalPrompt, string(outline), company)
 
-	task := map[string]interface{}{
+	return map[string]interface{}{
 		"prompt":       prompt,
 		"agentProfile": "manus-1.6",
 		"attachments": []map[string]interface{}{
@@ -199,6 +197,52 @@ func manusGenerateProposal(args []string) {
 			},
 		},
 	}
+}
+
+// manusSubmitProposal creates the Manus task and returns task_id immediately —
+// no polling. Callers (e.g. sme-cli proposal generate) poll via get-task on
+// their own schedule to stay within bot tool execution timeouts.
+func manusSubmitProposal(args []string) {
+	if len(args) < 2 {
+		errOut("usage: manus submit-proposal <company_name> <outline_file|->")
+	}
+	task := buildProposalTask(args[0], args[1])
+	body, err := json.Marshal(task)
+	if err != nil {
+		errOut("failed to prepare the proposal request")
+	}
+	_, base := manusCreds()
+	raw, code, err := manusDo("POST", base+"/v1/tasks", body)
+	if err != nil {
+		errOut("failed to submit the proposal task — check your connection")
+	}
+	if code >= 400 {
+		errOut("the server rejected the proposal request — verify your API key")
+	}
+	var created manusTaskResponse
+	if err := json.Unmarshal(raw, &created); err != nil {
+		errOut("received an unexpected response after creating the task")
+	}
+	taskID := created.TaskID
+	if taskID == "" {
+		taskID = created.ID
+	}
+	if taskID == "" {
+		errOut("the server did not return a valid task reference")
+	}
+	okOut(map[string]interface{}{
+		"task_id":  taskID,
+		"task_url": created.TaskURL,
+		"status":   "submitted",
+		"poll_cmd": "sme-cli manus get-task " + taskID,
+	})
+}
+
+func manusGenerateProposal(args []string) {
+	if len(args) < 2 {
+		errOut("usage: manus generate-proposal <company_name> <outline_file|->")
+	}
+	task := buildProposalTask(args[0], args[1])
 	body, err := json.Marshal(task)
 	if err != nil {
 		errOut("failed to prepare the proposal request")

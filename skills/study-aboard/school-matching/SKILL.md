@@ -1,7 +1,11 @@
 ---
 name: school-matching
 description: Help Vietnamese students find and evaluate universities matching their profile across USA, UK, Canada, and Australia. Use this skill whenever a student asks about choosing schools, wants school recommendations, mentions 'chọn trường', 'gợi ý trường', 'danh sách trường', 'trường nào phù hợp', 'nên apply đâu', 'Reach Target Safety', 'UCAS', 'trường Anh', 'trường Canada', 'trường Úc', or asks about a specific university. Invoke proactively when the student has a complete profile but no school list yet.
-metadata: { "openclaw": { "emoji": "🎓" } }
+metadata:
+  openclaw:
+    emoji: 🎓
+    requires:
+      bins: [sa-cli]
 ---
 
 # School Matching Skill

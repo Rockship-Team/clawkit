@@ -1,7 +1,11 @@
 ---
 name: ec-strategy
 description: Evaluate and improve extracurricular activities for Vietnamese students applying to US/UK/Canada/Australia universities. Use this skill whenever a student asks about extracurricular activities, mentions 'ngoại khoá', 'EC', 'hoạt động ngoại khoá', 'extracurricular', 'cải thiện hồ sơ', 'hoạt động nào mạnh', 'tier', or wants advice on how to strengthen their non-academic profile.
-metadata: { "openclaw": { "emoji": "🏆" } }
+metadata:
+  openclaw:
+    emoji: 🏆
+    requires:
+      bins: [sa-cli]
 ---
 
 # Extracurricular Strategy Skill

@@ -1,7 +1,11 @@
 ---
 name: deadline-tracker
 description: Track application deadlines and send proactive alerts for Vietnamese students applying to universities. Use this skill whenever a student asks about deadlines, application status, mentions 'deadline', 'hạn nộp', 'lịch nộp hồ sơ', 'trạng thái hồ sơ', 'khi nào nộp', 'còn bao lâu nữa', 'đã submit chưa', or when proactively checking on upcoming deadlines. Also handles post-submission checklists.
-metadata: { "openclaw": { "emoji": "📅" } }
+metadata:
+  openclaw:
+    emoji: 📅
+    requires:
+      bins: [sa-cli]
 ---
 
 # Deadline Tracker Skill

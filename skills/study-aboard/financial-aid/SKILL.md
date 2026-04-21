@@ -1,7 +1,11 @@
 ---
 name: financial-aid
 description: Help Vietnamese students and families understand university costs, financial aid, and scholarships for studying abroad in USA, UK, Canada, and Australia. Use this skill whenever a student asks about costs, tuition, financial aid, scholarships, mentions 'học phí', 'financial aid', 'chi phí', 'cost', 'học bổng', 'scholarship', 'merit aid', 'CSS Profile', 'FAFSA', 'budget', 'Chevening', 'học bổng Anh', 'học bổng Canada', 'học bổng Úc', or wants to compare costs across schools. Also handles Early Decision (ED) strategy questions with required confirmation.
-metadata: { "openclaw": { "emoji": "💵" } }
+metadata:
+  openclaw:
+    emoji: 💵
+    requires:
+      bins: [sa-cli]
 ---
 
 # Financial Aid Advisor Skill

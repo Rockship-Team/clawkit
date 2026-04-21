@@ -1,13 +1,8 @@
 {
-  "version": "1.0.0",
+  "version": "1.2.1",
   "exclude": [
     "cmd",
     "tools",
-    "crawl",
-    "PRD.md",
-    "CHECKLIST.md",
-    "IMPLEMENTATION.md",
-    "TEST-SCENARIOS.md",
-    "*_test.go"
+    "REQUIREMENTS.md"
   ]
 }

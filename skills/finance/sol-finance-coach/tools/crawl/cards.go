@@ -23,35 +23,6 @@ type CreditCard struct {
 	SourceURL   string `json:"source_url,omitempty"`
 }
 
-// Card listing pages on thebank.vn (credit card comparison site).
-var cardSources = []struct {
-	URL      string
-	Category string
-}{
-	{"https://thebank.vn/blog/tag/the-tin-dung-cashback", "cashback"},
-	{"https://thebank.vn/blog/tag/the-tin-dung-mien-phi", "free"},
-	{"https://thebank.vn/blog/tag/the-tin-dung-tich-diem", "miles"},
-}
-
-// Bank-specific card listing pages for direct crawling.
-var bankCardPages = []struct {
-	Bank string
-	URL  string
-}{
-	{"Techcombank", "https://techcombank.com/ca-nhan/the/the-tin-dung"},
-	{"VPBank", "https://vpbank.com.vn/ca-nhan/the/the-tin-dung"},
-	{"TPBank", "https://tpbank.vn/ca-nhan/the-tin-dung.html"},
-	{"ACB", "https://acb.com.vn/the/the-tin-dung"},
-	{"MB", "https://www.mbbank.com.vn/the-tin-dung"},
-	{"VIB", "https://vib.com.vn/vn/the-tin-dung"},
-	{"Sacombank", "https://www.sacombank.com.vn/the-tin-dung"},
-	{"BIDV", "https://bidv.com.vn/ca-nhan/the/the-tin-dung"},
-	{"Vietcombank", "https://vietcombank.com.vn/the-tin-dung"},
-	{"HDBank", "https://hdbank.com.vn/vi/ca-nhan/the-tin-dung"},
-	{"OCB", "https://ocb.com.vn/ca-nhan/the-tin-dung"},
-	{"SHB", "https://shb.com.vn/ca-nhan/the/the-tin-dung"},
-}
-
 func runCards() {
 	cfg := getConfig()
 	var allCards []CreditCard

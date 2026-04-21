@@ -3,7 +3,6 @@
 // Usage:
 //
 //	crawl cards                     Credit card data from comparison sites
-//	crawl rates                     Deposit/savings interest rates
 //	crawl deals [--bank <name>]     Promotions from bank websites
 //	crawl loyalty                   Loyalty program earning/redemption info
 //	crawl all                       Run all crawlers and merge into data/
@@ -11,7 +10,6 @@
 // Output goes to stdout as JSON. Redirect to update data files:
 //
 //	crawl cards > data/credit-cards.json
-//	crawl rates > data/interest-rates.json
 package main
 
 import (
@@ -29,8 +27,6 @@ func main() {
 	switch os.Args[1] {
 	case "cards":
 		runCards()
-	case "rates":
-		runRates()
 	case "deals":
 		bank := ""
 		for i := 2; i < len(os.Args); i++ {
@@ -55,19 +51,14 @@ func usage() {
 
 Usage:
   crawl cards                     Credit card data from comparison sites
-  crawl rates                     Deposit/savings interest rates
   crawl deals [--bank <name>]     Promotions from bank websites
   crawl loyalty                   Loyalty program earning/redemption info
   crawl all                       Run all crawlers, write to data/
 
-Sources:
-  thebank.vn          Credit card comparisons
-  laisuat.vn          Deposit rate tables
-  Bank promo pages    Techcombank, VPBank, TPBank, ACB, MB, VIB, etc.
+Sources defined in sources.json (single source of truth).
 
 Output: JSON to stdout. Pipe to data files:
-  crawl cards > ../../data/credit-cards.json
-  crawl rates > ../../data/interest-rates.json`)
+	crawl cards > ../../data/credit-cards.json`)
 }
 
 func jsonPrint(v interface{}) {

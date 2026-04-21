@@ -29,7 +29,7 @@ func TestLoadSchemaMultiTable(t *testing.T) {
 		"primary": "orders",
 		"timezone": "Asia/Ho_Chi_Minh"
 	}`
-	os.WriteFile(filepath.Join(dir, "schema.json"), []byte(schema), 0644)
+	os.WriteFile(filepath.Join(dir, "schema.json"), []byte(schema), 0o644)
 
 	s, err := loadSchema(dir)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestLoadSchemaLegacySingleTable(t *testing.T) {
 		],
 		"statuses": ["new", "completed"]
 	}`
-	os.WriteFile(filepath.Join(dir, "schema.json"), []byte(schema), 0644)
+	os.WriteFile(filepath.Join(dir, "schema.json"), []byte(schema), 0o644)
 
 	s, err := loadSchema(dir)
 	if err != nil {
@@ -276,7 +276,7 @@ func TestInitLocalDBMultiTable(t *testing.T) {
 	}
 
 	for _, tname := range []string{"orders", "contacts"} {
-		data, err := os.ReadFile(filepath.Join(dir, tname+".json"))
+		data, err := os.ReadFile(filepath.Join(dir, "data", tname+".json"))
 		if err != nil {
 			t.Fatalf("%s.json not created: %v", tname, err)
 		}
@@ -296,13 +296,16 @@ func TestInitLocalDBIdempotent(t *testing.T) {
 	}
 
 	existing := `[{"id":1}]`
-	os.WriteFile(filepath.Join(dir, "orders.json"), []byte(existing), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "data"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(dir, "data", "orders.json"), []byte(existing), 0o644)
 
 	if err := initLocalDB(dir, s); err != nil {
 		t.Fatal(err)
 	}
 
-	data, _ := os.ReadFile(filepath.Join(dir, "orders.json"))
+	data, _ := os.ReadFile(filepath.Join(dir, "data", "orders.json"))
 	if string(data) != existing {
 		t.Errorf("existing data was overwritten: got %q", string(data))
 	}
@@ -322,7 +325,7 @@ func TestApplySchemaOverlayExtend(t *testing.T) {
 	}
 	baseData, _ := json.MarshalIndent(base, "", "  ")
 	basePath := filepath.Join(dir, "schema.json")
-	os.WriteFile(basePath, baseData, 0644)
+	os.WriteFile(basePath, baseData, 0o644)
 
 	profile := Schema{
 		Extend: true,
@@ -334,7 +337,7 @@ func TestApplySchemaOverlayExtend(t *testing.T) {
 	}
 	profileData, _ := json.MarshalIndent(profile, "", "  ")
 	profilePath := filepath.Join(dir, "profile-schema.json")
-	os.WriteFile(profilePath, profileData, 0644)
+	os.WriteFile(profilePath, profileData, 0o644)
 
 	if err := applySchemaOverlay(basePath, profilePath); err != nil {
 		t.Fatal(err)

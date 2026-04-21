@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,14 +27,49 @@ func skillDir() string {
 	return filepath.Join(home, ".openclaw", "workspace", "skills", "sol-finance-coach")
 }
 
-// dataPath returns the full path to a file in the skill's data/ directory (static data).
+// dataPath returns the full path to a file in the skill's data/ directory.
 func dataPath(name string) string {
 	return filepath.Join(skillDir(), "data", name)
 }
 
-// userPath returns the full path to a user data file in the skill root.
+// userPath returns the full path to a runtime user data file in data/.
 func userPath(name string) string {
-	return filepath.Join(skillDir(), name)
+	return dataPath(name)
+}
+
+func ensureDataDirs() {
+	os.MkdirAll(filepath.Join(skillDir(), "data"), 0o755)
+}
+
+func migrateFileIfNeeded(srcPath, dstPath string) {
+	if _, err := os.Stat(dstPath); err == nil {
+		return
+	}
+	if _, err := os.Stat(srcPath); err != nil {
+		return
+	}
+
+	if err := os.Rename(srcPath, dstPath); err == nil {
+		return
+	}
+
+	// Fallback copy for environments where rename may fail.
+	from, err := os.Open(srcPath)
+	if err != nil {
+		return
+	}
+	defer from.Close()
+
+	to, err := os.Create(dstPath)
+	if err != nil {
+		return
+	}
+	if _, err := io.Copy(to, from); err != nil {
+		to.Close()
+		return
+	}
+	to.Close()
+	_ = os.Remove(srcPath)
 }
 
 // readJSON reads a JSON file into v. Returns false if file does not exist.
@@ -147,6 +185,24 @@ func parseAmount(s string) (int64, error) {
 
 // ensureInit creates user data directory if needed.
 func ensureInit() {
-	dir := skillDir()
-	os.MkdirAll(dir, 0o755)
+	os.MkdirAll(skillDir(), 0o755)
+	ensureDataDirs()
+
+	legacyUserFiles := []string{
+		"profile.json",
+		"transactions.json",
+		"loyalty.json",
+	}
+	for _, name := range legacyUserFiles {
+		migrateFileIfNeeded(filepath.Join(skillDir(), name), userPath(name))
+		migrateFileIfNeeded(filepath.Join(skillDir(), "data", "user", name), userPath(name))
+	}
+}
+
+func deterministicIndex(seed string, n int) int {
+	if n <= 0 {
+		return 0
+	}
+	h := sha256.Sum256([]byte(seed))
+	return int(binary.BigEndian.Uint32(h[:4]) % uint32(n))
 }

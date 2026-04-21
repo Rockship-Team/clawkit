@@ -1,0 +1,103 @@
+[
+  {
+    "program": "lotusmiles",
+    "display": "Vietnam Airlines Lotusmiles",
+    "type": "airline",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://www.vietnamairlines.com/vn/vi/lotusmiles/about"
+  },
+  {
+    "program": "bamboo_club",
+    "display": "Bamboo Airways Club",
+    "type": "airline",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://www.bambooairways.com/bamboo-club"
+  },
+  {
+    "program": "grab_rewards",
+    "display": "GrabRewards",
+    "type": "wallet",
+    "earning_rules": null,
+    "redemption_info": [
+      "Đổi điểm thưởng GrabXu"
+    ],
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://www.grab.com/vn/rewards/",
+    "partners": {
+      "Di chuyển": "",
+      "GrabExpress": "",
+      "GrabFood": "",
+      "Thông tin mới nhất": "",
+      "Trung tâm tài xế": ""
+    }
+  },
+  {
+    "program": "shopee_coins",
+    "display": "Shopee Xu",
+    "type": "wallet",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://shopee.vn/m/shopee-coins"
+  },
+  {
+    "program": "momo_rewards",
+    "display": "MoMo Rewards",
+    "type": "wallet",
+    "earning_rules": [
+      "Mời thêm 1 bạn, nhận thêm 50.000đ tiền mặt. Thưởng không giới hạn!"
+    ],
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://momo.vn"
+  },
+  {
+    "program": "zalopay_rewards",
+    "display": "ZaloPay Rewards",
+    "type": "wallet",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://zalopay.vn"
+  },
+  {
+    "program": "the_coffee_house",
+    "display": "The Coffee House Rewards",
+    "type": "retail",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://www.thecoffeehouse.com"
+  },
+  {
+    "program": "highlands",
+    "display": "Highlands Coffee Rewards",
+    "type": "retail",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://highlandscoffee.com.vn"
+  },
+  {
+    "program": "cgv",
+    "display": "CGV Cinema Club",
+    "type": "retail",
+    "earning_rules": null,
+    "redemption_info": null,
+    "expiry_policy": "",
+    "tips": null,
+    "source_url": "https://www.cgv.vn"
+  }
+]

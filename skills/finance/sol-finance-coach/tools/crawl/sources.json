@@ -48,34 +48,25 @@
       "url": "https://shinhan.com.vn/vi/san-pham/the-tin-dung"
     }
   ],
-  "bank_rate_pages": [
-    { "bank": "Techcombank", "url": "https://www.techcombank.com.vn/lai-suat" },
-    { "bank": "VPBank", "url": "https://www.vpbank.com.vn/lai-suat" },
-    { "bank": "TPBank", "url": "https://www.tpbank.com.vn/bieu-lai-suat" },
-    { "bank": "ACB", "url": "https://acb.com.vn/lai-suat" },
-    { "bank": "MB", "url": "https://www.mbbank.com.vn/lai-suat" },
-    { "bank": "Vietcombank", "url": "https://vietcombank.com.vn/lai-suat" },
-    { "bank": "BIDV", "url": "https://bidv.com.vn/lai-suat" },
-    { "bank": "VietinBank", "url": "https://vietinbank.vn/lai-suat" }
-  ],
   "bank_promo_pages": [
-    { "bank": "Techcombank", "url": "https://www.techcombank.com.vn/uu-dai" },
+    { "bank": "Techcombank", "url": "https://techcombank.com/khach-hang-ca-nhan/uu-dai" },
     { "bank": "VPBank", "url": "https://www.vpbank.com.vn/uu-dai" },
-    { "bank": "TPBank", "url": "https://www.tpbank.com.vn/uu-dai" },
-    { "bank": "ACB", "url": "https://acb.com.vn/uu-dai" },
-    { "bank": "MB", "url": "https://www.mbbank.com.vn/uu-dai" },
-    { "bank": "VIB", "url": "https://www.vib.com.vn/vn/uu-dai" },
-    { "bank": "Sacombank", "url": "https://khuyenmai.sacombank.com.vn" },
+    { "bank": "TPBank", "url": "https://tpb.vn/khuyen-mai" },
+    { "bank": "ACB", "url": "https://acb.com.vn/uu-dai-the" },
+    { "bank": "MBBank", "url": "https://www.mbbank.com.vn/news/list/tin-khuyen-mai-khcn/52" },
+    { "bank": "VIB", "url": "https://www.vib.com.vn/vn/promotion" },
+    { "bank": "Sacombank", "url": "https://www.sacombank.com.vn/trang-chu/khuyen-mai/khcn/chuong-trinh-uu-dai.html" },
     { "bank": "Vietcombank", "url": "https://vietcombank.com.vn/uu-dai" },
-    { "bank": "BIDV", "url": "https://bidv.com.vn/uu-dai" },
-    { "bank": "HDBank", "url": "https://hdbank.com.vn/vi/ca-nhan/uu-dai" },
-    { "bank": "SHB", "url": "https://shb.com.vn/uu-dai" },
-    { "bank": "VietinBank", "url": "https://vietinbank.vn/uu-dai" }
+    { "bank": "BIDV", "url": "https://bidv.com.vn/vn/ca-nhan/khuyen-mai" },
+    { "bank": "HDBank", "url": "https://hdbank.com.vn/vi/personal/promotion" },
+    { "bank": "Shinhan Bank", "url": "https://shinhan.com.vn/vi/promotion" },
+    { "bank": "VietinBank", "url": "https://www.vietinbank.vn/chuong-trinh-khuyen-mai" }
   ],
   "wallet_promo_pages": [
-    { "name": "MoMo", "url": "https://momo.vn/tin-tuc/uu-dai-momo" },
-    { "name": "ZaloPay", "url": "https://zalopay.vn/uu-dai" },
-    { "name": "ShopeePay", "url": "https://shopee.vn/m/shopeepay" }
+    { "name": "MoMo", "url": "https://www.momo.vn/tin-tuc/khuyen-mai" },
+    { "name": "ZaloPay", "url": "https://zalopay.vn/khuyen-mai" },
+    { "name": "ShopeePay", "url": "https://shopeepay.vn/khuyen-mai" },
+    { "name": "VNPay", "url": "https://vnpay.vn/khuyen-mai" }
   ],
   "loyalty_programs": [
     {

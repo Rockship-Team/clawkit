@@ -44,7 +44,7 @@ func loadCards() []CreditCard {
 
 func cmdTips(args []string) {
 	if len(args) == 0 {
-		errOut("usage: tips random|daily [category]")
+		errOut("usage: tips random|daily|seasonal [category]")
 		os.Exit(1)
 	}
 
@@ -82,6 +82,42 @@ func cmdTips(args []string) {
 		idx := int(binary.BigEndian.Uint32(h[:4])) % len(tips)
 		tip := tips[idx]
 		okOut(map[string]interface{}{"tip": tip, "date": vnToday()})
+
+	case "seasonal":
+		now := vnNow()
+		month := int(now.Month())
+		day := now.Day()
+
+		var seasons []string
+		// Tet: Jan 1 – Feb 15
+		if month == 1 || (month == 2 && day <= 15) {
+			seasons = append(seasons, "tet")
+		}
+		// Back to school: Jul 15 – Sep 15
+		if (month == 7 && day >= 15) || month == 8 || (month == 9 && day <= 15) {
+			seasons = append(seasons, "back-to-school")
+		}
+		// Sale season: Nov 1 – Dec 31
+		if month == 11 || month == 12 {
+			seasons = append(seasons, "sale-season")
+		}
+
+		if len(seasons) == 0 {
+			okOut(map[string]interface{}{"seasonal": false, "seasons": []string{}, "tips": []Tip{}, "count": 0})
+			return
+		}
+
+		seasonSet := map[string]bool{}
+		for _, s := range seasons {
+			seasonSet[s] = true
+		}
+		var matched []Tip
+		for _, t := range tips {
+			if t.Season != "" && seasonSet[t.Season] {
+				matched = append(matched, t)
+			}
+		}
+		okOut(map[string]interface{}{"seasonal": true, "seasons": seasons, "tips": matched, "count": len(matched)})
 
 	default:
 		errOut("unknown tips command: " + args[0])

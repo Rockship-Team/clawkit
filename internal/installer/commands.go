@@ -78,7 +78,7 @@ func CmdInstall(skillName string, profileName string) {
 	}
 
 	// Download skill (remote) or copy (local dev).
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
 	err = downloadSkill(skillName, targetDir, skill.Exclude)
@@ -107,14 +107,10 @@ func CmdInstall(skillName string, profileName string) {
 		installRequiredBins(skill.RequiresBins)
 	}
 
-	// Lock down the workspace into this skill's persona:
-	//   1. Remove any previously installed skill (1-skill-at-a-time model)
-	//   2. Back up existing workspace MD files
-	//   3. Copy bootstrap-files/* from the new skill to workspace root
-	//   4. Delete generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md)
-	//   5. Reset prior conversation sessions
-	//   6. Set agents.defaults.skills = [<skillName>]
-	LockdownWorkspace(skillsDir, targetDir, skillName)
+	// Set up the workspace for this skill:
+	//   - First skill: backup workspace files, apply persona, set allowlist
+	//   - Additional skills: append to allowlist, keep existing persona
+	SetupWorkspace(skillsDir, targetDir, skillName)
 
 	// Remove bootstrap-files from the installed skill directory — they've
 	// already been applied to the workspace root by LockdownWorkspace and
@@ -126,7 +122,7 @@ func CmdInstall(skillName string, profileName string) {
 		ui.Warn("Could not create image directories: %v", err)
 	}
 
-	// Load config early — schema init and profile merge both write to it.
+	// Load config early — profile merge writes to it.
 	cfg, _ := config.LoadSkillConfig(targetDir)
 	if cfg == nil {
 		cfg = &config.SkillConfig{}
@@ -134,14 +130,6 @@ func CmdInstall(skillName string, profileName string) {
 	cfg.SkillName = skillName
 	cfg.Profile = profileName
 	cfg.Version = skill.Version
-
-	// Initialize database from schema.json.
-	if schemaErr := initSchema(targetDir, cfg, profileValues); schemaErr != nil {
-		os.RemoveAll(targetDir)
-		ui.Fatal("Database init failed: %v", schemaErr)
-	} else if cfg.DBTarget != "" {
-		ui.Ok("Database initialized (%s)", cfg.DBTarget)
-	}
 
 	// Merge profile values into UserInputs for template placeholder substitution.
 	if len(profileValues) > 0 {
@@ -270,10 +258,8 @@ func CmdUninstall(skillName string) {
 
 	ui.Info("Uninstalling %s", skillName)
 	fmt.Printf("  This will:\n")
-	fmt.Printf("    • Delete %s (including orders database and assets)\n", targetDir)
-	fmt.Printf("    • Restore your workspace files from the most recent backup\n")
-	fmt.Printf("    • Clear agents.defaults.skills config\n")
-	fmt.Printf("    • Archive all conversation sessions\n\n")
+	fmt.Printf("    • Delete %s (including database and assets)\n", targetDir)
+	fmt.Printf("    • Remove '%s' from the skill allowlist\n\n", skillName)
 	fmt.Print("  Continue? [y/N]: ")
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
@@ -283,28 +269,10 @@ func CmdUninstall(skillName string) {
 		return
 	}
 
-	workspaceDir := ResolveWorkspaceDir()
+	// Update allowlist — if this is the last skill, also restores workspace.
+	RemoveFromWorkspace(skillsDir, skillName)
 
-	// Restore workspace MD files from the backup dir written at install time.
-	if err := RestoreWorkspaceFromBackup(workspaceDir); err != nil {
-		ui.Warn("Could not restore workspace from backup: %v", err)
-	}
-
-	// Clear the skill allowlist so the agent goes back to unrestricted mode.
-	if err := ClearSkillsAllowlist(); err != nil {
-		ui.Warn("Could not clear skill allowlist: %v", err)
-		ui.Info("Run manually: openclaw config unset agents.defaults.skills")
-	} else {
-		ui.Ok("Cleared agents.defaults.skills")
-	}
-
-	// Reset sessions so stale conversation history doesn't confuse the next
-	// install or plain-assistant usage.
-	if err := resetAgentSessions(workspaceDir); err != nil {
-		ui.Warn("Could not reset sessions: %v", err)
-	}
-
-	// Finally, remove the skill directory itself.
+	// Remove the skill directory itself.
 	if err := os.RemoveAll(targetDir); err != nil {
 		ui.Fatal("Could not remove skill directory: %v", err)
 	}
@@ -363,7 +331,7 @@ func CmdPackage(skillName string) {
 		}
 	}
 
-	if err := os.MkdirAll("dist", 0755); err != nil {
+	if err := os.MkdirAll("dist", 0o755); err != nil {
 		ui.Fatal("Failed to create dist directory: %v", err)
 	}
 	outputPath := filepath.Join("dist", skillName+".tar.gz")
@@ -519,7 +487,7 @@ func installGogCLI() (string, error) {
 
 	// Determine install directory per platform.
 	installDir := installBinDir()
-	if err := os.MkdirAll(installDir, 0755); err != nil {
+	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		return "", fmt.Errorf("create install dir %s: %w", installDir, err)
 	}
 
@@ -530,7 +498,7 @@ func installGogCLI() (string, error) {
 	}
 
 	// Try direct write first, fall back to sudo on Unix.
-	if err := os.WriteFile(destPath, data, 0755); err != nil {
+	if err := os.WriteFile(destPath, data, 0o755); err != nil {
 		if goos != "windows" {
 			ui.Info("Need sudo to install to %s", installDir)
 			cmd := exec.Command("sudo", "cp", extractedBin, destPath)
@@ -625,7 +593,7 @@ func installBinDir() string {
 		return filepath.Join(home, "AppData", "Local", "clawkit", "bin")
 	}
 	// Unix: prefer /usr/local/bin if writable, else ~/.local/bin
-	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+	if f, err := os.OpenFile("/usr/local/bin/.clawkit-test", os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 		f.Close()
 		os.Remove("/usr/local/bin/.clawkit-test")
 		return "/usr/local/bin"

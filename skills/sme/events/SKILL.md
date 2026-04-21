@@ -35,34 +35,89 @@ Mỗi type co san: prep_tasks (5 items), day_of_tasks, post_tasks, survey_prompt
 
 ---
 
-## FLOW 1 — Create event
+## FLOW 1 — Create event (BIAS TO ACTION — khong phong van user)
 
-User noi "tao workshop AI day 15/5 o Rockship office":
+User noi "tao workshop AI day 15/5 o Rockship office cho 25 nguoi":
 
-1. Hoi thieu info:
-   - Type (workshop / webinar / etc.)
-   - Title
-   - Date + time (ICT)
-   - Venue (neu offline) or platform (neu online)
-   - Capacity (target attendee)
-2. Neu user chua biet type, present 6 options + best_for → user chon.
-3. Neu info chua du (vd "tao event AI" khong co date):
-   - **Recommend prep roadmap truoc** dua tren type dang nhac:
-     - Workshop → "Can chot noi dung 2 tuan truoc, venue 1 tuan, marketing 10 ngay..."
-     - Webinar → "Confirm speaker 2 tuan, slides 1 tuan, reminder email..."
-   - KHONG bat buoc create event ngay; hoi them info.
-4. Khi du info:
-   ```bash
-   sme-cli event create \
-     --type workshop --title "AI Workshop" \
-     --date "2026-05-15T14:00:00+07:00" \
-     --venue "Rockship office" --capacity 25
-   ```
-5. Response: event_id + recommend chay `prep-checklist <event_id>` de xem task cu the.
+### Required fields de CREATE
 
-**Neu user co Luma link**: pass `--luma-url https://lu.ma/...`. Bot luu vao
-external_urls.luma_url cua event. (Phase 2 se co `sme-cli event sync-luma`
-de auto-fetch attendees vao COSMO.)
+Chi co 5 field can de tao event:
+
+| Field | Default neu user khong noi | Ask 1 cau neu thieu |
+|---|---|---|
+| type | — | Hoi: "Day la workshop, webinar, networking, demo-day, conference-booth, hay internal-kickoff?" |
+| title | Suy ra tu context (vd "AI Workshop") | Khong hoi — tu dat |
+| date | Parse tu context | Hoi: "Ngay may anh muon? Neu da chot 15/5, cho em gio bat dau (vd 14:00)?" |
+| venue | Neu user noi "online" → "Online"; khong thi hoi | Hoi: "O dau anh? Office / external venue / online?" |
+| capacity | Khong noi → khong set (optional) | Khong hoi — co the bo qua |
+
+### NICE-TO-HAVE — **TUYET DOI KHONG hoi o tao event**
+
+De user update sau qua edit command hoac manually. Cac field nay KHONG
+lam skill blocked:
+- Chu de / agenda chi tiet
+- Budget
+- External speakers
+- Equipment / AV requirements cu the
+- Marketing channels
+- Guest list VIP
+- Dress code / dietary
+
+**Ly do**: user da bao "workshop AI" la du context. Chi tiet agenda
+lam sau. Hoi 5 cau cung 1 luc = cv consultant, KHONG phai BD coach.
+
+### Flow cu the
+
+**Case 1 — User cho du 4-5 required**:
+
+User: "tao workshop AI ngay 15/5 o Rockship office cho 25 nguoi"
+
+Bot suy ra:
+- Type: workshop (explicit)
+- Title: "AI Workshop" (tu "workshop AI")
+- Venue: "Rockship office" (explicit)
+- Capacity: 25 (explicit)
+- Date: 15/5 → **missing time + year**. Default year = nam hien tai (2026).
+  Default time = 14:00 ICT (office hours, after lunch).
+
+**Bot chi hoi 1 cau**:
+> "OK, em ghi nhan workshop AI ngay 15/5/2026 o Rockship office cho 25
+> nguoi. Gio bat dau em de mac dinh 2 gio chieu, anh co can doi khac
+> khong? (vd 9am, 1pm, 3pm...)"
+
+Sau khi user confirm hoac doi gio, chay CREATE ngay.
+
+**Case 2 — User abstract ("toi dinh to chuc webinar AI thang sau")**:
+
+KHONG bat buoc create. Dung flow 4 (prep roadmap theo type).
+
+**Case 3 — User thieu date**:
+
+> "Workshop AI nghe hay! Anh dinh to chuc ngay bao nhieu? Em can biet
+> de lap prep checklist. Neu chua chot duoc, em co the gui roadmap
+> chuan bi theo timeline 4 tuan / 3 tuan / 2 tuan / 1 tuan truoc."
+
+### CREATE command
+
+```bash
+sme-cli event create \
+  --type workshop --title "AI Workshop" \
+  --date "2026-05-15T14:00:00+07:00" \
+  --venue "Rockship office" --capacity 25
+```
+
+Response → bot noi (plain Vietnamese):
+> ✅ Xong! Em tao event "AI Workshop" 15/5/2026 2pm o Rockship office
+> cho 25 nguoi. Muon em show checklist chuan bi khong? (5 task can lam
+> 1-2 ngay truoc day)
+
+Khi user OK → chay `sme-cli event prep-checklist <event_id>` va render.
+
+### Luma link (optional)
+
+Neu user co link Luma: pass `--luma-url https://lu.ma/...`. Bot luu vao
+external_urls.luma_url. (Phase 2 se co `sme-cli event sync-luma` de
+auto-fetch attendees vao CRM.)
 
 ---
 

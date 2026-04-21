@@ -23,7 +23,6 @@ type SkillEntry struct {
 	Description string `json:"description"`
 	Version     string `json:"version"`
 	Installed   bool   `json:"installed"`
-	OAuthDone   bool   `json:"oauth_done"`
 }
 
 // RegistrySkill is a minimal struct for deserialising registry.json.
@@ -438,10 +437,6 @@ func buildEntries(registryData []byte) ([]SkillEntry, error) {
 			Description: info.Description,
 			Version:     info.Version,
 			Installed:   true,
-		}
-		skillDir := filepath.Join(skillsDir, name)
-		if cfg, err := config.LoadSkillConfig(skillDir); err == nil {
-			entry.OAuthDone = cfg.OAuthDone
 		}
 		entries = append(entries, entry)
 	}

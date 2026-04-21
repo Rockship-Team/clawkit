@@ -21,17 +21,11 @@ import (
 	"github.com/rockship-co/clawkit/skills"
 )
 
-// embeddedRegistry is the registry.json shipped with the binary. It is the
-// authoritative source when running the globally-installed CLI (no network,
-// no local file). Remote and local sources are treated as optional overrides.
-//
 //go:embed registry.json
 var embeddedRegistry []byte
 
 const (
-	// remoteRegistryURL is the GitHub raw content URL for registry.json.
-	remoteRegistryURL = "https://raw.githubusercontent.com/Rockship-Team/clawkit/main/registry.json"
-	// remoteSkillBaseURL is the GitHub Releases URL for skill packages.
+	remoteRegistryURL  = "https://raw.githubusercontent.com/Rockship-Team/clawkit/main/registry.json"
 	remoteSkillBaseURL = "https://github.com/Rockship-Team/clawkit/releases/latest/download"
 )
 
@@ -44,16 +38,20 @@ type SetupPrompt struct {
 
 // SkillInfo describes a skill in the registry.
 type SkillInfo struct {
-	Version      string        `json:"version"`
-	Description  string        `json:"description"`
-	RequiresBins []string      `json:"requires_bins,omitempty"`
-	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
-	Exclude []string      `json:"exclude,omitempty"`
+	Name           string        `json:"name,omitempty"`
+	Description    string        `json:"description"`
+	OS             []string      `json:"os,omitempty"`
+	RequiresBins   []string      `json:"requires_bins,omitempty"`
+	RequiresConfig []string      `json:"requires_config,omitempty"`
+	Version        string        `json:"version"`
+	SetupPrompts   []SetupPrompt `json:"setup_prompts,omitempty"`
+	Exclude        []string      `json:"exclude,omitempty"`
 }
 
 // Registry holds the available skills manifest.
 type Registry struct {
 	Skills map[string]SkillInfo `json:"skills"`
+	Groups map[string][]string  `json:"groups,omitempty"`
 }
 
 // GetSkill returns a skill by name from the registry.
@@ -62,33 +60,44 @@ func (r *Registry) GetSkill(name string) (*SkillInfo, bool) {
 	return &skill, ok
 }
 
-// loadRegistry returns the skills registry. The embedded registry.json is
-// always available and is the authoritative baseline. Remote and local
-// registry files are treated as optional overrides: remote lets us ship
-// registry updates without rebuilding the binary, and local supports dev
-// mode (skills added to ./skills but not yet pushed).
+// GroupMembers returns the member skill names for a group, or nil if name
+// is not a known group.
+func (r *Registry) GroupMembers(name string) []string {
+	return r.Groups[name]
+}
+
 func loadRegistry() (*Registry, error) {
 	var reg Registry
 	if err := json.Unmarshal(embeddedRegistry, &reg); err != nil {
 		return nil, fmt.Errorf("invalid embedded registry.json: %w", err)
 	}
 
-	// Optional remote override — ignored on failure (private repo, offline, etc.).
 	if data, err := fetchRemoteRegistry(); err == nil {
 		var remote Registry
 		if json.Unmarshal(data, &remote) == nil {
 			for name, skill := range remote.Skills {
 				reg.Skills[name] = skill
 			}
+			for name, members := range remote.Groups {
+				if reg.Groups == nil {
+					reg.Groups = make(map[string][]string)
+				}
+				reg.Groups[name] = members
+			}
 		}
 	}
 
-	// Optional local override (dev mode: ./registry.json or config dir).
 	if data, err := loadLocalRegistry(); err == nil {
 		var local Registry
 		if json.Unmarshal(data, &local) == nil {
 			for name, skill := range local.Skills {
 				reg.Skills[name] = skill
+			}
+			for name, members := range local.Groups {
+				if reg.Groups == nil {
+					reg.Groups = make(map[string][]string)
+				}
+				reg.Groups[name] = members
 			}
 		}
 	}
@@ -125,38 +134,41 @@ func loadLocalRegistry() ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// downloadSkill installs a skill's files into targetDir. Sources in priority
-// order:
-//  1. Local ./skills/<name> (dev mode: developer is in the repo).
-//  2. Embedded skills shipped with the binary (works for npm-installed CLI).
-//  3. Remote GitHub Releases (.tar.gz) — useful when the repo is public and
-//     we want to ship registry/skill updates without rebuilding the binary.
 // alwaysExclude are files that should never be copied to the installed skill
 // directory. config.json is the dev-time metadata (the installer writes its
 // own clawkit.json instead).
-// Note: bootstrap-files/ IS copied (needed by LockdownWorkspace) then
-// deleted by CmdInstall after lockdown applies them to workspace root.
 var alwaysExclude = []string{"config.json"}
 
+// downloadSkill installs a skill's files into targetDir. Sources in priority
+// order: local → embedded → remote .tar.gz.
 func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) error {
 	patterns := append([]string{}, alwaysExclude...)
 	if len(excludePatterns) > 0 {
 		patterns = append(patterns, excludePatterns[0]...)
 	}
 
-	// 1. Local (dev mode) — search skills/<name> or skills/<vertical>/<name>.
 	if localDir := findLocalSkill(skillName); localDir != "" {
 		ui.Info("Installing from local source")
-		return copyDir(localDir, targetDir, patterns)
+		if err := copyDir(localDir, targetDir, patterns); err != nil {
+			return err
+		}
+		if err := mergeGroupDir(localDir, targetDir, "_cli"); err != nil {
+			return err
+		}
+		return mergeGroupDir(localDir, targetDir, "_bootstrap")
 	}
 
-	// 2. Embedded — search the skill across verticals in the embedded FS.
 	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
 		ui.Info("Installing from embedded skills")
-		return copyEmbeddedSkill(embeddedPath, targetDir, patterns)
+		if err := copyEmbeddedSkill(embeddedPath, targetDir, patterns); err != nil {
+			return err
+		}
+		if err := mergeEmbeddedGroupDir(embeddedPath, targetDir, "_cli"); err != nil {
+			return err
+		}
+		return mergeEmbeddedGroupDir(embeddedPath, targetDir, "_bootstrap")
 	}
 
-	// 3. Remote GitHub Release.
 	dlURL := fmt.Sprintf("%s/%s.tar.gz", remoteSkillBaseURL, skillName)
 	ui.Info("Downloading %s...", skillName)
 
@@ -194,14 +206,12 @@ func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) err
 }
 
 // findLocalSkill searches for a skill in the local skills/ directory.
-// Supports both flat (skills/<name>) and grouped (skills/<vertical>/<name>) layouts.
+// Supports both flat (skills/<name>) and grouped (skills/<group>/<name>) layouts.
 func findLocalSkill(skillName string) string {
-	// Try flat first.
 	flat := filepath.Join("skills", skillName)
 	if _, err := os.Stat(filepath.Join(flat, "SKILL.md")); err == nil {
 		return flat
 	}
-	// Search one level of nesting: skills/<vertical>/<name>.
 	entries, err := os.ReadDir("skills")
 	if err != nil {
 		return ""
@@ -218,13 +228,38 @@ func findLocalSkill(skillName string) string {
 	return ""
 }
 
+// mergeGroupDir copies the parent group's <name>/ directory into targetDir
+// if the skill lives under a group (skills/<group>/<skill>) and the skill
+// itself has no <name>/. Existing <name>/ in the skill takes precedence.
+// Used for _cli/ and _bootstrap/.
+func mergeGroupDir(localDir, targetDir, name string) error {
+	if _, err := os.Stat(filepath.Join(targetDir, name)); err == nil {
+		return nil
+	}
+	parent := filepath.Join(filepath.Dir(localDir), name)
+	if info, err := os.Stat(parent); err != nil || !info.IsDir() {
+		return nil
+	}
+	return copyDir(parent, filepath.Join(targetDir, name), nil)
+}
+
+// mergeEmbeddedGroupDir is the embedded-FS equivalent of mergeGroupDir.
+func mergeEmbeddedGroupDir(embeddedPath, targetDir, name string) error {
+	if _, err := os.Stat(filepath.Join(targetDir, name)); err == nil {
+		return nil
+	}
+	parent := filepath.Dir(embeddedPath)
+	if parent == "." || parent == "" {
+		return nil
+	}
+	src := parent + "/" + name
+	if _, err := fs.Stat(skills.FS, src); err != nil {
+		return nil
+	}
+	return copyEmbeddedDir(src, filepath.Join(targetDir, name))
+}
+
 // shouldExclude checks whether relPath matches any of the exclude patterns.
-// Supports tsconfig-style globs:
-//   - "cmd"           — matches the directory (and everything inside it)
-//   - "*.tmp"         — matches *.tmp at any depth
-//   - "**/*.test.go"  — matches *.test.go at any depth
-//   - "**/test"       — matches any path component named "test"
-//   - "tools/crawl"   — matches that exact prefix
 func shouldExclude(relPath string, patterns []string) bool {
 	if len(patterns) == 0 {
 		return false
@@ -238,12 +273,9 @@ func shouldExclude(relPath string, patterns []string) bool {
 	return false
 }
 
-// matchGlob matches a path against a single glob pattern with ** support.
 func matchGlob(path, pattern string) bool {
-	// Handle ** prefix: "**/<rest>" matches <rest> against any suffix.
 	if strings.HasPrefix(pattern, "**/") {
 		suffix := pattern[3:]
-		// Match against the full path and every sub-path.
 		parts := strings.Split(path, "/")
 		for i := range parts {
 			sub := strings.Join(parts[i:], "/")
@@ -254,8 +286,6 @@ func matchGlob(path, pattern string) bool {
 		return false
 	}
 
-	// No slash in pattern → treat as component-level match (like tsconfig).
-	// "cmd" matches "cmd", "cmd/main.go"; "*.tmp" matches "foo.tmp", "a/b/foo.tmp".
 	if !strings.Contains(pattern, "/") {
 		parts := strings.Split(path, "/")
 		for _, part := range parts {
@@ -266,27 +296,20 @@ func matchGlob(path, pattern string) bool {
 		return false
 	}
 
-	// Pattern has slashes → match against full path.
 	if matched, _ := filepath.Match(pattern, path); matched {
 		return true
 	}
-	// Also try as prefix so "tools/crawl" matches "tools/crawl/main.go".
 	if strings.HasPrefix(path, pattern+"/") {
 		return true
 	}
 	return false
 }
 
-// copyEmbeddedSkill walks skills.FS under skillName and writes every file
-// into targetDir, preserving the relative directory structure.
-// Files/dirs matching excludePatterns are skipped.
 func copyEmbeddedSkill(skillName, targetDir string, excludePatterns []string) error {
 	return fs.WalkDir(skills.FS, skillName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// path is like "finance-tracker/SKILL.md". Strip the skillName prefix
-		// so files land directly in targetDir.
 		relPath, err := filepath.Rel(skillName, path)
 		if err != nil {
 			return err
@@ -315,8 +338,30 @@ func copyEmbeddedSkill(skillName, targetDir string, excludePatterns []string) er
 	})
 }
 
-// copyDir recursively copies a directory tree.
-// Files/dirs matching excludePatterns are skipped.
+func copyEmbeddedDir(src, targetDir string) error {
+	return fs.WalkDir(skills.FS, src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dest := filepath.Join(targetDir, relPath)
+		if d.IsDir() {
+			return os.MkdirAll(dest, 0755)
+		}
+		data, err := skills.FS.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(dest, data, 0644)
+	})
+}
+
 func copyDir(src, dst string, excludePatterns []string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

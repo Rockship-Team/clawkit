@@ -17,14 +17,11 @@ import (
 // distinguish it from the source "config.json" used during development.
 const ConfigFileName = "clawkit.json"
 
-// SkillConfig is the per-skill config saved after installation.
+// SkillConfig is the per-skill clawkit.json saved after installation.
+// Stores the installed version and the user_inputs collected from
+// setup_prompts so updates can re-bake placeholders into the new SKILL.md.
 type SkillConfig struct {
-	SkillName  string            `json:"skill_name"`
-	Profile    string            `json:"profile,omitempty"`
 	Version    string            `json:"version"`
-	DBTarget   string            `json:"db_target,omitempty"`
-	OAuthDone  bool              `json:"oauth_done"`
-	Tokens     map[string]string `json:"tokens,omitempty"`
 	UserInputs map[string]string `json:"user_inputs,omitempty"`
 }
 
@@ -48,7 +45,6 @@ func SaveSkillConfig(skillDir string, cfg *SkillConfig) error {
 	return os.WriteFile(filepath.Join(skillDir, ConfigFileName), data, 0600)
 }
 
-// homeDir returns the user's home directory or panics if unavailable.
 func homeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -58,8 +54,6 @@ func homeDir() string {
 	return home
 }
 
-// detectOpenClaw checks if OpenClaw is installed.
-// Returns binary path and skills directory.
 func detectOpenClaw() (binary string, skillsDir string) {
 	skillsDir = filepath.Join(homeDir(), ".openclaw", "workspace", "skills")
 
@@ -71,7 +65,6 @@ func detectOpenClaw() (binary string, skillsDir string) {
 		return binary, skillsDir
 	}
 
-	// Binary found but no skills dir yet — still valid.
 	if binary != "" {
 		return binary, skillsDir
 	}
@@ -89,10 +82,6 @@ func GetSkillsDir() string {
 }
 
 // GetConfigDir returns the clawkit config directory.
-// On macOS: ~/Library/Application Support/clawkit
-// On Linux: ~/.config/clawkit
-// On Windows: %APPDATA%\clawkit
-// Falls back to ~/.clawkit if os.UserConfigDir fails.
 func GetConfigDir() string {
 	if cfgDir, err := os.UserConfigDir(); err == nil {
 		return filepath.Join(cfgDir, "clawkit")

@@ -42,14 +42,23 @@ jobs:
       - name: Build all platform binaries
         run: make dist
 
-      - name: Package skills
+      - name: Package release artifacts
         run: |
-          ./dist/clawkit-linux-amd64 package shop-hoa
+          mkdir -p release
+          V=${{ steps.version.outputs.VERSION }}
+          for target in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64; do
+            cp dist/clawkit-$target clawkit
+            chmod +x clawkit
+            tar -czf release/clawkit-v$V-$target.tar.gz clawkit
+            rm clawkit
+          done
+          cp dist/clawkit-windows-amd64.exe release/clawkit-v$V-windows-amd64.exe
+          ls -lh release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: release/*
           generate_release_notes: true
           make_latest: true
 

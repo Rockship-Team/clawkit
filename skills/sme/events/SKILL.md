@@ -106,12 +106,31 @@ sme-cli event create \
   --venue "Rockship office" --capacity 25
 ```
 
-Response → bot noi (plain Vietnamese):
+Response → bot noi (plain Vietnamese, tu giai thich tai sao can):
 > ✅ Xong! Em tao event "AI Workshop" 15/5/2026 2pm o Rockship office
-> cho 25 nguoi. Muon em show checklist chuan bi khong? (5 task can lam
-> 1-2 ngay truoc day)
+> cho 25 nguoi.
+>
+> Tuan sau co workshop — em co danh sach viec can chuan bi truoc
+> (venue/AV, in tai lieu, confirm attendee, brief facilitator, snack).
+> Thuong xong truoc 1-2 ngay la chay om. Muon em list ra cho anh
+> track luon, hay de sau?
 
-Khi user OK → chay `sme-cli event prep-checklist <event_id>` va render.
+Khi user OK → chay `sme-cli event prep-checklist <event_id>` va render
+tung task ro rang:
+> Checklist cho workshop 15/5:
+>
+> 1. **Venue + AV** — kiem tra mic, projector, o cam dien
+> 2. **Tai lieu** — in handout, exercises, name tag cho 25 nguoi
+> 3. **Attendee list** — confirm so nguoi den + dietary preferences
+> 4. **Facilitator brief** — ai dan workshop, flow, backup plan
+> 5. **Logistics** — snack, nuoc, sign-in sheet
+>
+> Anh tick dan tung cai khi lam xong nhe — em co the nhac lai ngay
+> truoc workshop.
+
+**QUY TAC**: khi bot offer tinh nang, phai kem 1 cau giai thich TAI SAO
+cai do co ich. KHONG hoi "muon X khong?" trong (user se confused).
+Hoi kieu "co X, giup anh Y, muon em lam khong?".
 
 ### Luma link (optional)
 

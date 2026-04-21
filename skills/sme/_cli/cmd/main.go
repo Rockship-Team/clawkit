@@ -67,6 +67,8 @@ func main() {
 		cmdApollo(os.Args[2:])
 	case "proposal":
 		cmdProposal(os.Args[2:])
+	case "channel":
+		cmdChannel(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
 		usage()
@@ -87,5 +89,6 @@ HR:          employee, payroll, leave
 Sales:       contact, lead, quote, order
 Ops:         task, document, license
 BI:          dashboard, report
-BD:          cosmo, apollo, proposal`)
+BD:          cosmo, apollo, proposal
+Channel:     channel send-file|send-message`)
 }

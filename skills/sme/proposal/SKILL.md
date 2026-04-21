@@ -168,15 +168,22 @@ Present outline cho user review:
 3. **Gui PDF file vao chat** — KHONG share link, KHONG paste URL:
 
    ```bash
-   # Attach truc tiep qua channel cua openclaw (telegram auto-handle)
-   openclaw channel send --file "/tmp/proposal_<company>_<ts>.pdf"
+   sme-cli channel send-file "<pdf_path tu step 2>" \
+     --chat-id "<chat_id tu conversation metadata>" \
+     --caption "Proposal cho {Company}"
    ```
 
-   Neu `openclaw channel send` khong co trong environment, agent su dung
-   built-in file-attach mechanism cua runtime (vd Telegram `sendDocument`
-   auto khi reply co field `file_path` tren Canvas / message metadata).
-   KHONG cat paste file path vao chat lam link — chat runtime phai attach
-   file binary, khong phai text path.
+   CLI tu doc Telegram bot token tu `~/.openclaw/openclaw.json`, POST
+   `sendDocument` qua Bot API. Output: `{"ok": true, "message_id": N,
+   "file_name": ..., "file_size": N}`.
+
+   `chat_id` lay tu `Conversation info` trong context cua message hien tai
+   (field `conversation_label` co dang `... id:-5147613854`, hoac
+   `sender_id` neu la DM). KHONG hardcode chat_id.
+
+   Sau khi CLI return ok, noi voi user 1 cau ngan: "Em gui proposal cho
+   anh roi nha — file .pdf trong chat." KHONG paste pdf_path (user khong
+   can biet /tmp/...).
 
 4. **Log interaction**: `sme-cli cosmo log-interaction <contact_id> "proposal_sent"`
 

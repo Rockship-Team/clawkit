@@ -61,12 +61,6 @@ type Connections struct {
 	Apollo struct {
 		APIKey string `json:"api_key"`
 	} `json:"apollo"`
-
-	// Manus AI (PDF proposal generation)
-	Manus struct {
-		APIKey  string `json:"api_key"`
-		BaseURL string `json:"base_url"`
-	} `json:"manus"`
 }
 
 func loadConnections() Connections {
@@ -176,10 +170,6 @@ func cmdConfig(args []string) {
 			c.COSMO.AuthEmail = val
 		case "apollo.api_key":
 			c.Apollo.APIKey = val
-		case "manus.api_key":
-			c.Manus.APIKey = val
-		case "manus.base_url":
-			c.Manus.BaseURL = val
 		default:
 			errOut("unknown config key: " + key)
 		}
@@ -214,10 +204,6 @@ func cmdConfig(args []string) {
 			val = c.COSMO.AuthEmail
 		case "apollo.api_key":
 			val = c.Apollo.APIKey
-		case "manus.api_key":
-			val = c.Manus.APIKey
-		case "manus.base_url":
-			val = c.Manus.BaseURL
 		default:
 			errOut("unknown config key: " + key)
 		}

@@ -45,7 +45,7 @@ sme-cli cosmo api POST  /v2/contacts/batch '{"contacts":[{"id":"UUID","business_
 # Text file: moi dong "Ten — email" (em-dash hoac hyphen)
 sme-cli cosmo import-txt contacts.txt --source event --list-id <UUID>
 
-# CSV (Luma / OpenClaw event export)
+# CSV (Luma / event platform export)
 sme-cli cosmo import-csv attendees.csv --format luma --list-id <UUID>
 
 # CSV bat ki — header mapping tu dong (name/email/phone/company/job_title

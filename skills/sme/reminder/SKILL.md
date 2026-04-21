@@ -148,7 +148,7 @@ Vi du **BAD** (mechanical, KHONG lam):
 KHONG gia vo personalize. Gom nhom va hoi user chon huong di:
 
 Vi du GOOD (tieng Viet, khong tech jargon):
-> 🎫 **192 người từ sự kiện OpenClaw Setup Day** — chưa follow-up
+> 🎫 **192 người từ sự kiện Setup Day** — chưa follow-up
 >
 > Em chỉ có email + tên của mọi người, chưa biết họ làm công ty gì, vai
 > trò gì. 2 cách mình có thể làm:
@@ -171,7 +171,7 @@ Vi du GOOD (tieng Viet, khong tech jargon):
 
 Vi du **BAD** (quat ngon tech, KHONG lam):
 > 🎫 Event attendee (192)
-> - Test User — idle 1d, từ source openclaw_event
+> - Test User — idle 1d, từ source event
 >   → Send email 50-125 words, 1 CTA, playbook event_invite, segment <50/batch
 
 **Neu contact `enrichment_status = "partial"`:**
@@ -294,7 +294,7 @@ Anh muon em action cai nao?
 
 Khong can config gi ngoai `sme-cli config set cosmo.*` (da setup khi
 install sme-crm skill). Cron jobs setup rieng trong
-`~/.openclaw/cron/jobs.json` (xem `install-cron` neu co CLI helper).
+`~/.openclaw/cron/jobs.json` (runtime-level — xem `install-cron` helper).
 
 ## Phan biet voi sme-crm
 

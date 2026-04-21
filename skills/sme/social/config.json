@@ -9,8 +9,8 @@
     },
     {
       "key": "brand_name",
-      "label": "Ten brand chinh (default: OpenClaw)",
-      "placeholder": "OpenClaw"
+      "label": "Ten brand chinh (hien tren hashtag va voice guide)",
+      "placeholder": "YourBrand"
     }
   ],
   "exclude": ["cmd", "*.go", "go.mod", "go.sum"]

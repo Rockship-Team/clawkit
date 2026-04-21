@@ -1,10 +1,10 @@
 ---
-name: openclaw-social
-description: "Social media content planner cho OpenClaw — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san, validate cadence, draft → approve → schedule workflow."
+name: sme-social
+description: "Social media content planner cho SME — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san theo brand, validate cadence, draft → approve → schedule workflow."
 metadata: { "openclaw": { "emoji": "📣" } }
 ---
 
-# OpenClaw Social — Facebook Content Planner
+# SME Social — Facebook Content Planner
 
 ## How to Talk
 

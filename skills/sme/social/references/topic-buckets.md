@@ -1,4 +1,4 @@
-# Topic Buckets — OpenClaw Social
+# Topic Buckets — {brand_name} Social
 
 7 bucket co san. Pick 1 bucket/post. Khong tu che bucket moi — neu topic khong fit, chon bucket gan nhat.
 
@@ -11,10 +11,10 @@
 - "Cong cu em xai de test skill truoc khi ship"
 
 ## 2. `innovation` — Innovation Drops
-**Muc tieu:** update Claude/OpenClaw/ecosystem features moi.
+**Muc tieu:** update Claude / {brand_name} / ecosystem features moi.
 **Vi du angle:**
 - "Claude 4.7 co 1M context roi, day la 3 use case minh dang test"
-- "OpenClaw vua ra tinh nang X — demo 30s"
+- "{brand_name} vua ra tinh nang X — demo 30s"
 - "Subagent spec moi cua Anthropic — tai sao doi game"
 - "MCP server moi cua Canva — minh tich hop vao bot nhu the nao"
 

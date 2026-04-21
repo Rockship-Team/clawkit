@@ -1,4 +1,4 @@
-# Brand Voice — OpenClaw / Rockship
+# Brand Voice — {brand_name} / Rockship
 
 ## Tone
 
@@ -32,7 +32,7 @@
 > Anh em co ai dang thu huong nay chua?
 
 ### ❌ Bad (buzzword, no specific)
-> 🚀🚀🚀 OpenClaw is revolutionizing the way businesses leverage AI agents! Our cutting-edge technology empowers teams to unlock unprecedented productivity. #AI #Innovation #FutureOfWork #GameChanger
+> 🚀🚀🚀 {brand_name} is revolutionizing the way businesses leverage AI agents! Our cutting-edge technology empowers teams to unlock unprecedented productivity. #AI #Innovation #FutureOfWork #GameChanger
 
 ### ✅ Good (data-driven, honest)
 > Setup prompt caching tuan truoc. Truoc khi cache: $180/ngay. Sau: $24/ngay. 87% giam cost. Ly do don gian: 90% context la bootstrap files khong doi. Ai dang dung Claude Code chua enable cache thi thu ngay — 5 phut config.

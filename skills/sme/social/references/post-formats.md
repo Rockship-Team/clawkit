@@ -70,7 +70,7 @@
 
 **Example hooks:**
 - "Gioi thieu skill `finance-tracker` cua anh X — 50 install tuan dau"
-- "Team RockShip vua ship `openclaw-social` — day la demo 30s"
+- "Team RockShip vua ship `sme-social` — day la demo 30s"
 
 ## Pick Format by Bucket
 
@@ -87,6 +87,6 @@
 ## Hashtag Rules
 
 - Toi da 3 hashtag/post.
-- Always include `#OpenClaw` hoac `#Rockship` (brand).
+- Always include `#{brand_name}` hoac `#Rockship` (brand).
 - 1 tech tag: `#ClaudeAI`, `#AIAgent`, `#Prompt`, `#MCP`, etc.
 - 1 context tag neu relevant: `#BuildInPublic`, `#ViSME`, `#Startup`.

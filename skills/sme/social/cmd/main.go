@@ -1,4 +1,4 @@
-// ocs-cli — OpenClaw Social CLI
+// ocs-cli — {brand_name} Social CLI
 // Deterministic helpers for Facebook content planning skill.
 package main
 
@@ -51,7 +51,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `ocs-cli — OpenClaw Social (Facebook content planner)
+	fmt.Fprintln(os.Stderr, `ocs-cli — {brand_name} Social (Facebook content planner)
 
   buckets              List 7 topic buckets (JSON, hardcoded — never invent new buckets)
   voice                Brand voice guide (tone, do/don't)
@@ -232,7 +232,7 @@ func cmdVoice() {
 		"dont":          voiceDont,
 		"length_words":  "80-200 words (longer if code or case study)",
 		"emoji_per_post": "max 2-3, placed at section landmarks (🎯 💡 🛠️)",
-		"hashtag_rules": "max 3 hashtags, always include #OpenClaw or #Rockship, plus 1 tech tag",
+		"hashtag_rules": "max 3 hashtags, always include #{brand_name} or #Rockship, plus 1 tech tag",
 	})
 }
 

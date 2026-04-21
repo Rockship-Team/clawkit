@@ -182,28 +182,6 @@
         "*.go"
       ]
     },
-    "openclaw-social": {
-      "version": "1.0.0",
-      "description": "Social media content planner cho OpenClaw — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san, validate cadence, draft → approve → schedule workflow.",
-      "setup_prompts": [
-        {
-          "key": "poster_name",
-          "label": "Ten nguoi post (hien tren draft, vd 'Khoa')",
-          "placeholder": "Khoa"
-        },
-        {
-          "key": "brand_name",
-          "label": "Ten brand chinh (default: OpenClaw)",
-          "placeholder": "OpenClaw"
-        }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go",
-        "go.mod",
-        "go.sum"
-      ]
-    },
     "ops": {
       "version": "1.0.0",
       "description": "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet.",
@@ -258,6 +236,28 @@
       "exclude": [
         "cmd",
         "*.go"
+      ]
+    },
+    "social": {
+      "version": "1.0.0",
+      "description": "Social media content planner cho SME — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san theo brand, validate cadence, draft → approve → schedule workflow.",
+      "setup_prompts": [
+        {
+          "key": "poster_name",
+          "label": "Ten nguoi post (hien tren draft, vd 'Khoa')",
+          "placeholder": "Khoa"
+        },
+        {
+          "key": "brand_name",
+          "label": "Ten brand chinh (hien tren hashtag va voice guide)",
+          "placeholder": "YourBrand"
+        }
+      ],
+      "exclude": [
+        "cmd",
+        "*.go",
+        "go.mod",
+        "go.sum"
       ]
     },
     "sol-finance-coach": {

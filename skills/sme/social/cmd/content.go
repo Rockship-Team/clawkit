@@ -27,10 +27,10 @@ var proposedBuckets = []Bucket{
 	{
 		Name:        "innovation",
 		DisplayName: "Innovation Drops",
-		Goal:        "Update Claude/OpenClaw/ecosystem features moi.",
+		Goal:        "Update Claude / {brand_name} / ecosystem features moi.",
 		ExampleAngles: []string{
 			"Claude 4.7 co 1M context — 3 use case dang test",
-			"OpenClaw feature X — demo 30s",
+			"{brand_name} feature X — demo 30s",
 			"Subagent spec moi cua Anthropic",
 			"MCP server moi — tich hop the nao",
 		},

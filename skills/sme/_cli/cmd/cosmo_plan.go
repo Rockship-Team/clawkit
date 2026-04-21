@@ -58,8 +58,37 @@ func cosmoDailyPlan(args []string) {
 		"total_contacts": total,
 		"loaded":         len(contacts),
 		"cells":          cells,
+		"events":         ctx.eventSummary(),
 		"warnings":       warnings,
 	})
+}
+
+// eventSummary builds the events section rendered alongside contact cells.
+// These are NOT contact-indexed cells, so they live at the top level of
+// the plan response rather than inside `cells`.
+func (ctx planContext) eventSummary() map[string]interface{} {
+	summary := map[string]interface{}{}
+	if len(ctx.UpcomingEvents) > 0 {
+		summary["upcoming"] = map[string]interface{}{
+			"id":    "EVENT_PREP_SOON",
+			"emoji": "📅",
+			"label": "Event sap toi — can chuan bi",
+			"why":   "Event trong 1-3 ngay toi. Prep checklist co san cho moi type (workshop/webinar/networking/demo-day/booth/kickoff)",
+			"items": ctx.UpcomingEvents,
+			"action_hint": "Chay `sme-cli event prep-checklist <event_id>` de xem tung task can lam 1-2 ngay truoc event. Cross-check venue / AV / attendee list / facilitator brief.",
+		}
+	}
+	if len(ctx.RecentEvents) > 0 {
+		summary["recent"] = map[string]interface{}{
+			"id":    "EVENT_POSTMORTEM",
+			"emoji": "📮",
+			"label": "Event vua xong — chua post-action",
+			"why":   "Event ket thuc 0-3 ngay truoc, thank-you email chua gui. Reply rate cho event follow-up cao nhat trong 24h dau.",
+			"items": ctx.RecentEvents,
+			"action_hint": "Chay `sme-cli event post-actions <event_id>` de thay danh sach task (thank-you email, feedback survey, log attendees vao CRM) + playbook phu hop cho sme-campaign.",
+		}
+	}
+	return summary
 }
 
 type planWarning struct {
@@ -255,15 +284,77 @@ type planCampaignRef struct {
 
 // planContext carries aggregate lookups reused across many contacts.
 type planContext struct {
-	MeetingsTomorrow map[string][]planMeeting    // contact_id → meetings scheduled tomorrow (ICT)
+	MeetingsTomorrow map[string][]planMeeting     // contact_id → meetings scheduled tomorrow (ICT)
 	ActiveCampaigns  map[string][]planCampaignRef // contact_id → live campaigns with sent>0 and reply_rate=0
+	UpcomingEvents   []planEvent                  // events starting in 1-3 days
+	RecentEvents     []planEvent                  // events ended within last 3 days, no thank-you yet
+}
+
+type planEvent struct {
+	ID            string `json:"id"`
+	Title         string `json:"title"`
+	Date          string `json:"date"`
+	TypeID        string `json:"event_type_id,omitempty"`
+	DaysUntil     int    `json:"days_until,omitempty"`
+	DaysSinceEnd  int    `json:"days_since_end,omitempty"`
+	ThankYouSent  bool   `json:"thank_you_sent"`
 }
 
 func fetchPlanContext() planContext {
+	upcoming, recent := fetchEventSlices()
 	return planContext{
 		MeetingsTomorrow: fetchTomorrowMeetings(),
 		ActiveCampaigns:  fetchNoReplyCampaignMemberships(),
+		UpcomingEvents:   upcoming,
+		RecentEvents:     recent,
 	}
+}
+
+// fetchEventSlices queries /v1/events once and buckets into upcoming
+// (1-3 days away) and recent (ended 0-3 days ago without thank-you).
+func fetchEventSlices() (upcoming, recent []planEvent) {
+	raw, code, err := cosmoRequest("GET", "/v1/events", nil)
+	if err != nil || code >= 400 {
+		return
+	}
+	var resp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return
+	}
+	now := vnNow()
+	for _, e := range resp.Data {
+		dateStr, _ := e["date"].(string)
+		t, err := time.Parse(time.RFC3339, dateStr)
+		if err != nil {
+			continue
+		}
+		tICT := t.In(now.Location())
+		md, _ := e["metadata"].(map[string]interface{})
+		typeID, _ := md["event_type_id"].(string)
+		thankYouSent := false
+		if v, ok := md["thank_you_sent"].(bool); ok {
+			thankYouSent = v
+		}
+		ev := planEvent{
+			ID:           stringField(e, "id"),
+			Title:        stringField(e, "title"),
+			Date:         dateStr,
+			TypeID:       typeID,
+			ThankYouSent: thankYouSent,
+		}
+		diff := tICT.Sub(now).Hours() / 24
+		switch {
+		case diff > 0 && diff <= 3:
+			ev.DaysUntil = int(diff) + 1
+			upcoming = append(upcoming, ev)
+		case diff < 0 && -diff <= 3 && !thankYouSent:
+			ev.DaysSinceEnd = int(-diff)
+			recent = append(recent, ev)
+		}
+	}
+	return
 }
 
 func fetchTomorrowMeetings() map[string][]planMeeting {

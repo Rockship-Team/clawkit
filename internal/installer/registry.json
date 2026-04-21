@@ -127,6 +127,17 @@
         "*.go"
       ]
     },
+    "events": {
+      "version": "1.0.0",
+      "description": "Event lifecycle manager cho SME — tao event (workshop/webinar/networking/demo-day/conference-booth/internal-kickoff), checklist prep 1-2 ngay truoc, post-event actions (thank-you email qua sme-campaign + feedback survey). Hoat dong voi COSMO /v1/events + Luma (Phase 2) + Google Forms (Phase 3). Trigger khi user noi 'tao event', 'chuan bi event', 'sau event', 'danh gia event'.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "finance-tracker": {
       "version": "2.0.0",
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh."

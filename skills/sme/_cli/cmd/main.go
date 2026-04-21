@@ -67,6 +67,8 @@ func main() {
 		cmdApollo(os.Args[2:])
 	case "proposal":
 		cmdProposal(os.Args[2:])
+	case "event":
+		cmdEvent(os.Args[2:])
 	case "channel":
 		cmdChannel(os.Args[2:])
 	default:
@@ -89,6 +91,6 @@ HR:          employee, payroll, leave
 Sales:       contact, lead, quote, order
 Ops:         task, document, license
 BI:          dashboard, report
-BD:          cosmo, apollo, proposal
+BD:          cosmo, apollo, proposal, event
 Channel:     channel send-file|send-message`)
 }

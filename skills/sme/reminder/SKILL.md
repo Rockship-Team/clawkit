@@ -71,63 +71,91 @@ Output JSON co field quan trong:
 - `cells[].contacts[]`: name, company, job_title, industry, email, idle_days,
   last_outcome, next_step, interactions_30d, ...
 
-### 🔑 QUY TAC VANG: personalize theo context co san
+### 🔑 QUY TAC VANG #1: PLAIN LANGUAGE — KHONG dung thuat ngu tech
 
-Khi render moi contact, ap dung nguyen tac sau:
+User khong phai ky su. Khi render output, CAM dung cac tu sau. Cot trai
+la cam, cot phai la thay the de hieu:
+
+| CAM dung | Noi the nay |
+|---|---|
+| "enrich" / "enrichment" | "bo sung thong tin LinkedIn + cong ty" / "tra cuu them info" |
+| "batch" / "batch campaign" | "gui cung luc cho N nguoi" / "gui hang loat" |
+| "playbook event_invite" | "kich ban email cam on sau su kien" |
+| "segment <50/batch" | "chia nhom duoi 50 nguoi moi lan gui" |
+| "corporate email" | "email cong ty (khong phai @gmail/@outlook ca nhan)" |
+| "pipeline cell" / "cell" | "nhom contact" / "danh sach" |
+| "cadence 3-7-7" | "gui lai sau 3 ngay, roi 7 ngay, roi 7 ngay" |
+| "CTA" | "cau hoi moi call" / "de xuat cu the" |
+| "signal-led" | "nhac ten chuyen cu the anh da noi / da lam" |
+| "apollo" | "dich vu tra cuu doanh nghiep" |
+| "idle 4d" | "da 4 ngay chua lien he" |
+| "stage=PROPOSAL" / "QUALIFIED" | "dang doi phan hoi proposal" / "da quan tam, can gap" |
+| "allowlist" / "config" / "API key" | (khong noi — do la chi tiet ky thuat) |
+| "tier" / "playbook" / "stage" | dung ngon ngu thong thuong |
+| "COSMO CRM" | "he thong khach hang" / "data cua anh" |
+| "Manus" / "chromium" / ten tool | (khong noi) |
+
+Neu anh thay minh dinh viet 1 tu tech, STOP va dich sang tieng Viet
+de hieu. User khong can biet "em dung tool gi", ho can biet "em se lam gi".
+
+### 🔑 QUY TAC VANG #2: personalize theo context co san
+
+Khi render moi contact:
 
 **Neu contact `enrichment_status = "enriched"` (co company + role):**
 
 Compose action **CU THE** dua tren:
 - Company + job_title (vd "anh Tuan — CTO Acme")
 - Last_outcome / next_step neu co (vd "proposal gui 4 ngay, chua reply")
-- Industry / pain point (infer tu company)
+- Industry (infer tu company)
 
-Vi du GOOD:
-> 🔥 **Acme (Tran Minh, CTO)** — proposal 4 ngay, chua reply
-> → Gui email 60w nhac nhe: "Minh, case Acme-sized thay 60% reduction
-> tickets trong 3 thang — muon call 15p thao luan timeline?"
+Vi du GOOD (tieng Viet friendly):
+> 🔥 **Acme — Trần Minh (CTO)** — gửi đề xuất 4 ngày rồi chưa thấy trả lời
+> → Em gợi ý gửi 1 email nhắc nhẹ: "Anh Minh, có khách hàng cỡ Acme
+> (80 người) giảm 60% ticket support trong 3 tháng sau khi triển khai.
+> Mình gọi 15 phút tuần này nhé?"
 
 Vi du **BAD** (mechanical, KHONG lam):
 > 🔥 **Tran Minh** — idle 4d
-> → Gui email 50-125 words signal-led + 1 CTA call 15p
+> → Send email 50-125 words signal-led + 1 CTA call 15p
 
 **Neu contact `enrichment_status = "needed"` (chi email + ten):**
 
-KHONG gia vo personalize. **HAY GOM NHOM VA SUGGEST ENRICH:**
+KHONG gia vo personalize. Gom nhom va hoi user chon huong di:
 
-Vi du GOOD:
-> 🎫 **Event attendees — 192 contacts (183 chua enrich)**
+Vi du GOOD (tieng Viet, khong tech jargon):
+> 🎫 **192 người từ sự kiện OpenClaw Setup Day** — chưa follow-up
 >
-> Hau het la luma import chi co email + ten, thieu company/role nen em
-> khong co context personalize. **2 path:**
+> Em chỉ có email + tên của mọi người, chưa biết họ làm công ty gì, vai
+> trò gì. 2 cách mình có thể làm:
 >
-> **(a) Enrich truoc (recommend):**
-> Chay `sme-cli cosmo api POST /v1/contacts/UUID/enrich` cho top 20
-> contact co email corporate (ignore @gmail/@outlook). Sau 5 phut co
-> LinkedIn + company info → chay lai "nhac toi" de thay action cu the.
+> **🔍 Cách 1 — Tra cứu thêm thông tin trước (em recommend)**
+> Em lấy info LinkedIn + công ty của 20-30 người đầu từ dịch vụ tra cứu
+> doanh nghiệp. Mất ~5 phút. Xong em tư vấn cụ thể ai nên gọi, ai gửi
+> email, nội dung như thế nào — kiểu "anh Minh làm CTO Acme, team 80
+> người, nên gửi email nhắc case study A".
 >
-> **(b) Treat luon la batch campaign (no personalize):**
-> Tao 1 campaign playbook `event_invite` cho toan bo 192 contact:
-> - Subject: "Thank you for joining OpenClaw Setup Day" hoac similar
-> - Body template 50-125w: thank + 1 takeaway (Rockship capability) + 1
->   CTA (20-min discovery call)
-> - Send within 24h of event = optimal
+> **📧 Cách 2 — Gửi 1 email cám ơn chung cho cả 192 người**
+> Nội dung: cảm ơn đã tham gia sự kiện + gợi ý book 1 cuộc gọi 20 phút
+> thảo luận nhu cầu. Không nhắc tên cụ thể từng người. Gửi ngay trong
+> 24h sau sự kiện là thời điểm tốt nhất. Em chia nhóm <50 người mỗi lần
+> gửi để tránh bị Gmail chặn.
 >
-> Anh pick (a) hay (b)?
+> ⚠️ Lưu ý: Gmail Rockship đang mất đăng nhập, phải fix trước khi gửi.
+>
+> Anh muốn em làm Cách 1 hay Cách 2?
 
-Vi du **BAD** (lap template, KHONG lam):
+Vi du **BAD** (quat ngon tech, KHONG lam):
 > 🎫 Event attendee (192)
-> - Test User — idle 1d, từ event openclaw
->   → Gửi email 50-125 words: cảm ơn + 1 takeaway + CTA call 20 phút
-> - Quan Nguyen — idle 1d
->   → Nhắc booths/session cụ thể, gửi trong 24h sau event
+> - Test User — idle 1d, từ source openclaw_event
+>   → Send email 50-125 words, 1 CTA, playbook event_invite, segment <50/batch
 
 **Neu contact `enrichment_status = "partial"`:**
 
-Dung nhung gi co, noi ro gi thieu.
-Vi du: "Acme (company biet) — role chua xac dinh → doan CTO/founder vi
-Acme la tech startup → if right, gui email email...; neu sai role, enrich
-truoc."
+Dung nhung gi co, noi ro gi thieu — bang tieng Viet.
+Vi du: "Acme — biet công ty nhưng chưa rõ vị trí của người này → đoán
+là CTO hoặc founder vì Acme là startup công nghệ. Nếu đúng, gửi email
+nhắc case study. Nếu không chắc, tra cứu thêm trước."
 
 ### Format chat (overall shape)
 

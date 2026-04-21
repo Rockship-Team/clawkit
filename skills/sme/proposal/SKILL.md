@@ -25,6 +25,8 @@ metadata: { "openclaw": { "emoji": "📝" } }
 - 1-3 cau max. Nhu texting teammate.
 - NEVER dump IDs, UUIDs, chi tiet ky thuat.
 - NEVER dung bullet-point "Chi tiet:", "Campaign ID:", "Trang thai:".
+- NEVER noi "saved to /tmp/...", "outline saved at...", "file written to..." — user khong can biet file path.
+- NEVER narrate "Step 1 ✅ Step 2 ✅ Step 3..." — chay silent, chi report ket qua cuoi.
 - Good: "Done, proposal sent qua email cho Son roi nha — co link PDF attach."
 - Bad: "Campaign ID dfbf48b7... Status: active..."
 
@@ -47,13 +49,13 @@ Khi user noi "proposal", "quote", "bao gia", "viet de xuat" — theo dung 7 buoc
 
 ## Step 1 — Collect Client Input
 
-1. **Check CRM truoc**: `../_cli/scripts/cosmo_search_contact.sh "company"`
+1. **Check CRM truoc**: `sme-cli cosmo search-contact "company"`
    - Co → dung data tu CRM (profile, `ai_insights`, past interactions)
    - Khong co → hoi user hoac research Apollo
 2. Neu user cung cap meeting notes, extract: requirements, budget, timeline, decision maker, pain points, missing info.
 3. Neu user chi cung cap ten cong ty, research Apollo:
-   - `../_cli/scripts/apollo_search_company.sh "company"`
-   - `../_cli/scripts/apollo_search_people.sh "company" "c_suite,vp"`
+   - `sme-cli apollo search-company "company"`
+   - `sme-cli apollo search-people "company" "c_suite,vp"`
 
 ## Step 2 — Normalize Information
 
@@ -62,7 +64,7 @@ Standardize tat ca data vao unified client brief.
 
 Output: company profile, requirements, commercial terms, signals, missing info. Flag anything incomplete.
 
-Neu client chua co trong CRM, tao contact: `../_cli/scripts/cosmo_create_contact.sh`
+Neu client chua co trong CRM, tao contact: `sme-cli cosmo create-contact`
 
 ## Step 3 — Determine Proposal Type
 
@@ -90,17 +92,25 @@ Load template tu `assets/templates/`:
 | saas             | [saas.md](assets/templates/saas.md)                         |
 | managed-services | [managed-services.md](assets/templates/managed-services.md) |
 
-Cung load:
+**Pricing — BAT BUOC goi CLI TRUOC KHI viet outline:**
 
-- [pricing-packages.md](references/pricing-packages.md) — **always** doc truoc khi dinh gia
-- [pricing-strategy.md](references/pricing-strategy.md) — match packages voi needs
+```bash
+sme-cli proposal pricing
+```
+
+> **HARD RULE:** Step 5 KHONG duoc bat dau truoc khi chay command nay va doc xong output.
+> Viet outline voi gia tu tri nho = hallucinate, user se catch + bat sua, mat thoi gian.
+> Command return JSON 3 tier hardcoded (Starter 15M / Pro 400M / Enterprise 800M) + add-ons.
+> **TUYET DOI KHONG** doc `references/pricing-packages.md`. **CHI** dung so tu CLI output.
+
+Optional read: [pricing-strategy.md](references/pricing-strategy.md) — guidance match package voi client.
 
 ## Step 5 — Research & Generate Outline
 
 1. **Research**: WebSearch de tim 2-3 reference outlines tu proposals thuc te cung industry.
 2. **Read**: [outline-guide.md](references/outline-guide.md)
 3. **Generate outline**: Fill template sections voi client-specific content. Moi section phai map toi mot client need.
-4. **Pricing**: Match requirements voi packages tu `pricing-packages.md`, sinh 3 options (Recommended / Value / Premium).
+4. **Pricing**: Chay `sme-cli proposal pricing`, chon TIER phu hop (Starter / Pro / Enterprise). Neu budget > Enterprise → recommend Enterprise + list add-ons tu output. **CAM bia tier moi.**
 
 ## Step 6 — User Review
 
@@ -113,17 +123,34 @@ Present outline cho user review:
 
 ## Step 7 — Generate & Export PDF via Manus AI (CHI SAU KHI user approve)
 
-> **MANDATORY PRE-CHECK:**
+> **MANDATORY PRE-CHECK — failing any of these = hard failure:**
 >
-> 1. User da approve Step 6 chua? Neu KHONG → STOP. Quay lai Step 6.
-> 2. **BANNED tools** — NEU dinh dung BAT KY cong cu nay, STOP IMMEDIATELY:
+> 1. **APPROVAL GATE (HARD STOP).** Tin nhan CUOI CUNG cua user phai chua mot
+>    trong cac tu khoa: `approve`, `duyet`, `OK`, `duoc roi`, `dong y`, `gen di`,
+>    `chot`. Khong duoc suy dien — neu thieu tu khoa → **STOP, quay lai Step 6**
+>    va present outline + hoi "Em chot luon nhe?". Vi pham = burn API credits ko ly do.
+> 2. **NO AUTO-RETRY.** Neu `sme-cli manus generate-proposal` tra error
+>    (timeout / rate limit / 5xx / "busy") → **STOP NGAY**. Bao user:
+>    "Manus dang loi, anh thu lai sau 2-3 phut nha." **TUYET DOI khong**
+>    chay lai cau lenh — moi lan retry = task moi tren Manus = double credits.
+> 2b. **HANDLE status=pending.** Neu output co `"status": "pending"` va `"task_id"`,
+>    NGHIA LA task van dang chay tren Manus (chua xong). **TUYET DOI khong**
+>    chay lai `manus generate-proposal`. Phai check bang:
+>    `sme-cli manus get-task <task_id>` (tu output truoc).
+>    Luu y: lenh nay da tu poll/wait san, co the dung vai phut moi tra ket qua.
+>    Cu de lenh chay xong; neu sau khi doi ma van chua xong / Manus van busy thi
+>    bao user "Manus busy, em check lai sau 5 phut" — KHONG tao task moi.
+> 3. **PRESERVE FULL URL.** Khi share PDF link, paste **RAW URL day du**
+>    (bao gom `?Policy=...&Key-Pair-Id=...&Signature=...`). KHONG dung markdown
+>    `[text](url)` — Telegram parser cat query string. Cat query = link 403 broken.
+> 4. **BANNED tools** — NEU dinh dung BAT KY cong cu nay, STOP IMMEDIATELY:
 >    Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, generate_pdf.sh,
 >    wkhtmltopdf, Prince, Chrome headless, BAT KY HTML-to-PDF converter nao khac.
 >    Dung banned tool = **hard failure**.
 
 **How to generate PDF — ONE command only:**
 
-1. Save approved outline vao temp file:
+1. Save approved outline vao temp file (TUYET DOI khong noi "saved at /tmp/..." voi user — im lang, day la thao tac noi bo):
 
    ```bash
    cat > /tmp/proposal_outline.md << 'OUTLINE_EOF'
@@ -131,11 +158,18 @@ Present outline cho user review:
    OUTLINE_EOF
    ```
 
-2. Chay script:
+2. Chay **deterministic wrapper** (validate tier + contact_id + outline size, roi goi Manus):
 
    ```bash
-   ../_cli/scripts/manus_generate_proposal.sh "{Company_Name}" /tmp/proposal_outline.md
+   sme-cli proposal generate "{Company_Name}" "{contact_id}" "{Starter|Pro|Enterprise}" /tmp/proposal_outline.md
    ```
+
+   - `contact_id` = UUID tu `sme-cli cosmo search-contact` (Step 1). CLI reject neu khong phai UUID.
+   - Tier phai la 1 trong 3 ten chinh xac. CLI reject "Enterprise Plus", "Pro Plus", "Custom", v.v.
+   - Outline phai > 200 bytes. CLI reject placeholder.
+   - Neu CLI return `"ok": false` → **STOP**, bao user roi dung (khong retry).
+
+   Fallback cu (khong khuyen): `sme-cli manus generate-proposal "{Company}" /tmp/proposal_outline.md` — bo qua guards.
 
    Script tu dong:
    - Load `.env` (API keys)
@@ -149,12 +183,12 @@ Present outline cho user review:
 
 3. Share PDF URL tu script output voi user.
 
-4. **Log interaction**: `../_cli/scripts/cosmo_log_interaction.sh <contact_id> "proposal_sent"`
+4. **Log interaction**: `sme-cli cosmo log-interaction <contact_id> "proposal_sent"`
 
 5. **PATCH business_stage**:
 
    ```bash
-   ../_cli/scripts/cosmo_api.sh PATCH /v1/contacts/UUID '{"business_stage":"PROPOSAL"}'
+   sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"PROPOSAL"}'
    ```
 
 ## References
@@ -199,7 +233,8 @@ Sau khi update: confirm file nao da thay + summarize diff.
 
 ## Rules
 
-- **PDF = Manus AI ONLY.** `../_cli/scripts/manus_generate_proposal.sh "{Company}" /tmp/outline.md`. ONE command. NO EXCEPTIONS.
+- **PDF = Manus AI ONLY.** Preferred: `sme-cli proposal generate "{Company}" "{contact_id}" "{tier}" /tmp/outline.md` (validates tier + CRM + outline). Fallback: `sme-cli manus generate-proposal "{Company}" /tmp/outline.md` (no guards). ONE command. NO EXCEPTIONS.
+- **Pricing = `sme-cli proposal pricing` ONLY.** Khong tu viet gia tu tri nho. Khong doc markdown pricing.
 - **BANNED:** Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, wkhtmltopdf, Prince, Chrome headless. Using ANY banned tool = skill failure.
 - **Do NOT** build Manus JSON / prompt tay. Script handles everything.
 - **Step 6** = present outline → WAIT for approval.

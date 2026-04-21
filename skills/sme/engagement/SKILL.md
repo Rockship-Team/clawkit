@@ -28,7 +28,7 @@ Skill nay thay the phan "daily actions" va "follow-up" trong skill sales cu. No 
 
 ```bash
 # Trigger async generation
-../_cli/scripts/cosmo_api.sh POST /v1/daily-actions/generate '{"language":"vi"}'
+sme-cli cosmo api POST /v1/daily-actions/generate '{"language":"vi"}'
 ```
 
 Tra ve ngay lap tuc voi `generation_id` va `generation_status: "started" | "already_in_progress" | "cached"`.
@@ -36,7 +36,7 @@ Tra ve ngay lap tuc voi `generation_id` va `generation_status: "started" | "alre
 ### Lay briefing da sinh
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET /v1/daily-actions
+sme-cli cosmo api GET /v1/daily-actions
 ```
 
 Response chua:
@@ -52,7 +52,7 @@ Moi action co 1 UUID. User noi "mark sent", "skip", "snooze":
 
 ```bash
 # Mark sent (cho outreach / followup) — luu ghi nhan, advance contact state
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{
   "transition":"mark_sent",
   "content":"<noi dung email da gui>",
   "channel":"LinkedIn",
@@ -60,17 +60,17 @@ Moi action co 1 UUID. User noi "mark sent", "skip", "snooze":
 }'
 
 # Skip (khong gui, co the ghi ly do)
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{"transition":"skip","skip_reason":"timing khong phu hop"}'
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{"transition":"skip","skip_reason":"timing khong phu hop"}'
 
 # Snooze (tam hoan) — mac dinh 5pm cung ngay, timezone user
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{"transition":"snooze"}'
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{"transition":"snooze_custom","snooze_until":"2026-04-20T09:00:00+07:00"}'
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{"transition":"snooze"}'
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{"transition":"snooze_custom","snooze_until":"2026-04-20T09:00:00+07:00"}'
 
 # Mark completed (cho meeting_prep / enrichment)
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{"transition":"mark_completed"}'
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{"transition":"mark_completed"}'
 
 # Reopen (undo skip / snooze)
-../_cli/scripts/cosmo_api.sh PATCH /v1/daily-actions/ACTION_UUID '{"transition":"reopen"}'
+sme-cli cosmo api PATCH /v1/daily-actions/ACTION_UUID '{"transition":"reopen"}'
 ```
 
 `feedback_action` values: `used_draft`, `modified_draft`, `wrote_own`, `skipped`.
@@ -92,8 +92,8 @@ Cho meeting trong vong 48h. Moi action co `meeting_data.briefing`:
 Khi user noi "preview meeting voi [ten]":
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET /v1/outreach/meetings?contact_id=UUID
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/generate-meeting-brief
+sme-cli cosmo api GET /v1/outreach/meetings?contact_id=UUID
+sme-cli cosmo api POST /v1/contacts/UUID/generate-meeting-brief
 ```
 
 ### 2. Replied (💬 cần action gap)
@@ -108,8 +108,8 @@ Contact da reply. `respond_data` co:
 Khi user paste reply tu prospect:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v3/campaigns/UUID/generate-reply '{"email_id":"UUID"}'
-../_cli/scripts/cosmo_api.sh POST /v1/outreach/UUID/update '{"conversation_state":"REPLIED"}'
+sme-cli cosmo api POST /v3/campaigns/UUID/generate-reply '{"email_id":"UUID"}'
+sme-cli cosmo api POST /v1/outreach/UUID/update '{"conversation_state":"REPLIED"}'
 ```
 
 **Recommended action theo intent:**
@@ -135,7 +135,7 @@ Cadence mac dinh:
 - Follow-up 2: Day 9-12 (final)
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/outreach/draft '{"contact_id":"UUID","language":"vi"}'
+sme-cli cosmo api POST /v1/outreach/draft '{"contact_id":"UUID","language":"vi"}'
 ```
 
 ### 4. New Outreach (🚀)
@@ -150,7 +150,7 @@ Contact `COLD`, da approved, san sang gui message dau tien. `outreach_data`:
 Suggest outreach targets:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/outreach/suggest '{"type":"mixed","limit":15}'
+sme-cli cosmo api POST /v1/outreach/suggest '{"type":"mixed","limit":15}'
 ```
 
 ### 5. Enrichment (⚠️)
@@ -173,31 +173,31 @@ COLD → NO_REPLY → FOLLOW_UP_1 → FOLLOW_UP_2 → DROPPED
 Xem state hien tai cua 1 outreach:
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET /v1/outreach/UUID/state
+sme-cli cosmo api GET /v1/outreach/UUID/state
 ```
 
 Cap nhat state:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/outreach/UUID/update '{"conversation_state":"REPLIED"}'
+sme-cli cosmo api POST /v1/outreach/UUID/update '{"conversation_state":"REPLIED"}'
 ```
 
 ## MEETINGS
 
 ```bash
 # Tao meeting
-../_cli/scripts/cosmo_api.sh POST /v1/outreach/meetings '{
+sme-cli cosmo api POST /v1/outreach/meetings '{
   "contact_id":"UUID",
   "title":"Discovery call",
   "time":"2026-04-20T14:00:00+07:00"
 }'
 
 # Xem meetings
-../_cli/scripts/cosmo_api.sh GET /v1/outreach/meetings
-../_cli/scripts/cosmo_api.sh GET /v1/outreach/meetings?contact_id=UUID
+sme-cli cosmo api GET /v1/outreach/meetings
+sme-cli cosmo api GET /v1/outreach/meetings?contact_id=UUID
 
 # Update (after meeting)
-../_cli/scripts/cosmo_api.sh PATCH /v1/outreach/meetings/UUID '{"status":"completed","outcome":"positive"}'
+sme-cli cosmo api PATCH /v1/outreach/meetings/UUID '{"status":"completed","outcome":"positive"}'
 ```
 
 Sau khi meeting xong va positive:
@@ -210,7 +210,7 @@ Sau khi meeting xong va positive:
 Log thu cong (call, note) — daily-actions da auto log cho email/meeting:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/interactions '{
+sme-cli cosmo api POST /v1/interactions '{
   "contact_id":"UUID",
   "type":"call",
   "channel":"Phone",
@@ -222,7 +222,7 @@ Log thu cong (call, note) — daily-actions da auto log cho email/meeting:
 ## DAILY SUMMARY (cuoi ngay)
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET /v1/daily-actions/summary
+sme-cli cosmo api GET /v1/daily-actions/summary
 ```
 
 Response: `agent_summary` narrative + progress + breakdown (outreach_sent, followups_sent, replies_handled, meetings_prepped, contacts_enriched) + carry_over[].
@@ -232,7 +232,7 @@ Response: `agent_summary` narrative + progress + breakdown (outreach_sent, follo
 Khi user hoi "reply rate tuan nay bao nhieu":
 
 ```bash
-../_cli/scripts/cosmo_api.sh GET /v1/outreach/feedback/stats
+sme-cli cosmo api GET /v1/outreach/feedback/stats
 ```
 
 ## LIEN KET

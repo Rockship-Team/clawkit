@@ -45,8 +45,8 @@ Khi user viet blog post hoac landing page:
 Khi noi dung can ca nhan hoa cho segment cu the:
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/segmentations         # list segments
-../_cli/scripts/cosmo_api.sh POST /v2/contacts/search '{"filter":{"segmentation_id":"UUID"}}'
+sme-cli cosmo api POST /v1/segmentations         # list segments
+sme-cli cosmo api POST /v2/contacts/search '{"filter":{"segmentation_id":"UUID"}}'
 ```
 
 Sau khi co thong tin segment (industry, pain point), dung lam context cho content.

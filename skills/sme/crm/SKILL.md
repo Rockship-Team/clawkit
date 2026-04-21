@@ -18,26 +18,26 @@ Ban la tro ly CRM. Ban la **nguon du lieu chung** cho cac skill khac (campaign, 
 
 ## CONG CU
 
-Tat ca cac lenh su dung `../_cli/scripts/cosmo_api.sh` (da cai khi install skill).
+Tat ca cac lenh su dung `sme-cli cosmo api` (da cai khi install skill).
 
 ### Tim / xem danh ba
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v2/contacts/search '{"query":"Acme","pageSize":10}'
-../_cli/scripts/cosmo_api.sh GET  /v2/contacts/UUID
-../_cli/scripts/cosmo_api.sh GET  /v2/contacts/values   # gia tri co the filter
+sme-cli cosmo api POST /v2/contacts/search '{"query":"Acme","pageSize":10}'
+sme-cli cosmo api GET  /v2/contacts/UUID
+sme-cli cosmo api GET  /v2/contacts/values   # gia tri co the filter
 ```
 
-Hoac dung alias: `../_cli/scripts/cosmo_search_contact.sh "Acme"`.
+Hoac dung alias: `sme-cli cosmo search-contact "Acme"`.
 
 ### Tao / cap nhat
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST  /v1/contacts '{"name":"...","email":"...","company":"..."}'
-../_cli/scripts/cosmo_api.sh POST  /v1/contacts/bulk '[{"name":"A"},{"name":"B"}]'
-../_cli/scripts/cosmo_api.sh PATCH /v1/contacts/UUID '{"business_stage":"QUALIFIED"}'
-../_cli/scripts/cosmo_api.sh POST  /v2/contacts/batch '{"contacts":[{"id":"UUID","business_stage":"LEAD"}]}'
-../_cli/scripts/cosmo_api.sh POST  /v1/contacts/import-csv   # multipart CSV
+sme-cli cosmo api POST  /v1/contacts '{"name":"...","email":"...","company":"..."}'
+sme-cli cosmo api POST  /v1/contacts/bulk '[{"name":"A"},{"name":"B"}]'
+sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"QUALIFIED"}'
+sme-cli cosmo api POST  /v2/contacts/batch '{"contacts":[{"id":"UUID","business_stage":"LEAD"}]}'
+sme-cli cosmo api POST  /v1/contacts/import-csv   # multipart CSV
 ```
 
 ### Enrich & AI insights
@@ -46,31 +46,31 @@ Khi danh ba thieu thong tin hoac can hieu sau hon:
 
 ```bash
 # AI enrich tu cac nguon cong khai (LinkedIn, news, website)
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/enrich
+sme-cli cosmo api POST /v1/contacts/UUID/enrich
 
 # Tinh diem ICP / segment fit
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/calculate-scores
+sme-cli cosmo api POST /v1/contacts/UUID/calculate-scores
 
 # Tinh do manh cua moi quan he
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/relationship-score
+sme-cli cosmo api POST /v1/contacts/UUID/relationship-score
 
 # Tao briefing cho meeting sap toi
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/generate-meeting-brief
+sme-cli cosmo api POST /v1/contacts/UUID/generate-meeting-brief
 
 # Research findings tu URL (LinkedIn, company website)
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/extract-from-url '{"url":"https://linkedin.com/in/..."}'
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/research-findings '{"findings":[...]}'
+sme-cli cosmo api POST /v1/contacts/UUID/extract-from-url '{"url":"https://linkedin.com/in/..."}'
+sme-cli cosmo api POST /v1/contacts/UUID/research-findings '{"findings":[...]}'
 
 # Xac nhan / tu choi mot AI insight (feedback loop)
-../_cli/scripts/cosmo_api.sh POST /v1/contacts/UUID/insights/validate '{"field":"pain_points","index":0,"action":"confirm"}'
+sme-cli cosmo api POST /v1/contacts/UUID/insights/validate '{"field":"pain_points","index":0,"action":"confirm"}'
 ```
 
 Neu CRM chua co khach hang, tim tren Apollo:
 
 ```bash
-../_cli/scripts/apollo_search_company.sh "Acme"
-../_cli/scripts/apollo_search_people.sh  "Acme" "c_suite,vp"
-../_cli/scripts/apollo_enrich_person.sh  "Nguyen Van A" "Acme"
+sme-cli apollo search-company "Acme"
+sme-cli apollo search-people  "Acme" "c_suite,vp"
+sme-cli apollo enrich-person  "Nguyen Van A" "Acme"
 ```
 
 ### Tim kiem ngu nghia
@@ -78,32 +78,32 @@ Neu CRM chua co khach hang, tim tren Apollo:
 Khi user hoi kieu "tim founder SaaS" hoac "ai co interest ve AI":
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/intelligence/vector-search '{"query":"SaaS founders","limit":10}'
-../_cli/scripts/cosmo_api.sh POST /v1/intelligence/hybrid-search '{"query":"interested in AI","limit":10}'
-../_cli/scripts/cosmo_api.sh POST /v1/intelligence/search-interactions '{"query":"pricing discussion","limit":10}'
+sme-cli cosmo api POST /v1/intelligence/vector-search '{"query":"SaaS founders","limit":10}'
+sme-cli cosmo api POST /v1/intelligence/hybrid-search '{"query":"interested in AI","limit":10}'
+sme-cli cosmo api POST /v1/intelligence/search-interactions '{"query":"pricing discussion","limit":10}'
 ```
 
 ### Danh sach & phan nhom
 
 ```bash
 # Contact lists (dung cho campaign entry rules)
-../_cli/scripts/cosmo_api.sh POST /v1/list-contacts/search '{"filter_":{}}'
-../_cli/scripts/cosmo_api.sh POST /v1/list-contacts '{"name":"Q2 Leads","contact_ids":["UUID"]}'
-../_cli/scripts/cosmo_api.sh PATCH /v1/list-contacts/UUID '{"contact_ids":["UUID"]}'
+sme-cli cosmo api POST /v1/list-contacts/search '{"filter_":{}}'
+sme-cli cosmo api POST /v1/list-contacts '{"name":"Q2 Leads","contact_ids":["UUID"]}'
+sme-cli cosmo api PATCH /v1/list-contacts/UUID '{"contact_ids":["UUID"]}'
 
 # Segmentations (ICP groups)
-../_cli/scripts/cosmo_api.sh GET  /v1/segmentations
-../_cli/scripts/cosmo_api.sh POST /v1/segmentations '{"name":"Enterprise","description":"Large companies"}'
+sme-cli cosmo api GET  /v1/segmentations
+sme-cli cosmo api POST /v1/segmentations '{"name":"Enterprise","description":"Large companies"}'
 
 # Tao custom field
-../_cli/scripts/cosmo_api.sh POST /v1/custom-fields '{"name":"Budget","type":"number"}'
+sme-cli cosmo api POST /v1/custom-fields '{"name":"Budget","type":"number"}'
 ```
 
 ### Interactions (log tuong tac)
 
 ```bash
-../_cli/scripts/cosmo_api.sh POST /v1/interactions '{"contact_id":"UUID","type":"call","channel":"Phone","direction":"outbound","content":"Discussed pricing"}'
-../_cli/scripts/cosmo_api.sh GET  /v1/interactions?contact_id=UUID&limit=10
+sme-cli cosmo api POST /v1/interactions '{"contact_id":"UUID","type":"call","channel":"Phone","direction":"outbound","content":"Discussed pricing"}'
+sme-cli cosmo api GET  /v1/interactions?contact_id=UUID&limit=10
 ```
 
 ## BUSINESS_STAGE TAXONOMY

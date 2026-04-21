@@ -49,6 +49,24 @@ type Connections struct {
 		Name    string `json:"name"`
 		TaxCode string `json:"tax_code"`
 	} `json:"org"`
+
+	// COSMO CRM (Rockship)
+	COSMO struct {
+		APIKey    string `json:"api_key"`
+		BaseURL   string `json:"base_url"`
+		AuthEmail string `json:"auth_email"`
+	} `json:"cosmo"`
+
+	// Apollo.io
+	Apollo struct {
+		APIKey string `json:"api_key"`
+	} `json:"apollo"`
+
+	// Manus AI (PDF proposal generation)
+	Manus struct {
+		APIKey  string `json:"api_key"`
+		BaseURL string `json:"base_url"`
+	} `json:"manus"`
 }
 
 func loadConnections() Connections {
@@ -98,6 +116,15 @@ func cmdConfig(args []string) {
 		if c.Email.Password != "" {
 			c.Email.Password = "***"
 		}
+		if c.COSMO.APIKey != "" {
+			c.COSMO.APIKey = "***"
+		}
+		if c.Apollo.APIKey != "" {
+			c.Apollo.APIKey = "***"
+		}
+		if c.Manus.APIKey != "" {
+			c.Manus.APIKey = "***"
+		}
 		okOut(map[string]interface{}{"connections": c, "path": cfgPath()})
 
 	case "set":
@@ -141,6 +168,18 @@ func cmdConfig(args []string) {
 			c.Email.Password = val
 		case "email.from_name":
 			c.Email.FromName = val
+		case "cosmo.api_key":
+			c.COSMO.APIKey = val
+		case "cosmo.base_url":
+			c.COSMO.BaseURL = val
+		case "cosmo.auth_email":
+			c.COSMO.AuthEmail = val
+		case "apollo.api_key":
+			c.Apollo.APIKey = val
+		case "manus.api_key":
+			c.Manus.APIKey = val
+		case "manus.base_url":
+			c.Manus.BaseURL = val
 		default:
 			errOut("unknown config key: " + key)
 		}
@@ -167,6 +206,18 @@ func cmdConfig(args []string) {
 			val = c.LLM.Provider
 		case "llm.model":
 			val = c.LLM.Model
+		case "cosmo.api_key":
+			val = c.COSMO.APIKey
+		case "cosmo.base_url":
+			val = c.COSMO.BaseURL
+		case "cosmo.auth_email":
+			val = c.COSMO.AuthEmail
+		case "apollo.api_key":
+			val = c.Apollo.APIKey
+		case "manus.api_key":
+			val = c.Manus.APIKey
+		case "manus.base_url":
+			val = c.Manus.BaseURL
 		default:
 			errOut("unknown config key: " + key)
 		}

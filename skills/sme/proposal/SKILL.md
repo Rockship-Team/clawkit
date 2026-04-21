@@ -25,6 +25,8 @@ metadata: { "openclaw": { "emoji": "📝" } }
 - 1-3 cau max. Nhu texting teammate.
 - NEVER dump IDs, UUIDs, chi tiet ky thuat.
 - NEVER dung bullet-point "Chi tiet:", "Campaign ID:", "Trang thai:".
+- NEVER noi "saved to /tmp/...", "outline saved at...", "file written to..." — user khong can biet file path.
+- NEVER narrate "Step 1 ✅ Step 2 ✅ Step 3..." — chay silent, chi report ket qua cuoi.
 - Good: "Done, proposal sent qua email cho Son roi nha — co link PDF attach."
 - Bad: "Campaign ID dfbf48b7... Status: active..."
 
@@ -90,17 +92,25 @@ Load template tu `assets/templates/`:
 | saas             | [saas.md](assets/templates/saas.md)                         |
 | managed-services | [managed-services.md](assets/templates/managed-services.md) |
 
-Cung load:
+**Pricing — BAT BUOC goi CLI TRUOC KHI viet outline:**
 
-- [pricing-packages.md](references/pricing-packages.md) — **always** doc truoc khi dinh gia
-- [pricing-strategy.md](references/pricing-strategy.md) — match packages voi needs
+```bash
+sme-cli proposal pricing
+```
+
+> **HARD RULE:** Step 5 KHONG duoc bat dau truoc khi chay command nay va doc xong output.
+> Viet outline voi gia tu tri nho = hallucinate, user se catch + bat sua, mat thoi gian.
+> Command return JSON 3 tier hardcoded (Starter 15M / Pro 400M / Enterprise 800M) + add-ons.
+> **TUYET DOI KHONG** doc `references/pricing-packages.md`. **CHI** dung so tu CLI output.
+
+Optional read: [pricing-strategy.md](references/pricing-strategy.md) — guidance match package voi client.
 
 ## Step 5 — Research & Generate Outline
 
 1. **Research**: WebSearch de tim 2-3 reference outlines tu proposals thuc te cung industry.
 2. **Read**: [outline-guide.md](references/outline-guide.md)
 3. **Generate outline**: Fill template sections voi client-specific content. Moi section phai map toi mot client need.
-4. **Pricing**: Match requirements voi packages tu `pricing-packages.md`, sinh 3 options (Recommended / Value / Premium).
+4. **Pricing**: Chay `sme-cli proposal pricing`, chon TIER phu hop (Starter / Pro / Enterprise). Neu budget > Enterprise → recommend Enterprise + list add-ons tu output. **CAM bia tier moi.**
 
 ## Step 6 — User Review
 
@@ -139,7 +149,7 @@ Present outline cho user review:
 
 **How to generate PDF — ONE command only:**
 
-1. Save approved outline vao temp file:
+1. Save approved outline vao temp file (TUYET DOI khong noi "saved at /tmp/..." voi user — im lang, day la thao tac noi bo):
 
    ```bash
    cat > /tmp/proposal_outline.md << 'OUTLINE_EOF'
@@ -147,11 +157,18 @@ Present outline cho user review:
    OUTLINE_EOF
    ```
 
-2. Chay script:
+2. Chay **deterministic wrapper** (validate tier + contact_id + outline size, roi goi Manus):
 
    ```bash
-   sme-cli manus generate-proposal "{Company_Name}" /tmp/proposal_outline.md
+   sme-cli proposal generate "{Company_Name}" "{contact_id}" "{Starter|Pro|Enterprise}" /tmp/proposal_outline.md
    ```
+
+   - `contact_id` = UUID tu `sme-cli cosmo search-contact` (Step 1). CLI reject neu khong phai UUID.
+   - Tier phai la 1 trong 3 ten chinh xac. CLI reject "Enterprise Plus", "Pro Plus", "Custom", v.v.
+   - Outline phai > 200 bytes. CLI reject placeholder.
+   - Neu CLI return `"ok": false` → **STOP**, bao user roi dung (khong retry).
+
+   Fallback cu (khong khuyen): `sme-cli manus generate-proposal "{Company}" /tmp/proposal_outline.md` — bo qua guards.
 
    Script tu dong:
    - Load `.env` (API keys)
@@ -215,7 +232,8 @@ Sau khi update: confirm file nao da thay + summarize diff.
 
 ## Rules
 
-- **PDF = Manus AI ONLY.** `sme-cli manus generate-proposal "{Company}" /tmp/outline.md`. ONE command. NO EXCEPTIONS.
+- **PDF = Manus AI ONLY.** Preferred: `sme-cli proposal generate "{Company}" "{contact_id}" "{tier}" /tmp/outline.md` (validates tier + CRM + outline). Fallback: `sme-cli manus generate-proposal "{Company}" /tmp/outline.md` (no guards). ONE command. NO EXCEPTIONS.
+- **Pricing = `sme-cli proposal pricing` ONLY.** Khong tu viet gia tu tri nho. Khong doc markdown pricing.
 - **BANNED:** Canva, WeasyPrint, pandoc, md-to-pdf, NotebookLM, Puppeteer, wkhtmltopdf, Prince, Chrome headless. Using ANY banned tool = skill failure.
 - **Do NOT** build Manus JSON / prompt tay. Script handles everything.
 - **Step 6** = present outline → WAIT for approval.

@@ -1,24 +1,45 @@
 ---
 name: sme-reminder
-description: "Daily BD coach cho SME — tu dong goi y 'hom nay/ngay mai nen outreach ai va lam gi' dua tren pipeline cell (research-backed). Kich hoat khi user noi 'nhac toi', 'ai can follow-up', 'daily outreach', 'remind me', hoac khi cron fire morning/evening briefing."
+description: "Daily BD outreach coach — khi user noi 'nhac toi', 'nhac toi contacts', 'ai can follow-up', 'hom nay outreach ai', 'daily outreach', 'remind me' → fetch contacts tu COSMO, categorize vao pipeline cells, suggest action cu the. Ke ca user hoi ngan gon ('nhac toi contacts', 'nhac toi khach hang') van phai trigger. KHONG phai memory search, KHONG phai cron scheduler."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
 
 # SME Reminder — Ai Can Outreach Hom Nay, Va LAM GI
 
-## Trigger
+## Trigger — MATCH RONG, KHONG WAIT CLARIFICATION
 
-Kich hoat skill nay khi user noi bat ky tin nhan nao co y:
-- "nhac toi" / "nhac toi outreach"
-- "ai can follow-up" / "ai dang stuck"
-- "hom nay outreach ai" / "hom nay nen lien he ai" / "gio lam gi"
-- "con contact nao chua lam" / "list stale leads"
-- "remind me" / "who to contact today" / "daily outreach" / "suggest outreach"
+Kich hoat skill nay NGAY khi user message khop bat ky pattern:
 
-Hoac khi cron payload co "DAILY_MORNING_BRIEFING" / "DAILY_EVENING_REVIEW".
+**Tieng Viet:**
+- Chua tu `nhac toi` (bat ky ket hop: "nhac toi", "nhac toi contacts",
+  "nhac toi khach hang", "nhac toi outreach", "nhac toi follow up")
+- Chua `ai can follow up` / `ai dang stuck` / `ai can lien he`
+- Chua `hom nay outreach` / `hom nay nen lien he` / `hom nay lam gi`
+- Chua `con contact nao chua lam` / `stale leads`
+- Chua `outreach ai` / `lien he ai`
 
-**KHONG** kich hoat khi user muon schedule cron moi ("nhac lan 3h" /
-"moi ngay 9h"). Do la task cua scheduler skill khac, khong phai skill nay.
+**English:**
+- Contains `remind me` / `who to contact` / `daily outreach` /
+  `suggest outreach` / `list stale leads` / `outreach reminder`
+
+**Cron:**
+- Payload chua `DAILY_MORNING_BRIEFING` / `DAILY_EVENING_REVIEW`
+
+### QUY TAC BAT BUOC
+
+1. **KHONG DOC MEMORY** khi trigger. User noi "nhac toi contacts" =
+   fetch COSMO live, khong phai grep trong memory/*.md. Memory co the
+   co noi dung cu — KHONG relevant.
+
+2. **KHONG HOI CLARIFY** kieu "ban muon nhac ve gi?". Nguyen tac: user
+   da trigger = fetch live + hien ket qua. Neu user muon narrow xuong
+   (vd "chi nhac proposal hot"), ho se noi them o reply sau.
+
+3. **KHONG trigger skill nay** khi:
+   - User noi "nhac toi <time>" (vd "nhac toi 3h chieu", "nhac toi
+     mai 9am") — do la cron scheduler request, khong phai skill nay.
+   - User hoi ve 1 contact cu the ("contact X la ai?") — do la CRM
+     search, chuyen sang sme-crm skill.
 
 ## LUONG
 

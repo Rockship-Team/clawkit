@@ -225,7 +225,7 @@
     },
     "reminder": {
       "version": "1.0.0",
-      "description": "Daily BD coach cho SME — tu dong goi y 'hom nay/ngay mai nen outreach ai va lam gi' dua tren pipeline cell (research-backed). Kich hoat khi user noi 'nhac toi', 'ai can follow-up', 'daily outreach', 'remind me', hoac khi cron fire morning/evening briefing.",
+      "description": "Daily BD outreach coach — khi user noi 'nhac toi', 'nhac toi contacts', 'ai can follow-up', 'hom nay outreach ai', 'daily outreach', 'remind me' → fetch contacts tu COSMO, categorize vao pipeline cells, suggest action cu the. Ke ca user hoi ngan gon ('nhac toi contacts', 'nhac toi khach hang') van phai trigger. KHONG phai memory search, KHONG phai cron scheduler.",
       "requires_bins": [
         "sme-cli"
       ],

@@ -7,10 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 make build          # Build binary for current platform → ./clawkit
 make test           # Run all tests
+make test-race      # Run tests with the race detector (CGO required; also run in CI)
 make fmt            # go fmt + go vet
 make generate       # Regenerate registry.json from skills/**/{SKILL.md,config.json}
 make check-generate # Verify registry.json is in sync (CI check)
-make dist           # Cross-compile for darwin/linux/windows
+make dist           # Cross-compile for darwin/linux/windows into dist/
+make release-check  # fmt + check-generate + test + dist — dry run of the release workflow
+make bump V=x.y.z   # Sync VERSION across Makefile and npm/package.json
 ```
 
 Run a single test package:
@@ -144,4 +147,8 @@ The Go module uses only the standard library. The YAML frontmatter parser in `cm
 
 ### Release
 
-Releases are triggered by pushing a `v*` tag. The release workflow cross-compiles all platform binaries (`make dist`), packages skills, creates a GitHub Release, and publishes to npm as `@rockship/clawkit`.
+1. `make release-check` — local dry run (fmt + check-generate + test + dist).
+2. `make bump V=x.y.z` — update VERSION in `Makefile` and `npm/package.json` in one shot (prevents drift).
+3. Commit, tag `vx.y.z`, push tag.
+
+Pushing the `v*` tag triggers the release workflow: cross-compile all binaries, upload per-arch `.tar.gz` (macOS/Linux) + `.exe` (Windows) to the GitHub Release, and `npm publish` as `@rockship/clawkit`. The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net, but you should always bump first via `make bump` so the repo and the release agree.

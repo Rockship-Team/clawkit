@@ -196,10 +196,25 @@ clawkit/
 
 ## Release
 
-Push a version tag → GitHub Actions cross-compiles, packages skills,
-creates a Release, publishes to npm:
+1. `make release-check` — local dry run: `fmt + check-generate + test + dist`.
+2. `make bump V=1.2.0` — syncs VERSION in `Makefile` and `npm/package.json`
+   so dev view and published view can't drift.
+3. Commit, tag `v1.2.0`, push tag:
 
 ```bash
+git commit -am 'Release v1.2.0'
 git tag v1.2.0
-git push origin v1.2.0
+git push && git push --tags
 ```
+
+The `v*` tag triggers `.github/workflows/release.yml`, which:
+
+- Re-runs `make check-generate` and `make test` on the tag
+- Runs `make dist` to cross-compile 5 binaries
+- Packages each Unix binary into `clawkit-v<ver>-<os>-<arch>.tar.gz`,
+  keeps Windows as a raw `.exe`, and uploads them to the GitHub Release
+- Copies the raw `dist/` binaries into `npm/binaries/` and
+  `npm publish --access public` as `@rockship/clawkit`
+
+The workflow also `sed`s the Makefile VERSION in-place as a safety net
+in case step 2 was skipped, but the canonical flow is `make bump` first.

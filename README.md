@@ -156,10 +156,13 @@ npm/                    npm package wrapper with platform binaries
 ```bash
 make build          # Build binary → ./clawkit
 make test           # Run tests
+make test-race      # Run tests with the race detector (CGO required)
 make fmt            # go fmt + go vet
 make generate       # Regenerate registry.json from skills/
 make check-generate # CI check: registry.json is in sync
-make dist           # Cross-compile for all platforms
+make dist           # Cross-compile for all platforms into dist/
+make release-check  # Dry-run everything the release workflow will run
+make help           # List every target
 ```
 
 ### Key Constraints
@@ -173,12 +176,16 @@ make dist           # Cross-compile for all platforms
 ## Release
 
 ```bash
+make release-check          # fmt + check-generate + test + dist (dry run)
+make bump V=1.2.0           # sync VERSION in Makefile and npm/package.json
+git commit -am 'Release v1.2.0'
 git tag v1.2.0
-git push origin v1.2.0
+git push && git push --tags
 ```
 
-GitHub Actions cross-compiles, creates a Release, and publishes to npm as
-`@rockship/clawkit`.
+Pushing the `v*` tag triggers GitHub Actions, which cross-compiles all
+binaries, uploads per-arch `.tar.gz` (macOS/Linux) + `.exe` (Windows) to
+the GitHub Release, and publishes `@rockship/clawkit` to npm.
 
 ---
 

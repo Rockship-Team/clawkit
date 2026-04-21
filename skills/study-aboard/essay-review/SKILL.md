@@ -1,7 +1,11 @@
 ---
 name: essay-review
 description: Guide Vietnamese students through college essay brainstorming, outlining, and multi-round feedback. Use this skill whenever a student mentions 'review essay', 'bài luận', 'common app', 'personal statement', 'supplemental essay', 'scholarship essay', 'essay', 'viết luận', 'feedback bài', 'sửa essay', 'học bổng essay', or submits text that looks like an essay draft. Never write the essay for the student — always coach, never ghostwrite.
-metadata: { "openclaw": { "emoji": "✍️" } }
+metadata:
+  openclaw:
+    emoji: ✍️
+    requires:
+      bins: [sa-cli]
 ---
 
 # Essay Review Skill

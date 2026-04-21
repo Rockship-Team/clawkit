@@ -1,7 +1,11 @@
 ---
 name: profile-assessment
 description: Guide Vietnamese students (grades 9-12) through study abroad onboarding and profile assessment. Use this skill whenever a student mentions starting their study abroad journey, wants to evaluate their profile, mentions 'đánh giá hồ sơ', 'bắt đầu', 'muốn du học', 'tư vấn du học', 'profile của em', or when a first-time user sends any message without an existing profile. This is the entry point for the entire platform — invoke it proactively whenever the student context suggests they are new or haven't completed onboarding.
-metadata: { "openclaw": { "emoji": "📊" } }
+metadata:
+  openclaw:
+    emoji: 📊
+    requires:
+      bins: [sa-cli]
 ---
 
 # Profile Assessment Skill

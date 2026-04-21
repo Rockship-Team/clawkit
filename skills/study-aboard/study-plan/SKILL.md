@@ -1,7 +1,11 @@
 ---
 name: study-plan
 description: Create and manage personalized SAT/TOEFL/IELTS study plans for Vietnamese students. Use this skill whenever a student asks about test preparation, mentions 'lộ trình SAT', 'ôn thi', 'kế hoạch học', 'study plan', 'SAT prep', 'TOEFL plan', 'luyện thi', 'điểm SAT', 'thi lại', or shares a practice test score. Also use when a weekly check-in cron job fires for a student with an active study plan. Also invoke when a student asks about GPA improvement, course selection, 'nên chọn môn gì', 'học AP hay IB', 'GPA đang giảm', or wants advice on which courses to take for their target major.
-metadata: { "openclaw": { "emoji": "📚" } }
+metadata:
+  openclaw:
+    emoji: 📚
+    requires:
+      bins: [sa-cli]
 ---
 
 # Study Plan Skill

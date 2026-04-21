@@ -1,7 +1,11 @@
 ---
 name: offer-comparison
 description: Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.
-metadata: { "openclaw": { "emoji": "⚖️" } }
+metadata:
+  openclaw:
+    emoji: ⚖️
+    requires:
+      bins: [sa-cli]
 ---
 
 # Offer Comparison Skill

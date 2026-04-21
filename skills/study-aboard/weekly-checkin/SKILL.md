@@ -1,7 +1,11 @@
 ---
 name: weekly-checkin
 description: Proactively check in with Vietnamese students every week to review overall study abroad progress — SAT/TOEFL scores, essay drafts, EC updates, upcoming deadlines, and next priority actions. Use this skill whenever a weekly cron job fires for a student, or when a student asks for a general progress update, mentions 'tuần này', 'cập nhật tiến độ', 'tổng hợp', 'nhìn lại tuần này', 'mình đang ở đâu rồi', 'còn phải làm gì', or 'check-in'.
-metadata: { "openclaw": { "emoji": "📆" } }
+metadata:
+  openclaw:
+    emoji: 📆
+    requires:
+      bins: [sa-cli]
 ---
 
 # Weekly Check-in Skill

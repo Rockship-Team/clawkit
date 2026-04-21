@@ -142,4 +142,3 @@ func ExtractZip(archivePath, destDir string) error {
 	}
 	return nil
 }
-

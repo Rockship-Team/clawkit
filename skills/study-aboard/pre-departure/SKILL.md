@@ -1,7 +1,11 @@
 ---
 name: pre-departure
 description: Guide Vietnamese students through all pre-departure steps after accepting an admission offer — covering USA (F-1/I-20/SEVIS/DS-160), UK (Student Visa/CAS/BRP), Canada (Study Permit/CAQ), and Australia (Student Visa subclass 500/CoE). Use this skill whenever a student mentions 'visa', 'F-1', 'I-20', 'SEVIS', 'DS-160', 'Student Visa UK', 'CAS', 'Study Permit Canada', 'visa Úc', 'CoE', 'chuẩn bị đi học', 'trước khi đi', 'chỗ ở', 'ký túc xá', 'bảo hiểm', 'vé máy bay', 'orientation', or has accepted an admission offer.
-metadata: { "openclaw": { "emoji": "✈️" } }
+metadata:
+  openclaw:
+    emoji: ✈️
+    requires:
+      bins: [sa-cli]
 ---
 
 # Pre-Departure Skill

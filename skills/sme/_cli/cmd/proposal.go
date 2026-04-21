@@ -179,7 +179,10 @@ func proposalGenerate(args []string) {
 		status, _ := pollOut["status"].(string)
 		switch status {
 		case "completed":
-			pdfURL := pickPDFURL(pollOut)
+			pdfURL := strings.TrimSpace(pickPDFURL(pollOut))
+			if pdfURL == "" {
+				errOut("the proposal task completed but no PDF URL could be determined")
+			}
 			okOut(map[string]interface{}{
 				"proposal": map[string]interface{}{
 					"company":      company,

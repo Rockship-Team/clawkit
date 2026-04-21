@@ -134,10 +134,14 @@ func manusGetTask(args []string) {
 
 		switch task.Status {
 		case "completed":
+			pdfURL := strings.TrimSpace(firstPDFURL(task))
+			if pdfURL == "" {
+				errOut("the task completed but no PDF URL could be determined")
+			}
 			okOut(map[string]interface{}{
 				"task_id":  taskID,
 				"task_url": task.TaskURL,
-				"pdf_url":  firstPDFURL(task),
+				"pdf_url":  pdfURL,
 				"status":   task.Status,
 			})
 			return
@@ -284,7 +288,10 @@ func manusGenerateProposal(args []string) {
 
 		switch task.Status {
 		case "completed":
-			pdfURL := firstPDFURL(task)
+			pdfURL := strings.TrimSpace(firstPDFURL(task))
+			if pdfURL == "" {
+				errOut("the proposal task completed but no PDF URL could be determined")
+			}
 			okOut(map[string]interface{}{
 				"task_id":  taskID,
 				"task_url": task.TaskURL,

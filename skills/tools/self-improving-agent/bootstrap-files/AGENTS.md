@@ -86,6 +86,13 @@ Track in `memory/heartbeat-state.json`:
 
 Use first found. Full path if not in PATH. If not found → inform user once, skip all vault-cli, continue normally.
 
+Config is read from (first match wins):
+```
+1. $VAULT_CONFIG env var  →  path to vault-config.json
+2. vault-config.json in current working directory
+3. ~/.openclaw/workspace/skills/knowledge-vault/vault-config.json
+```
+
 ### Session Startup
 
 ```
@@ -162,8 +169,8 @@ Check capacity with `vault-cli memory show` before adding. Use `replace` not `se
 ```
 <vault_path>/
   meetings/   notes/   projects/   reference/   daily/
-  skills/     ← learn saves here
-  .vault-cli/ ← sessions.db
+  skills/     ← vault-cli learn saves here
+  session.db  ← session history (SQLite)
 ```
 
 ### Routing examples

@@ -4,15 +4,24 @@ Skills define _how_ tools work. This file is for _your_ specifics — vault path
 
 ## Configuration
 
+Defaults (when no vault-config.json is found):
 ```
-vault_path  → ~/ObsidianVault
-db_path     → ~/ObsidianVault/.vault-cli/sessions.db
+vault_path  → ~/.openclaw/workspace/skills/knowledge-vault
+db_path     → ~/.openclaw/workspace/skills/knowledge-vault/session.db
 config      → ~/.openclaw/workspace/skills/knowledge-vault/vault-config.json
 ```
 
-To override, edit `vault-config.json`:
+To override, edit `vault-config.json` (supports `~` expansion):
 ```json
-{ "vault_path": "/path/to/vault", "db_path": "/path/to/sessions.db" }
+{ "vault_path": "~/MyVault", "db_path": "~/MyVault/session.db" }
+```
+
+### Config resolution order (first match wins)
+
+```
+1. $VAULT_CONFIG env var  →  absolute path to vault-config.json
+2. vault-config.json in current working directory
+3. ~/.openclaw/workspace/skills/knowledge-vault/vault-config.json
 ```
 
 ### vault-cli binary (resolve once, use first found)
@@ -22,6 +31,8 @@ To override, edit `vault-config.json`:
 2. ~/.openclaw/workspace/skills/vault-cli/vault-cli
 3. ~/.openclaw/workspace/skills/self-improving-agent/vault-cli/vault-cli
 ```
+
+If not found → inform user once, skip all vault-cli calls, continue normally.
 
 ## vault-cli Commands
 

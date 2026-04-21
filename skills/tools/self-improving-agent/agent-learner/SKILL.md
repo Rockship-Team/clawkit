@@ -1,169 +1,169 @@
 ---
 name: agent-learner
-description: "Tu hoc va cai thien — luu quy trinh thanh cong, cap nhat khi phat hien thieu sot, tim kiem kinh nghiem cu."
+description: "Self-learn and improve — save successful workflows, update when gaps are found, search past experience."
 metadata: { "openclaw": { "emoji": "🔄" } }
 ---
 
 # Agent Learner (Hermes Self-Improvement)
 
-Ban co kha nang TU HOC. Sau moi tac vu phuc tap, ban luu lai quy trinh thanh cong. Truoc moi tac vu moi, ban tim kinh nghiem cu. Khi phat hien thieu sot, ban cap nhat ngay. Day la vong phan hoi lien tuc de ban ngay cang gioi hon.
+You have the ability to SELF-LEARN. After every complex task, save the successful workflow. Before every new task, search for past experience. When a gap is found, update immediately. This is a continuous feedback loop to make you progressively better.
 
-## KHI NAO LUU KY NANG MOI (save-skill)
+## WHEN TO SAVE A NEW SKILL (save-skill)
 
-Luu khi:
+Save when:
 
-- Hoan thanh tac vu phuc tap (5+ buoc)
-- Sua duoc loi kho
-- Phat hien quy trinh hieu qua
-- User xac nhan cach lam dung
+- Completed a complex task (5+ steps)
+- Fixed a difficult bug
+- Discovered an efficient workflow
+- User confirmed the approach was correct
 
-KHONG luu khi:
+Do NOT save when:
 
-- Cuoc hoi thoai don gian, khong co quy trinh
-- Thong tin nhay cam (mat khau, token, CCCD)
-- Noi dung chua duoc xac nhan
+- Simple conversation with no real workflow
+- Sensitive information (passwords, tokens, national ID)
+- Content not yet confirmed by the user
 
-## KHI NAO CAP NHAT KY NANG (patch-skill)
+## WHEN TO UPDATE A SKILL (patch-skill)
 
-Cap nhat khi:
+Update when:
 
-- Ky nang da luu nhung thieu buoc → patch TRUOC khi ket thuc tac vu
-- User sua lai quy trinh → cap nhat ngay
-- Phat hien truong hop dac biet → bo sung
+- A saved skill is missing steps → patch BEFORE ending the task
+- User corrects the workflow → update immediately
+- A special case is discovered → add it
 
-## KHI NAO TIM KINH NGHIEM CU (search)
+## WHEN TO SEARCH PAST EXPERIENCE (search)
 
-Tim khi:
+Search when:
 
-- Truoc khi bat dau tac vu moi → `vault-cli learn list` de kiem tra
-- Gap loi → `vault-cli session search` tim tinh huong tuong tu
-- User hoi "truoc day minh lam the nao" → tim trong session va learn
+- Before starting a new task → `vault-cli learn list` to check
+- Encountering an error → `vault-cli session search` for similar situations
+- User asks "how did we do this before" → search sessions and learned skills
 
-## NHAC NHO DINH KY (Nudge Protocol)
+## PERIODIC REMINDER (Nudge Protocol)
 
-Moi ~10 luot hoi thoai, tu hoi:
+Every ~10 conversation turns, ask yourself:
 
-1. "Co thong tin nao dang luu vao memory khong?"
-2. "Minh da hoc duoc quy trinh nao dang ghi lai khong?"
-3. "Co memory nao cu/sai can cap nhat khong?"
+1. "Is there any information worth saving to memory?"
+2. "Did I learn a workflow worth recording?"
+3. "Is there any outdated or incorrect memory that needs updating?"
 
-Neu co, thuc hien. Neu khong, tiep tuc binh thuong.
+If yes, act. If no, continue normally.
 
-## LENH VAULT-CLI
+## VAULT-CLI COMMANDS
 
-### Quan ly ky nang da hoc
+### Managing learned skills
 
-Luu ky nang moi:
+Save a new skill:
 
 ```
 vault-cli learn save-skill <name> <description> <procedure> [tags]
 ```
 
-Cap nhat ky nang (tim va thay noi dung):
+Update a skill (find and replace content):
 
 ```
 vault-cli learn patch-skill <name> <find_text> <replace_text>
 ```
 
-Liet ke tat ca ky nang:
+List all skills:
 
 ```
 vault-cli learn list
 ```
 
-Doc chi tiet ky nang:
+Read skill details:
 
 ```
 vault-cli learn get <name>
 ```
 
-### Tim kiem
+### Search
 
-Tim trong lich su phien:
+Search session history:
 
 ```
 vault-cli session search <query>
 ```
 
-Tim trong toan bo vault:
+Search the entire vault:
 
 ```
 vault-cli search <query>
 ```
 
-### Bo nho
+### Memory
 
-Luu thong tin:
+Save information:
 
 ```
 vault-cli memory set MEMORY.md <info>
 ```
 
-Cap nhat thong tin:
+Update information:
 
 ```
 vault-cli memory replace MEMORY.md <old> <new>
 ```
 
-## QUY TAC TUYET DOI
+## ABSOLUTE RULES
 
-- Moi lenh `vault-cli` phai goi qua exec, TREN 1 DONG DUY NHAT.
-- TUYET DOI KHONG dung pipe (`|`), redirect (`>`), heredoc, `&&`, `;`, subshell.
-- Moi argument co khoang trang -> boc trong `"double quotes"`.
-- Luon kiem tra `ok:true` trong ket qua truoc khi bao thanh cong.
-- Chi luu quy trinh THUC SU huu ich, khong phai moi cuoc hoi thoai.
-- KHONG BAO GIO luu du lieu nhay cam (mat khau, token, CCCD, so tai khoan).
-- Khong luu nguyen cuoc hoi thoai — chung cat thanh cac buoc cu the.
-- Khi memory day (>2200 ky tu), PHAI rut gon truoc khi them.
-- Moi file ky nang PHAI co: name, description, quy trinh tung buoc, ngay tao.
+- Every `vault-cli` command must be called via exec, ON A SINGLE LINE ONLY.
+- NEVER use pipe (`|`), redirect (`>`), heredoc, `&&`, `;`, or subshell.
+- Any argument containing spaces must be wrapped in `"double quotes"`.
+- Always check `ok:true` in the result before reporting success.
+- Only save GENUINELY useful workflows, not every conversation.
+- NEVER save sensitive data (passwords, tokens, national ID, bank account numbers).
+- Do not save raw conversations — distill them into concrete steps.
+- When memory is full (>2200 chars), MUST condense before adding.
+- Every skill file MUST have: name, description, step-by-step procedure, creation date.
 
-## CAU TRUC FILE KY NANG
+## SKILL FILE STRUCTURE
 
-Moi ky nang duoc luu phai co:
+Every saved skill must have:
 
-- **name**: ten ngan gon, de nho (vi du: `payroll-monthly`)
-- **description**: mo ta 1 cau ve muc dich
-- **procedure**: cac buoc cu the, ro rang, co the lam theo
-- **created**: ngay tao
+- **name**: short, memorable name (e.g. `payroll-monthly`)
+- **description**: one-sentence description of purpose
+- **procedure**: specific, clear, actionable steps
+- **created**: creation date
 
-## VI DU TUONG TAC
+## INTERACTION EXAMPLES
 
-### Sau khi hoan thanh tinh luong
+### After completing payroll processing
 
-User vua hoan thanh tinh luong thang voi cac buoc: tai bang cham cong, doi chieu hop dong, tinh thue TNCN, xuat bang luong.
+User just completed monthly payroll with these steps: download timesheet, cross-check contracts, calculate personal income tax, export payroll.
 
-Hanh dong:
+Action:
 
 ```
-vault-cli learn save-skill "payroll-monthly" "Quy trinh tinh luong hang thang" "1. Tai bang cham cong tu HR\n2. Doi chieu hop dong lao dong\n3. Tinh thue TNCN theo bieu luy tien\n4. Tru bao hiem bat buoc\n5. Xuat bang luong va gui ke toan truong duyet" "payroll,finance,monthly"
+vault-cli learn save-skill "payroll-monthly" "Monthly payroll processing workflow" "1. Download timesheet from HR\n2. Cross-check employment contracts\n3. Calculate PIT using progressive tax brackets\n4. Deduct mandatory insurance\n5. Export payroll and send to head accountant for approval" "payroll,finance,monthly"
 ```
 
-### Truoc khi doi soat ngan hang
+### Before bank reconciliation
 
-User: "Minh can doi soat so du ngan hang thang nay"
+User: "I need to reconcile the bank balance this month"
 
-Hanh dong — kiem tra kinh nghiem cu:
+Action — check past experience:
 
 ```
 vault-cli learn list
 ```
 
-→ Tim thay ky nang `bank-reconciliation` da luu truoc do.
+→ Found skill `bank-reconciliation` saved previously.
 
 ```
 vault-cli learn get "bank-reconciliation"
 ```
 
-→ Doc quy trinh va lam theo tung buoc.
+→ Read the workflow and follow it step by step.
 
-### Phat hien thieu buoc
+### Discovered a missing step
 
-Dang lam theo ky nang `payroll-monthly` nhung phat hien thieu buoc kiem tra ngay nghi phep.
+Following skill `payroll-monthly` but found a missing step for checking annual leave days.
 
-Hanh dong:
+Action:
 
 ```
-vault-cli learn patch-skill "payroll-monthly" "2. Doi chieu hop dong lao dong" "2. Doi chieu hop dong lao dong\n3. Kiem tra ngay nghi phep va ngay le trong thang"
+vault-cli learn patch-skill "payroll-monthly" "2. Cross-check employment contracts" "2. Cross-check employment contracts\n3. Check annual leave and public holidays for the month"
 ```
 
-→ Ky nang duoc cap nhat, lan sau se day du hon.
+→ Skill updated, next run will be more complete.

@@ -22,6 +22,11 @@ type vaultConfig struct {
 }
 
 // loadVaultConfig reads config from the OpenClaw workspace config file.
+// Resolution order:
+//  1. $VAULT_CONFIG env var (absolute path to vault-config.json)
+//  2. vault-config.json in the current working directory
+//  3. ~/.openclaw/workspace/skills/knowledge-vault/vault-config.json (legacy default)
+//
 // Auto-creates vault-config.json with defaults if missing.
 func loadVaultConfig() vaultConfig {
 	home, err := os.UserHomeDir()
@@ -29,8 +34,26 @@ func loadVaultConfig() vaultConfig {
 		return vaultConfig{VaultPath: "ObsidianVault", DBPath: "sessions.db"}
 	}
 
+	// 1. Explicit env var
+	configPath := os.Getenv("VAULT_CONFIG")
+
+	// 2. vault-config.json next to the binary / current working dir
+	if configPath == "" {
+		if cwd, err := os.Getwd(); err == nil {
+			candidate := filepath.Join(cwd, "vault-config.json")
+			if _, err := os.Stat(candidate); err == nil {
+				configPath = candidate
+			}
+		}
+	}
+
+	// 3. Legacy default: knowledge-vault skill directory
 	skillDir := filepath.Join(home, ".openclaw", "workspace", "skills", "knowledge-vault")
-	configPath := filepath.Join(skillDir, "vault-config.json")
+	if configPath == "" {
+		configPath = filepath.Join(skillDir, "vault-config.json")
+	} else {
+		skillDir = filepath.Dir(configPath)
+	}
 
 	defaultCfg := vaultConfig{
 		VaultPath: skillDir,
@@ -53,6 +76,9 @@ func loadVaultConfig() vaultConfig {
 		return defaultCfg
 	}
 
+	cfg.VaultPath = expandHome(cfg.VaultPath, home)
+	cfg.DBPath = expandHome(cfg.DBPath, home)
+
 	if cfg.VaultPath == "" {
 		cfg.VaultPath = skillDir
 	}
@@ -61,6 +87,17 @@ func loadVaultConfig() vaultConfig {
 	}
 
 	return cfg
+}
+
+// expandHome replaces a leading "~" with the user's home directory.
+func expandHome(path, home string) string {
+	if path == "~" {
+		return home
+	}
+	if strings.HasPrefix(path, "~/") {
+		return filepath.Join(home, path[2:])
+	}
+	return path
 }
 
 // mustVaultPath returns the vault path and creates the directory if it does not exist.

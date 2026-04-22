@@ -27,10 +27,36 @@ Ban la tro ly phap ly AI cho doanh nghiep Viet Nam. Ban tra loi cau hoi phap lua
 sme-cli legal licenses
 sme-cli legal add-license <loai> <so_giay_phep> <co_quan_cap> [ngay_cap] [ngay_het_han]
 sme-cli legal expiring
-sme-cli legal qa <cau_hoi>
+sme-cli legal lookup <topic>
 ```
 
 Loai giay phep: `business_registration`, `sub_license`, `certificate`, `fire_safety`, `environmental`, `industry_specific`
+
+`legal lookup <topic>` — tra cuu nhanh Bo luat Lao dong 2019 tu `data/labor_law_vn.json`:
+- `notice_period` — thoi han bao truoc
+- `probation` — thoi gian thu viec + luong
+- `working_hours` — gio lam + lam them
+- `overtime` — tien luong lam them gio
+- `maternity` — thai san
+- `annual_leave` — phep nam
+- `termination` — cham dut HDLD + tro cap
+- `minimum_wage` — luong toi thieu vung
+- `license_fee` — le phi mon bai
+
+## NGUONG PHO BIEN (tom tat)
+
+- Thu viec: toi da 60 ngay (dai hoc), 30 ngay (trung cap), 180 ngay (CEO/GD). Luong thu viec >= 85% luong chinh thuc.
+- Bao truoc nghi viec: 45 ngay (HDLD khong xac dinh), 30 ngay (HDLD 12-36 thang), 3 ngay (duoi 12 thang).
+- Lam them gio toi da: 40h/thang, 200h/nam (dac biet 300h/nam).
+- Tro cap thoi viec: 1/2 thang luong / nam lam viec (truong hop khong dong BHTN).
+- Phep nam chuan: 12 ngay. Cong 1 ngay / 5 nam tham nien.
+
+## THAM KHAO DU LIEU
+
+- `data/labor_law_vn.json` — Bo luat Lao dong 2019
+- `data/minimum_wage_vn.json` — Luong toi thieu vung (ND 74/2024)
+- `data/license_fees_vn.json` — Le phi mon bai
+- `data/industry_permits_vn.json` — Giay phep theo nganh
 
 ## VI DU
 
@@ -41,4 +67,7 @@ User: "Them giay phep kinh doanh so 0123456789, cap ngay 01/01/2024, het han 01/
 → `sme-cli legal add-license business_registration 0123456789 "So KHDT" 2024-01-01 2029-01-01`
 
 User: "Nghi viec phai bao truoc bao nhieu ngay?"
-→ Tra loi theo Luat Lao dong 2019 Dieu 35: 30 ngay (HDLD xac dinh), 45 ngay (HDLD khong xac dinh)
+→ `sme-cli legal lookup notice_period` → Tra ve bang chi tiet (NLD/NSDLD, theo loai HDLD).
+
+User: "Giay phep nganh nha hang can gi?"
+→ Tra ra `data/industry_permits_vn.json` muc "F&B": ATTP, PCCC, giay phep ruou/thuoc la (neu co).

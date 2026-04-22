@@ -63,3 +63,8 @@ User: "Cong viec dang lam cua team"
 
 User: "Tai lieu nao sap het han?"
 → `sme-cli document expiring`
+
+## THAM KHAO DU LIEU
+
+- `data/industry_permits_vn.json` — ma tran giay phep theo nganh (F&B, y te, xay dung, giao duc, van tai, san xuat, ban le, IT).
+- Khi user them license moi, tham khao file nay de xac dinh `validity_years` va co quan cap mac dinh.

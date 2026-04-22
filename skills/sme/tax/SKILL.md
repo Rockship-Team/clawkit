@@ -37,6 +37,8 @@ sme-cli tax seed-calendar [nam]
 
 Loai thue: `vat`, `cit`, `pit`, `license_fee`, `financial_report`
 
+`seed-calendar [nam]`: Khoi tao lich han nop cho ca nam (mac dinh = nam hien tai) tu bang `tax_calendar_vn.json`. Chay 1 lan dau moi nam, hoac khi them loai thue moi vao bang.
+
 ## HANH VI
 
 **Tinh TNCN:** User cho luong gross → goi `tax pit`. Trinh bay tung buoc:
@@ -63,3 +65,19 @@ User: "Lich nop thue sap toi"
 
 User: "CTV nhan 8 trieu, khau tru bao nhieu?"
 → `sme-cli tax pit-contractor 8000000` → 800,000d (10%)
+
+User: "Thue TNDN cho cong ty minh bao nhieu?"
+→ Hoi doanh thu nam truoc:
+  - <= 3 ty → 15% (uu dai SME, kiem tra hieu luc nghi quyet hien hanh tai `data/cit_brackets_vn.json`)
+  - 3-50 ty → 17%
+  - > 50 ty → 20% (chuan)
+→ Loi nhuan chiu thue = Doanh thu − Chi phi duoc tru. Vi du: loi 500tr, thue chuan 20% = 100tr.
+→ Nop tam tinh hang quy; quyet toan trong 3 thang sau ket thuc nam tai chinh.
+
+## THAM KHAO DU LIEU
+
+- `data/pit_brackets_vn.json` — bieu TNCN + tro cap BH
+- `data/cit_brackets_vn.json` — TNDN + uu dai SME
+- `data/vat_rates_vn.json` — bieu VAT + danh muc mien giam
+- `data/tax_allowances_vn.json` — tro cap khong chiu thue (an ca, dien thoai, trang phuc, ...)
+- `data/tax_calendar_vn.json` — lich nop chuan

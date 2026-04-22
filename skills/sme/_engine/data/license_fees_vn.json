@@ -1,0 +1,23 @@
+{
+  "source": "Nghi dinh 139/2016/ND-CP (sua doi boi 22/2020/ND-CP) — Le phi mon bai",
+  "effective_from": "2020-02-25",
+  "note": "Le phi mon bai nop mot lan/nam, han chot 30/01 hang nam. Doanh nghiep thanh lap nua cuoi nam nop 50%.",
+  "currency": "VND",
+  "enterprise_brackets": [
+    { "charter_capital_max": 10000000000, "annual_fee": 2000000, "label": "Von dieu le <= 10 ty" },
+    { "charter_capital_max": null, "annual_fee": 3000000, "label": "Von dieu le > 10 ty" }
+  ],
+  "branch_office_annual_fee": 1000000,
+  "household_business_brackets": [
+    { "annual_revenue_max": 100000000, "annual_fee": 0, "label": "Doanh thu <= 100tr/nam (mien)" },
+    { "annual_revenue_max": 300000000, "annual_fee": 300000, "label": "Doanh thu 100-300tr" },
+    { "annual_revenue_max": 500000000, "annual_fee": 500000, "label": "Doanh thu 300-500tr" },
+    { "annual_revenue_max": null, "annual_fee": 1000000, "label": "Doanh thu > 500tr" }
+  ],
+  "exemptions": [
+    "Doanh nghiep moi thanh lap duoc mien le phi mon bai nam dau (Nghi dinh 22/2020/ND-CP).",
+    "Hop tac xa hoat dong trong linh vuc nong nghiep.",
+    "Nha dau tu san xuat muoi."
+  ],
+  "deadline": "30-01 hang nam"
+}

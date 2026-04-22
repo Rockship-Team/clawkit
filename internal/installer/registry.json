@@ -22,10 +22,6 @@
           "label": "Ma so thue",
           "placeholder": "0123456789"
         }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go"
       ]
     },
     "agent-learner": {
@@ -64,73 +60,7 @@
       "requires_bins": [
         "sme-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
-    },
-    "campaign": {
-      "description": "Campaign cho SME — chay su kien gather interest, email/LinkedIn outreach theo plan, online ads. Dua khach hang tu NEW → ENGAGED.",
-      "os": [
-        "darwin",
-        "linux",
-        "windows"
-      ],
-      "requires_bins": [
-        "curl",
-        "jq"
-      ],
-      "version": "1.0.0",
-      "setup_prompts": [
-        {
-          "key": "default_language",
-          "label": "Ngon ngu mac dinh cho email/content (vi hoac en)",
-          "placeholder": "vi"
-        },
-        {
-          "key": "default_playbook",
-          "label": "Playbook mac dinh khi khong chi dinh",
-          "placeholder": "cold_outreach"
-        }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
-    },
-    "crm": {
-      "description": "CRM cho SME Viet Nam — quan ly danh ba, enrich thong tin, phan nhom, diem score, la nen tang cho cac skill ban hang & marketing khac.",
-      "os": [
-        "darwin",
-        "linux",
-        "windows"
-      ],
-      "requires_bins": [
-        "curl",
-        "jq"
-      ],
-      "version": "1.0.0",
-      "setup_prompts": [
-        {
-          "key": "cosmo_base_url",
-          "label": "COSMO base URL",
-          "placeholder": "https://api.cosmo.example.com"
-        },
-        {
-          "key": "cosmo_auth_email",
-          "label": "COSMO login email",
-          "placeholder": "you@company.com"
-        },
-        {
-          "key": "apollo_api_key",
-          "label": "Apollo.io API key (optional — de lai trong neu khong co)"
-        }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
+      "version": "1.0.0"
     },
     "deadline-tracker": {
       "description": "Track application deadlines and send proactive alerts for Vietnamese students applying to universities. Use this skill whenever a student asks about deadlines, application status, mentions 'deadline', 'hạn nộp', 'lịch nộp hồ sơ', 'trạng thái hồ sơ', 'khi nào nộp', 'còn bao lâu nữa', 'đã submit chưa', or when proactively checking on upcoming deadlines. Also handles post-submission checklists.",
@@ -149,35 +79,6 @@
     "ecom-bot": {
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
       "version": "1.0.0"
-    },
-    "engagement": {
-      "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON.",
-      "os": [
-        "darwin",
-        "linux",
-        "windows"
-      ],
-      "requires_bins": [
-        "curl",
-        "jq"
-      ],
-      "version": "1.0.0",
-      "setup_prompts": [
-        {
-          "key": "default_language",
-          "label": "Ngon ngu mac dinh cho daily briefing (vi hoac en)",
-          "placeholder": "vi"
-        },
-        {
-          "key": "user_timezone",
-          "label": "Timezone cho snooze (vd Asia/Ho_Chi_Minh)",
-          "placeholder": "Asia/Ho_Chi_Minh"
-        }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
     },
     "essay-review": {
       "description": "Guide Vietnamese students through college essay brainstorming, outlining, and multi-round feedback. Use this skill whenever a student mentions 'review essay', 'bài luận', 'common app', 'personal statement', 'supplemental essay', 'scholarship essay', 'essay', 'viết luận', 'feedback bài', 'sửa essay', 'học bổng essay', or submits text that looks like an essay draft. Never write the essay for the student — always coach, never ghostwrite.",
@@ -212,10 +113,25 @@
         "sme-cli"
       ],
       "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "region",
+          "label": "Vung luong toi thieu (I|II|III|IV)",
+          "placeholder": "I"
+        }
       ]
+    },
+    "knowledge-vault": {
+      "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "version": "1.0.0"
     },
     "legal": {
       "description": "Phap ly SME Viet Nam — tra cuu luat doanh nghiep, theo doi giay phep, hop dong lao dong, luat thue.",
@@ -228,33 +144,23 @@
         "sme-cli"
       ],
       "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "business_type",
+          "label": "Loai hinh DN (tnhh|cp|htx|ho_kd)",
+          "placeholder": "tnhh"
+        },
+        {
+          "key": "industry",
+          "label": "Nganh chinh (fnb|healthcare|education|construction|retail|it|manufacturing|transport|other)",
+          "placeholder": "retail"
+        }
       ]
-    },
-    "marketing": {
-      "description": "Marketing content cho SME Viet Nam — tao bai dang social media, noi dung blog/landing page, A/B copy. Khong quan ly email campaign (xem sme-campaign).",
-      "os": [
-        "darwin",
-        "linux",
-        "windows"
-      ],
-      "requires_bins": [
-        "sme-cli"
-      ],
-      "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
-    },
-    "knowledge-vault": {
-      "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
-      "requires_bins": [
-        "vault-cli"
-      ],
-      "version": "1.0.0"
     },
     "offer-comparison": {
       "description": "Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.",
@@ -273,11 +179,7 @@
       "requires_bins": [
         "sme-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
+      "version": "1.0.0"
     },
     "pre-departure": {
       "description": "Guide Vietnamese students through all pre-departure steps after accepting an admission offer — covering USA (F-1/I-20/SEVIS/DS-160), UK (Student Visa/CAS/BRP), Canada (Study Permit/CAQ), and Australia (Student Visa subclass 500/CoE). Use this skill whenever a student mentions 'visa', 'F-1', 'I-20', 'SEVIS', 'DS-160', 'Student Visa UK', 'CAS', 'Study Permit Canada', 'visa Úc', 'CoE', 'chuẩn bị đi học', 'trước khi đi', 'chỗ ở', 'ký túc xá', 'bảo hiểm', 'vé máy bay', 'orientation', or has accepted an admission offer.",
@@ -293,41 +195,12 @@
       ],
       "version": "1.0.0"
     },
-    "proposal": {
-      "description": "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF.",
-      "os": [
-        "darwin",
-        "linux",
-        "windows"
-      ],
-      "requires_bins": [
-        "curl",
-        "jq"
-      ],
-      "version": "1.0.0",
-      "setup_prompts": [
-        {
-          "key": "manus_api_key",
-          "label": "Manus AI API key (bat buoc de tao PDF)",
-          "placeholder": "manus_..."
-        },
-        {
-          "key": "company_name",
-          "label": "Ten doanh nghiep cua ban (hien len proposal)",
-          "placeholder": "Rockship"
-        }
-      ],
-      "exclude": [
-        "cmd",
-        "*.go"
-      ]
-    },
     "rockship-support": {
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\".",
       "version": "1.0.0"
     },
     "sales": {
-      "description": "Ban hang fulfillment cho SME Viet Nam — bao gia local, don hang, payment terms. Khong lam CRM/campaign/engagement/proposal (xem sme-crm, sme-campaign, sme-engagement, sme-proposal).",
+      "description": "Ban hang SME Viet Nam — quan ly lead, contact, bao gia, don hang, theo doi pipeline.",
       "os": [
         "darwin",
         "linux",
@@ -337,9 +210,17 @@
         "sme-cli"
       ],
       "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "default_payment_terms",
+          "label": "Dieu kien TT mac dinh (cod|net15|net30|net60|prepaid)",
+          "placeholder": "net30"
+        }
       ]
     },
     "school-matching": {
@@ -371,9 +252,22 @@
         "sme-cli"
       ],
       "version": "1.0.0",
-      "exclude": [
-        "cmd",
-        "*.go"
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "tax_code",
+          "label": "Ma so thue",
+          "placeholder": "0123456789"
+        },
+        {
+          "key": "vat_frequency",
+          "label": "Tan suat khai VAT (monthly|quarterly)",
+          "placeholder": "quarterly"
+        }
       ]
     },
     "weekly-checkin": {
@@ -385,8 +279,8 @@
     }
   },
   "groups": {
-    "sme": ["accounting","bi","campaign","crm","engagement","hr","legal","marketing","ops","proposal","sales","tax"],
     "self-improving-agent": ["agent-learner","knowledge-vault"],
+    "sme": ["accounting","bi","hr","legal","ops","sales","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

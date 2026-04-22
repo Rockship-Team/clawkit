@@ -12,7 +12,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rockship-team'
 
       - name: Extract version from tag
         id: version
@@ -39,38 +41,10 @@ jobs:
       - name: Run tests
         run: make test
 
-      - name: Build all platform binaries
-        run: make dist
+      - name: Stage npm package
+        run: make npm-stage
 
-      - name: Package release artifacts
-        run: |
-          mkdir -p release
-          V=${{ steps.version.outputs.VERSION }}
-          for target in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64; do
-            cp dist/clawkit-$target clawkit
-            chmod +x clawkit
-            tar -czf release/clawkit-v$V-$target.tar.gz clawkit
-            rm clawkit
-          done
-          cp dist/clawkit-windows-amd64.exe release/clawkit-v$V-windows-amd64.exe
-          ls -lh release/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          generate_release_notes: true
-          make_latest: true
-
-      - name: Publish to npm
-        run: |
-          cp dist/clawkit-darwin-arm64      npm/binaries/clawkit-darwin-arm64
-          cp dist/clawkit-darwin-amd64      npm/binaries/clawkit-darwin-amd64
-          cp dist/clawkit-linux-amd64       npm/binaries/clawkit-linux-amd64
-          cp dist/clawkit-linux-arm64       npm/binaries/clawkit-linux-arm64
-          cp dist/clawkit-windows-amd64.exe npm/binaries/clawkit-windows-amd64.exe
-          cd npm
-          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version --allow-same-version
-          npm publish --access public
+      - name: Publish to GitHub Packages
+        run: cd npm && npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

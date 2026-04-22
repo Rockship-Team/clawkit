@@ -1,57 +1,57 @@
 #!/usr/bin/env node
-"use strict";
+// Wrapper that executes the clawkit Go binary shipped with this npm package.
+// It resolves the per-platform binary under ../binaries, points the binary
+// at the skills/ and registry.json that ship alongside it, and forwards
+// stdio + exit code.
 
-const path = require("path");
-const { execFileSync } = require("child_process");
-const fs = require("fs");
-const os = require("os");
+const { spawnSync } = require("node:child_process");
+const path = require("node:path");
+const fs = require("node:fs");
 
-// Map Node.js platform/arch to binary name.
-function getBinaryName() {
-  const platform = os.platform(); // linux, darwin, win32
-  const arch = os.arch();         // x64, arm64
+function platformAsset() {
+    const { platform, arch } = process;
+    const os =
+        platform === "darwin" ? "darwin" :
+        platform === "linux"  ? "linux"  :
+        platform === "win32"  ? "windows" : null;
+    const a =
+        arch === "x64"   ? "amd64" :
+        arch === "arm64" ? "arm64" : null;
+    if (!os || !a) {
+        console.error(`clawkit: unsupported platform ${platform}/${arch}`);
+        process.exit(1);
+    }
+    return `clawkit-${os}-${a}${os === "windows" ? ".exe" : ""}`;
+}
 
-  const platformMap = {
-    linux: "linux",
-    darwin: "darwin",
-    win32: "windows",
-  };
+const pkgRoot     = path.join(__dirname, "..");
+const binariesDir = path.join(pkgRoot, "binaries");
+const skillsDir   = path.join(pkgRoot, "skills");
+const registry    = path.join(pkgRoot, "registry.json");
+const binary      = path.join(binariesDir, platformAsset());
 
-  const archMap = {
-    x64: "amd64",
-    arm64: "arm64",
-  };
-
-  const p = platformMap[platform];
-  const a = archMap[arch];
-
-  if (!p || !a) {
-    console.error(`[clawkit] Unsupported platform: ${platform}/${arch}`);
+if (!fs.existsSync(binary)) {
+    console.error(`clawkit: binary not found at ${binary}`);
+    console.error("The npm package appears to be incomplete — try reinstalling:");
+    console.error("  npm install -g @rockship-team/clawkit");
     process.exit(1);
-  }
-
-  const name = `clawkit-${p}-${a}${platform === "win32" ? ".exe" : ""}`;
-  return name;
 }
 
-const binaryName = getBinaryName();
-const binaryPath = path.join(__dirname, "..", "binaries", binaryName);
-
-if (!fs.existsSync(binaryPath)) {
-  console.error(`[clawkit] Binary not found: ${binaryPath}`);
-  console.error(`[clawkit] Please reinstall: npm install -g @rockship/clawkit`);
-  process.exit(1);
-}
-
-// Ensure binary is executable (macOS/Linux).
 if (process.platform !== "win32") {
-  try {
-    fs.chmodSync(binaryPath, 0o755);
-  } catch (_) {}
+    try { fs.chmodSync(binary, 0o755); } catch (_) { /* noop */ }
 }
 
-try {
-  execFileSync(binaryPath, process.argv.slice(2), { stdio: "inherit" });
-} catch (err) {
-  process.exit(err.status ?? 1);
+const env = { ...process.env };
+if (fs.existsSync(skillsDir) && !env.CLAWKIT_SKILLS_DIR) {
+    env.CLAWKIT_SKILLS_DIR = skillsDir;
 }
+if (fs.existsSync(registry) && !env.CLAWKIT_REGISTRY) {
+    env.CLAWKIT_REGISTRY = registry;
+}
+
+const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit", env });
+if (result.error) {
+    console.error(`clawkit: failed to execute binary — ${result.error.message}`);
+    process.exit(1);
+}
+process.exit(result.status ?? 0);

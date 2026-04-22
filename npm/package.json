@@ -1,31 +1,51 @@
 {
-  "name": "@rockship/clawkit",
-  "version": "0.3.0",
-  "description": "CLI tool for installing and managing OpenClaw skills",
+  "name": "@rockship-team/clawkit",
+  "version": "0.5.1",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "description": "CLI skill manager for OpenClaw AI agents",
   "keywords": [
+    "cli",
     "openclaw",
-    "clawkit",
     "skills",
-    "zalo",
-    "ai"
+    "rockship",
+    "clawkit"
   ],
+  "license": "MIT",
+  "author": "Rockship",
   "homepage": "https://github.com/Rockship-Team/clawkit",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Rockship-Team/clawkit.git"
+    "url": "git+https://github.com/Rockship-Team/clawkit.git"
   },
-  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Rockship-Team/clawkit/issues"
+  },
   "bin": {
-    "clawkit": "./bin/clawkit.js"
+    "clawkit": "bin/clawkit.js"
   },
   "files": [
     "bin/",
-    "binaries/"
+    "binaries/",
+    "skills/",
+    "registry.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
   ],
   "engines": {
     "node": ">=16"
   },
   "scripts": {
-    "postinstall": "node bin/clawkit.js version"
+    "postinstall": "node bin/clawkit.js version || true"
   }
 }

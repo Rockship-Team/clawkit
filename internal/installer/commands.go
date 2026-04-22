@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,10 +16,9 @@ import (
 
 	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
-	clawruntime "github.com/rockship-co/clawkit/internal/runtime"
+	clawengine "github.com/rockship-co/clawkit/internal/engine"
 	"github.com/rockship-co/clawkit/internal/template"
 	"github.com/rockship-co/clawkit/internal/ui"
-	"github.com/rockship-co/clawkit/skills"
 )
 
 // CmdList lists all available skills and groups with install status.
@@ -179,15 +177,16 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
-	runtimeKey, err := downloadSkill(skillName, targetDir)
+	engineKey, sourceDir, cleanup, err := downloadSkill(reg, skillName, targetDir)
+	defer cleanup()
 	if err != nil {
 		os.RemoveAll(targetDir)
 		ui.Fatal("Failed to install: %v", err)
 	}
 	ui.Ok("Skill files installed to %s", targetDir)
-	if runtimeKey != "" {
-		ui.Ok("Runtime installed at %s", clawruntime.Dir(runtimeKey))
-		ensureInPath(clawruntime.BinDir(), runtime.GOOS)
+	if engineKey != "" {
+		ui.Ok("Engine installed at %s", clawengine.Dir(engineKey))
+		ensureInPath(clawengine.BinDir(), runtime.GOOS)
 	}
 
 	if len(skill.RequiresBins) > 0 {
@@ -223,7 +222,7 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 		}
 	}
 
-	if n, err := applyBootstrap(skillName, skillsDir); err != nil {
+	if n, err := applyBootstrap(sourceDir, skillsDir); err != nil {
 		ui.Warn("Could not apply bootstrap files: %v", err)
 	} else if n > 0 {
 		ui.Ok("Applied %d bootstrap file(s) to workspace", n)
@@ -243,56 +242,37 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 	fmt.Printf("  Location: %s\n", targetDir)
 }
 
-// applyBootstrap copies top-level .md files from the skill's _bootstrap/
-// directory — sourced directly from skills/ on disk or the embedded FS —
-// into the workspace root (parent of skillsDir), overwriting any existing
-// files there. _bootstrap/ is never staged inside the installed skill dir.
-// For grouped skills, the group's parent _bootstrap/ is used.
+// applyBootstrap copies top-level .md files from the skill source's
+// bootstrap/ directory into the workspace root (parent of skillsDir),
+// overwriting any existing files there. bootstrap/ is never staged inside
+// the installed skill dir. For grouped skills, the group's parent bootstrap/
+// is used. sourceDir is the on-disk location of the skill source (either the
+// dev-tree path or the extracted tarball dir) as returned by downloadSkill.
 // Returns the number of files copied.
-func applyBootstrap(skillName, skillsDir string) (int, error) {
-	workspaceDir := filepath.Dir(skillsDir)
-
-	if localDir := findLocalSkill(skillName); localDir != "" {
-		if src := findLocalBootstrap(localDir); src != "" {
-			return copyBootstrapLocal(src, workspaceDir)
-		}
+func applyBootstrap(sourceDir, skillsDir string) (int, error) {
+	if sourceDir == "" {
 		return 0, nil
 	}
-
-	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
-		if src := findEmbeddedBootstrap(embeddedPath); src != "" {
-			return copyBootstrapEmbedded(src, workspaceDir)
-		}
+	workspaceDir := filepath.Dir(skillsDir)
+	src := findBootstrap(sourceDir)
+	if src == "" {
+		return 0, nil
 	}
-	return 0, nil
+	return copyBootstrap(src, workspaceDir)
 }
 
-func findLocalBootstrap(localDir string) string {
-	if info, err := os.Stat(filepath.Join(localDir, "_bootstrap")); err == nil && info.IsDir() {
-		return filepath.Join(localDir, "_bootstrap")
+func findBootstrap(sourceDir string) string {
+	if info, err := os.Stat(filepath.Join(sourceDir, "_bootstrap")); err == nil && info.IsDir() {
+		return filepath.Join(sourceDir, "_bootstrap")
 	}
-	parent := filepath.Join(filepath.Dir(localDir), "_bootstrap")
+	parent := filepath.Join(filepath.Dir(sourceDir), "_bootstrap")
 	if info, err := os.Stat(parent); err == nil && info.IsDir() {
 		return parent
 	}
 	return ""
 }
 
-func findEmbeddedBootstrap(embeddedPath string) string {
-	if info, err := fs.Stat(skills.FS, embeddedPath+"/_bootstrap"); err == nil && info.IsDir() {
-		return embeddedPath + "/_bootstrap"
-	}
-	parent := filepath.ToSlash(filepath.Dir(embeddedPath))
-	if parent == "." || parent == "" {
-		return ""
-	}
-	if info, err := fs.Stat(skills.FS, parent+"/_bootstrap"); err == nil && info.IsDir() {
-		return parent + "/_bootstrap"
-	}
-	return ""
-}
-
-func copyBootstrapLocal(src, workspaceDir string) (int, error) {
+func copyBootstrap(src, workspaceDir string) (int, error) {
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return 0, err
@@ -305,28 +285,6 @@ func copyBootstrapLocal(src, workspaceDir string) (int, error) {
 		data, err := os.ReadFile(filepath.Join(src, e.Name()))
 		if err != nil {
 			return count, fmt.Errorf("read %s: %w", e.Name(), err)
-		}
-		if err := os.WriteFile(filepath.Join(workspaceDir, e.Name()), data, 0o644); err != nil {
-			return count, fmt.Errorf("write %s: %w", e.Name(), err)
-		}
-		count++
-	}
-	return count, nil
-}
-
-func copyBootstrapEmbedded(src, workspaceDir string) (int, error) {
-	entries, err := fs.ReadDir(skills.FS, src)
-	if err != nil {
-		return 0, err
-	}
-	count := 0
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
-			continue
-		}
-		data, err := fs.ReadFile(skills.FS, src+"/"+e.Name())
-		if err != nil {
-			return count, fmt.Errorf("read embedded %s: %w", e.Name(), err)
 		}
 		if err := os.WriteFile(filepath.Join(workspaceDir, e.Name()), data, 0o644); err != nil {
 			return count, fmt.Errorf("write %s: %w", e.Name(), err)
@@ -382,8 +340,14 @@ func updateOne(reg *Registry, skillName string) {
 		}
 	}
 
-	if _, err := downloadSkill(skillName, targetDir); err != nil {
+	engineKey, _, cleanup, err := downloadSkill(reg, skillName, targetDir)
+	defer cleanup()
+	if err != nil {
 		ui.Fatal("Failed to update '%s': %v", skillName, err)
+	}
+	if engineKey != "" {
+		ui.Ok("Engine updated at %s", clawengine.Dir(engineKey))
+		ensureInPath(clawengine.BinDir(), runtime.GOOS)
 	}
 
 	if len(existingCfg.UserInputs) > 0 {
@@ -445,7 +409,7 @@ func CmdUninstall(skillName string) {
 // and unlinks its bins from ~/.clawkit/bin. Skills that still reference the
 // runtime will break until re-installed.
 func CmdPurge(key string) {
-	dir := clawruntime.Dir(key)
+	dir := clawengine.Dir(key)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		ui.Fatal("No runtime found at %s", dir)
 	}
@@ -453,7 +417,7 @@ func CmdPurge(key string) {
 	ui.Info("Purging runtime '%s'", key)
 	fmt.Printf("  This will:\n")
 	fmt.Printf("    • Delete %s (including any user data)\n", dir)
-	fmt.Printf("    • Remove matching symlinks from %s\n\n", clawruntime.BinDir())
+	fmt.Printf("    • Remove matching symlinks from %s\n\n", clawengine.BinDir())
 	fmt.Print("  Continue? [y/N]: ")
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
@@ -464,7 +428,7 @@ func CmdPurge(key string) {
 	}
 
 	bins, _ := binsForRuntime(key)
-	if err := clawruntime.Purge(key, bins); err != nil {
+	if err := clawengine.Purge(key, bins); err != nil {
 		ui.Fatal("Purge failed: %v", err)
 	}
 	ui.Ok("Runtime '%s' purged", key)
@@ -474,12 +438,12 @@ func CmdPurge(key string) {
 // can remove them. It consults the local skills/ tree's _cli.json files.
 func binsForRuntime(key string) ([]string, error) {
 	if localDir := findLocalSkill(key); localDir != "" {
-		if spec, err := clawruntime.LoadSpec(localDir); err == nil {
+		if spec, err := clawengine.LoadSpec(localDir); err == nil {
 			return spec.Bins, nil
 		}
 	}
 	if parent := filepath.Join("skills", key); dirExists(parent) {
-		if spec, err := clawruntime.LoadSpec(parent); err == nil {
+		if spec, err := clawengine.LoadSpec(parent); err == nil {
 			return spec.Bins, nil
 		}
 	}
@@ -764,7 +728,7 @@ func installRequiredBins(bins []string) {
 		if _, err := exec.LookPath(bin); err == nil {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(clawruntime.BinDir(), bin)); err == nil {
+		if _, err := os.Stat(filepath.Join(clawengine.BinDir(), bin)); err == nil {
 			continue
 		}
 		switch bin {

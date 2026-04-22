@@ -3,8 +3,16 @@
 CLI skill manager for [OpenClaw](https://docs.openclaw.ai) AI agents. Install, configure, and manage AI skills with one command.
 
 ```bash
-npm install -g @rockship/clawkit
+# One-time: authenticate with GitHub Packages (PAT needs `read:packages`)
+npm login --scope=@rockship-team --registry=https://npm.pkg.github.com
+# …or add to ~/.npmrc:
+#   @rockship-team:registry=https://npm.pkg.github.com
+#   //npm.pkg.github.com/:_authToken=<GITHUB_PAT>
+
+npm install -g @rockship-team/clawkit
 ```
+
+The package is distributed through **GitHub Packages** (private, free for private repos). It ships platform binaries, skill files, and `registry.json`. The `clawkit` command (a tiny Node wrapper) resolves the right binary for your OS/arch and points it at the skills shipped in the same package. Skill engines (the `_engine/` payloads) land in `~/.clawkit/engines/` and `~/.clawkit/bin` is added to your `PATH` at first install.
 
 Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [Template](./TEMPLATE.md)
 
@@ -13,7 +21,7 @@ Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [
 ## Requirements
 
 - **OpenClaw** — [install guide](https://docs.openclaw.ai/installation)
-- Any runtime your skill's `_cli/` needs (Node.js, Go, Python, …)
+- Any runtime your skill's `_engine/` needs (Node.js, Go, Python, …)
 
 ---
 
@@ -27,7 +35,7 @@ clawkit install study-aboard essay-review profile-assessment
 clawkit status                         # Check installed skills
 clawkit update ecom-bot                # Update, keep stored setup values
 clawkit uninstall ecom-bot
-clawkit purge study-aboard             # Delete a shared runtime (incl. data)
+clawkit purge study-aboard             # Delete a shared engine (incl. data)
 ```
 
 ---
@@ -39,8 +47,8 @@ clawkit purge study-aboard             # Delete a shared runtime (incl. data)
 | `clawkit list` | List available skills and groups |
 | `clawkit install <name> [<member>…]` | Install a flat skill, a whole group, or selected members |
 | `clawkit update <name> [<member>…]` | Update (same resolution as install); stored `user_inputs` are kept |
-| `clawkit uninstall <skill>` | Remove a skill and its allowlist entry (shared runtime is preserved) |
-| `clawkit purge <key>` | Delete `~/.clawkit/runtimes/<key>` and its symlinked bins |
+| `clawkit uninstall <skill>` | Remove a skill and its allowlist entry (shared engine is preserved) |
+| `clawkit purge <key>` | Delete `~/.clawkit/engines/<key>` and its symlinked bins |
 | `clawkit status` | Show installed skills |
 | `clawkit dashboard [--port N]` | Start the local web dashboard |
 | `clawkit web <skill>` | Serve a skill's `web/` directory |
@@ -50,31 +58,31 @@ clawkit purge study-aboard             # Delete a shared runtime (incl. data)
 
 ## Skill Layout
 
-A skill owns an AI prompt (`SKILL.md`) and optionally a runtime (`_cli/`), persona files (`_bootstrap/`), and dev-time metadata (`_config.json`).
+A skill owns an AI prompt (`SKILL.md`) and optionally a runtime (`_engine/`), persona files (`_bootstrap/`), and dev-time metadata (`config.json`).
 
 **Flat skill:**
 
 ```
 skills/<skill>/
   _bootstrap/           Persona .md files copied to the workspace root on install
-  _cli/                 Runtime payload (binary, data, …) — installed to ~/.clawkit
-  _cli.json             Runtime metadata: { exclude, data_paths, bins }
-  _config.json          Dev metadata: { version, setup_prompts }
+  _engine/                 Runtime payload (binary, data, …) — installed to ~/.clawkit
+  engine.json             Runtime metadata: { exclude, data_paths, bins }
+  config.json          Dev metadata: { version, setup_prompts }
   SKILL.md              Frontmatter + agent prompt
 ```
 
-**Grouped skills** share `_bootstrap/`, `_cli/`, and `_cli.json` at the group level:
+**Grouped skills** share `_bootstrap/`, `_engine/`, and `engine.json` at the group level:
 
 ```
 skills/<group>/
   _bootstrap/
-  _cli/
-  _cli.json
+  _engine/
+  engine.json
   <skill-a>/
-    _config.json
+    config.json
     SKILL.md
   <skill-b>/
-    _config.json
+    config.json
     SKILL.md
 ```
 
@@ -88,7 +96,7 @@ All four shared files live **only** at the group level; the installed skill dire
 
 1. **Skill files** → `<OpenClaw workspace>/skills/<skill>/` — contains `SKILL.md` (with `{key}` placeholders baked in) and `clawkit.json` (version + group + user_inputs).
 2. **`_bootstrap/` .md files** → workspace root — overwriting any existing files of the same name.
-3. **`_cli/` payload** → `~/.clawkit/runtimes/<key>/` — one shared copy per skill (key = skill name) or per group (key = group name). Binaries listed in `_cli.json#bins` are symlinked into `~/.clawkit/bin`, which is added to `PATH`. Paths listed in `data_paths` (e.g. a SQLite DB) are preserved across re-installs so user state survives updates.
+3. **`_engine/` payload** → `~/.clawkit/engines/<key>/` — one shared copy per skill (key = skill name) or per group (key = group name). Binaries listed in `engine.json#bins` are symlinked into `~/.clawkit/bin`, which is added to `PATH`. Paths listed in `data_paths` (e.g. a SQLite DB) are preserved across re-installs so user state survives updates.
 
 The result: every member of a group sees the *same* `sa-cli` binary and the *same* `sa.db` — no duplicated runtimes, no diverged databases.
 
@@ -113,7 +121,7 @@ metadata:
 ---
 ```
 
-**`_config.json`** — clawkit dev-time metadata (never copied to the install):
+**`config.json`** — clawkit dev-time metadata (never copied to the install):
 
 ```json
 {
@@ -122,7 +130,7 @@ metadata:
 }
 ```
 
-**`_cli.json`** — runtime install rules (colocated with `_cli/`):
+**`engine.json`** — runtime install rules (colocated with `_engine/`):
 
 ```json
 {
@@ -132,7 +140,7 @@ metadata:
 }
 ```
 
-**`registry.json`** — generated from `SKILL.md` + `_config.json` by `make generate`. CI enforces sync (`make check-generate`).
+**`registry.json`** — generated from `SKILL.md` + `config.json` by `make generate`. CI enforces sync (`make check-generate`).
 
 **`clawkit.json`** — written into each installed skill dir by the installer:
 
@@ -153,9 +161,9 @@ Used by `clawkit update` to re-bake placeholders without re-prompting.
 ```bash
 mkdir -p skills/my-skill                    # flat
 # or
-mkdir -p skills/my-group/my-skill           # grouped (shared runtime at skills/my-group/)
+mkdir -p skills/my-group/my-skill           # grouped (shared engine at skills/my-group/)
 
-# Author SKILL.md, _config.json, and (optionally) _cli.json + _cli/.
+# Author SKILL.md, config.json, and (optionally) engine.json + _engine/.
 
 make generate                               # Refresh registry.json
 make build                                  # Build the CLI
@@ -171,17 +179,17 @@ See [TEMPLATE.md](TEMPLATE.md) for each file's shape and purpose.
 ```text
 cmd/
   clawkit/              CLI entry point
-  gen-registry/         Registry generator (SKILL.md + _config.json → registry.json)
+  gen-registry/         Registry generator (SKILL.md + config.json → registry.json)
 internal/
   archive/              tar.gz / zip
   config/               SkillConfig (clawkit.json), OpenClaw detection
   installer/            Install, update, uninstall, purge, registry, allowlist
-  runtime/              Shared-runtime management (~/.clawkit/runtimes + ~/.clawkit/bin)
+  engine/               Shared engine management (~/.clawkit/engines + ~/.clawkit/bin)
   template/             {key} placeholder substitution in SKILL.md
   dashboard/            Web dashboard
   ui/                   Terminal output helpers
 skills/                 Built-in skills, grouped by vertical (ecommerce, finance, …)
-npm/                    npm package wrapper with platform binaries
+npm/                    npm package — wrapper, binaries, and staged skills/
 ```
 
 ---
@@ -210,14 +218,14 @@ make help           # List every target
 ## Release
 
 ```bash
-make release-check          # fmt + check-generate + test + dist (dry run)
+make release-check          # fmt + check-generate + test + npm-stage (dry run)
 make bump V=1.2.0           # sync VERSION in Makefile and npm/package.json
 git commit -am 'Release v1.2.0'
 git tag v1.2.0
 git push && git push --tags
 ```
 
-Pushing the `v*` tag triggers GitHub Actions: cross-compile all binaries, upload per-arch `.tar.gz` (macOS/Linux) + `.exe` (Windows) to the GitHub Release, and publish `@rockship/clawkit` to npm.
+Pushing the `v*` tag triggers GitHub Actions: cross-compile all binaries, stage `npm/` (binaries + `skills/` + `registry.json`), and `npm publish` as `@rockship-team/clawkit` to **GitHub Packages** (registry `npm.pkg.github.com`), authenticated with the repo's `GITHUB_TOKEN`. Distribution is GitHub Packages only; the repo and the package are both private.
 
 ---
 

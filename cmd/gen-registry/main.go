@@ -60,7 +60,7 @@ type RegistrySkill struct {
 
 // Registry is the top-level structure of registry.json.
 // Groups lists the member skill names for each group directory — a group
-// is any directory under skills/ that holds a shared _cli/ and one or more
+// is any directory under skills/ that holds a shared _engine/ and one or more
 // child directories containing SKILL.md.
 type Registry struct {
 	Skills map[string]RegistrySkill `json:"skills"`
@@ -128,7 +128,7 @@ func main() {
 	fmt.Printf("%s generated with %d skills.\n", registryPath, len(reg.Skills))
 }
 
-// scanGroups walks dir and records every directory that holds a _cli/
+// scanGroups walks dir and records every directory that holds an _engine/
 // subdirectory plus one or more immediate children with SKILL.md. Keys are
 // group directory names (basename); values are the member skill names.
 func scanGroups(dir string) (map[string][]string, error) {
@@ -138,10 +138,10 @@ func scanGroups(dir string) (map[string][]string, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() || info.Name() == "_cli" {
+		if !info.IsDir() || info.Name() == "_engine" {
 			return nil
 		}
-		if _, statErr := os.Stat(filepath.Join(path, "_cli")); statErr != nil {
+		if _, statErr := os.Stat(filepath.Join(path, "_engine")); statErr != nil {
 			return nil
 		}
 		entries, readErr := os.ReadDir(path)
@@ -150,7 +150,7 @@ func scanGroups(dir string) (map[string][]string, error) {
 		}
 		var members []string
 		for _, e := range entries {
-			if !e.IsDir() || e.Name() == "_cli" {
+			if !e.IsDir() || e.Name() == "_engine" {
 				continue
 			}
 			if _, skillErr := os.Stat(filepath.Join(path, e.Name(), "SKILL.md")); skillErr == nil {
@@ -172,7 +172,7 @@ func scanGroups(dir string) (map[string][]string, error) {
 	return out, nil
 }
 
-// scanSkills reads every SKILL.md + config.json under dir. Skips _cli/
+// scanSkills reads every SKILL.md + config.json under dir. Skips _engine/
 // directories (shared runtime code, not skills themselves).
 func scanSkills(dir string) ([]SkillEntry, error) {
 	var skills []SkillEntry
@@ -182,7 +182,7 @@ func scanSkills(dir string) ([]SkillEntry, error) {
 			return err
 		}
 		if info.IsDir() {
-			if info.Name() == "_cli" {
+			if info.Name() == "_engine" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -217,9 +217,9 @@ func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
 		return SkillEntry{}, err
 	}
 
-	cfg, err := loadSkillConfig(filepath.Join(skillDir, "_config.json"))
+	cfg, err := loadSkillConfig(filepath.Join(skillDir, "config.json"))
 	if err != nil {
-		return SkillEntry{}, fmt.Errorf("_config.json: %w", err)
+		return SkillEntry{}, fmt.Errorf("config.json: %w", err)
 	}
 
 	if meta.description == "" {

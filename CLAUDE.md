@@ -1,17 +1,17 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository. Pair with [ARCHITECTURE.md](ARCHITECTURE.md) for deeper detail.
 
 ## Commands
 
 ```bash
 make build          # Build binary for current platform → ./clawkit
 make test           # Run all tests
-make test-race      # Run tests with the race detector (CGO required; also run in CI)
+make test-race      # Tests with the race detector (CGO required; also run in CI)
 make fmt            # go fmt + go vet
-make generate       # Regenerate registry.json from skills/**/{SKILL.md,config.json}
+make generate       # Regenerate registry.json from skills/**/{SKILL.md,_config.json}
 make check-generate # Verify registry.json is in sync (CI check)
-make dist           # Cross-compile for darwin/linux/windows into dist/
+make dist           # Cross-compile darwin/linux/windows → dist/
 make release-check  # fmt + check-generate + test + dist — dry run of the release workflow
 make bump V=x.y.z   # Sync VERSION across Makefile and npm/package.json
 ```
@@ -22,72 +22,61 @@ Run a single test package:
 CGO_ENABLED=0 go test -v ./internal/archive/...
 ```
 
-**Important:** After editing any `SKILL.md` frontmatter or `config.json`, always run `make generate` to keep `registry.json` in sync. CI will fail if they diverge (`make check-generate`).
+**Always run `make generate` after editing any `SKILL.md` frontmatter or `_config.json`.** CI fails if `registry.json` drifts (`make check-generate`).
 
-## Architecture
+## What clawkit is
 
-Clawkit is a CLI skill manager for OpenClaw AI agents. Skills are AI prompt files (`SKILL.md`) plus a runtime directory (`_cli/`) in any language. The binary is distributed via npm wrapping platform-specific Go binaries (`npm/binaries/`).
+A CLI skill manager for OpenClaw AI agents. A "skill" is `SKILL.md` (AI prompt with optional `{key}` placeholders) plus optional persona files (`_bootstrap/`), an optional runtime (`_cli/`), and dev metadata (`_config.json`). Distributed via npm, which wraps platform-specific Go binaries in `npm/binaries/`.
 
-### Data flow
+## Install destinations
 
-1. `registry.json` is generated from `skills/**/SKILL.md` frontmatter and the sibling `config.json` by `cmd/gen-registry`. Never edit it by hand.
-2. At install time, `internal/installer` fetches the registry, downloads the skill package, merges the group's `_cli/` when relevant, collects `setup_prompts` interactively, updates the OpenClaw allowlist, bakes user inputs into `SKILL.md`, and saves `clawkit.json` in the installed skill directory.
-3. At runtime, whatever is in the skill's `_cli/` directory runs however the skill's `SKILL.md` tells the agent to invoke it.
+`clawkit install` splits files across three places by purpose:
 
-### Key packages
+| Destination | Contents | Lifetime |
+|---|---|---|
+| `<workspace>/skills/<skill>/` | `SKILL.md` (placeholders baked), `clawkit.json` | Removed on uninstall |
+| `<workspace>/` (root) | `_bootstrap/*.md` (IDENTITY.md, SOUL.md, safety_rules.md, …) | Overwritten every install |
+| `~/.clawkit/runtimes/<key>/` | `_cli/` payload (binary, DB, …) | Shared; survives uninstall; removed only by `clawkit purge <key>` |
 
-- **`cmd/clawkit/main.go`** — CLI dispatcher (list, install, update, uninstall, status, package, web, dashboard, version). `install` / `update` accept `<name> [<member>...]`: name resolves to either a flat skill or a group; trailing args select specific group members.
-- **`cmd/gen-registry/main.go`** — Scans `skills/**/SKILL.md` + `config.json`, emits `internal/installer/registry.json` with both `skills` and `groups` sections. Hand-written indent-aware YAML parser; skips `_cli/` directories. A directory is recorded as a group when it holds a `_cli/` and at least one child with a `SKILL.md`.
-- **`internal/installer/commands.go`** — All command implementations. Install flow: preflight → download → group `_cli` merge → install bins → collect setup prompts → allowlist → template processing → save `clawkit.json`.
-- **`internal/installer/registry.go`** — Registry loading (remote + embedded + local), skill package download, `findLocalSkill` (flat + one level of group nesting), `mergeGroupCLI` / `mergeEmbeddedGroupCLI`.
-- **`internal/installer/lockdown.go`** — Allowlist management only. `SetupWorkspace` appends the skill to `agents.defaults.skills`; `RemoveFromWorkspace` removes it and clears the entry when the last skill is uninstalled.
-- **`internal/archive/`** — tar.gz / zip extraction and creation; strips top-level directory from archives.
-- **`internal/config/`** — `SkillConfig{ Version, UserInputs }`, config file read/write, OpenClaw detection.
-- **`internal/template/`** — `Process()` — replaces `{key}` placeholders in `SKILL.md` with `user_inputs` values.
-- **`internal/dashboard/`** — Web dashboard served by `clawkit dashboard`.
-- **`internal/ui/`** — ANSI terminal output helpers.
-- **`skills/`** — Built-in skills grouped by vertical.
-- **`templates/`** — Scaffolding for new skills: `skill/` (flat) and `group/` (shared `_cli/`).
+`~/.clawkit/bin/` holds symlinks to the runtime's `bins`, added to `PATH` via `ensureInPath`.
 
-### Skills directory structure
+Runtime `key` = group name (grouped skill) or skill name (flat skill with its own `_cli/`). Every member of a group shares one runtime — one binary, one database.
 
-Flat skill:
+## Skill layout
 
-```
+**Flat skill:**
+
+```text
 skills/<skill>/
-  _cli/                   cli.js or any runtime helpers
-  config.json
-  SKILL.md
+  _bootstrap/           Persona .md → workspace root on install
+  _cli/                 Runtime payload (binary, data, …)
+  _cli.json             { exclude, data_paths, bins }
+  _config.json          { version, setup_prompts }
+  SKILL.md              Frontmatter + agent prompt
 ```
 
-Grouped skills share one `_cli/` at the group level:
+**Grouped skills** share `_bootstrap/`, `_cli/`, `_cli.json` at the group level:
 
-```
+```text
 skills/<group>/
-  _cli/                   merged into every child on install
+  _bootstrap/
+  _cli/
+  _cli.json
   <skill-a>/
-    config.json
+    _config.json
     SKILL.md
   <skill-b>/
-    config.json
+    _config.json
     SKILL.md
 ```
 
-The registry generator scans recursively and skips any `_cli/` directory. The installer searches flat first, then one level of group nesting, and merges the group's `_cli/` when the child has none.
+Shared artifacts exist **only at the group level**. The child skill dir holds only `_config.json` + `SKILL.md`.
 
-### Adding a skill
+## Metadata files
 
-1. Copy `templates/skill/` for a flat skill or `templates/group/` for a group.
-2. Drop it under `skills/` (optionally under a vertical directory).
-3. Edit `SKILL.md` (frontmatter + agent prompt) and `config.json`.
-4. Run `make generate`.
-5. Update the `//go:embed` directive in `skills/skills.go` if adding a new vertical directory.
+Four files, four consumers:
 
-### Metadata split
-
-Metadata is split across three files:
-
-**`SKILL.md` frontmatter** — OpenClaw-native fields:
+**`SKILL.md` frontmatter** — OpenClaw-native, consumed by the agent and by `gen-registry`:
 
 ```yaml
 ---
@@ -97,58 +86,105 @@ metadata:
   openclaw:
     os: [darwin, linux, windows]
     requires:
-      bins: [node]
+      bins: [sa-cli]
       config: []
 ---
 ```
 
-**`config.json`** (dev-only) — clawkit-specific fields:
+**`_config.json`** (dev-only) — consumed only by `gen-registry`. Never copied to the install:
 
 ```json
 {
   "version": "1.0.0",
-  "setup_prompts": [{"key": "shop_name", "label": "Shop name"}],
-  "exclude": ["*.tmp"]
+  "setup_prompts": [{"key": "shop_name", "label": "Shop name"}]
 }
 ```
 
-**`clawkit.json`** (installed) — written by the installer into the installed skill directory:
+**`_cli.json`** — runtime install rules, consumed by `internal/runtime`:
 
 ```json
 {
-  "version": "1.0.0",
-  "user_inputs": {"shop_name": "Hoa Xuan"}
+  "exclude":    ["cmd"],
+  "data_paths": ["sa-data"],
+  "bins":       ["sa-cli"]
 }
 ```
 
-`user_inputs` is preserved across `clawkit update` so placeholders are re-baked into the new `SKILL.md` without re-prompting. `config.json` is excluded from the installed directory — only `clawkit.json` lives there.
+- `exclude` — paths inside `_cli/` skipped on runtime install (source dirs like `cmd/`, tests, …).
+- `data_paths` — paths preserved across re-installs (shared DBs, user-written state).
+- `bins` — names chmodded `+x` and symlinked into `~/.clawkit/bin/`.
 
-### Registry entry shape
+**`clawkit.json`** — written into each installed skill dir:
 
-Each entry in `registry.json` contains: `description`, `os`, `requires_bins`, `requires_config`, `version`, `setup_prompts`, `exclude`. `os` / `requires_bins` / `requires_config` come from `SKILL.md` frontmatter; `version` / `setup_prompts` / `exclude` come from `config.json`. The directory name is the registry key; the `name:` field in frontmatter is informational only.
+```json
+{
+  "version":     "1.0.0",
+  "group":       "study-aboard",
+  "user_inputs": { "shop_name": "Hoa Xuan" }
+}
+```
 
-### Exclude patterns
+`user_inputs` survives `clawkit update` so placeholders are re-baked without re-prompting. `group` records the group a skill was installed from (empty for flat).
 
-`exclude` in `config.json` uses `filepath.Match` syntax and is applied during `clawkit install` (`copyDir`, `copyEmbeddedSkill`). Patterns match against both full relative paths and individual path components; `**/` prefix supported.
+## Data flow
 
-### Cross-platform rules
+1. **Build-time:** `cmd/gen-registry` walks `skills/` and produces `internal/installer/registry.json` from each `SKILL.md` frontmatter + `_config.json`. A directory is recorded as a group when it holds `_cli/` *and* child `SKILL.md`s. `_cli/` is never scanned into. Directory name is the canonical key; `name:` in frontmatter is informational.
+2. **Install-time:** `internal/installer` fetches the registry (embedded → remote → local override), copies the skill dir (skipping `_config.json`, `_cli/`, `_cli.json`, `_bootstrap/`), installs the shared runtime, links bins, prompts for `setup_prompts`, updates the OpenClaw allowlist, bakes `{key}` placeholders, copies `_bootstrap/*.md` to the workspace root, and writes `clawkit.json`.
+3. **Runtime:** the agent reads `SKILL.md`; invocations in the prompt resolve `sa-cli` (or whatever) through `PATH`, backed by `~/.clawkit/bin/<bin>` → `~/.clawkit/runtimes/<key>/<bin>`.
+
+## Key packages
+
+- **`cmd/clawkit/main.go`** — CLI dispatcher: `list`, `install`, `update`, `uninstall`, `purge`, `status`, `web`, `dashboard`, `version`. `install`/`update` accept `<name> [<member>…]` where `name` resolves to either a flat skill or a group and trailing args select specific members.
+- **`cmd/gen-registry/main.go`** — Scans `skills/**/SKILL.md` + `_config.json`. Hand-written indent-aware YAML parser. Emits `registry.json` with `skills` and `groups` sections.
+- **`internal/installer/commands.go`** — Orchestrates install / update / uninstall / purge / status. Install flow: preflight → download → runtime install + link bins → prompt → allowlist → template → bootstrap → `clawkit.json`.
+- **`internal/installer/registry.go`** — Registry load (embedded + remote + local override), source resolution (`findLocalSkill`, `skills.FindSkill`), `downloadSkill`, `installLocalRuntime` / `installEmbeddedRuntime`, `alwaysExclude`.
+- **`internal/installer/lockdown.go`** — Allowlist only. `SetupWorkspace` appends to `agents.defaults.skills`; `RemoveFromWorkspace` removes the entry and clears it when empty.
+- **`internal/runtime/`** — Shared-runtime install/purge under `~/.clawkit/runtimes/<key>/`, `_cli.json` parsing, bin symlinking into `~/.clawkit/bin/`, exclude / data_paths logic.
+- **`internal/archive/`** — `tar.gz` / `zip`; strips top-level dir.
+- **`internal/config/`** — `SkillConfig { Version, Group, UserInputs }`, OpenClaw detection, `Preflight`.
+- **`internal/template/`** — `Process()` replaces `{key}` placeholders in the installed `SKILL.md`.
+- **`internal/dashboard/`** — Web dashboard served by `clawkit dashboard`.
+- **`internal/ui/`** — ANSI terminal helpers.
+- **`skills/`** — Built-in skills grouped by vertical (`ecommerce`, `finance`, `real-estate`, `sme`, `study-aboard`, `utilities`). Each vertical must be in the `//go:embed` directive at [skills/skills.go](skills/skills.go).
+- **`TEMPLATE.md`** — Reference for authoring new skills (layout, file purposes).
+
+## Adding a skill
+
+1. Create `skills/<name>/` (flat) or `skills/<group>/<name>/` (grouped).
+2. Author `SKILL.md` and `_config.json`. For grouped skills, add `_bootstrap/`, `_cli/`, `_cli.json` at the group level (shared by every member).
+3. `make generate`.
+4. If you added a new top-level vertical directory, add it to the `//go:embed` directive in [skills/skills.go](skills/skills.go).
+
+See [TEMPLATE.md](TEMPLATE.md) for each file's shape.
+
+## Non-obvious invariants
+
+- **Never edit `internal/installer/registry.json` by hand** — regenerated by `make generate`.
+- **`_config.json`, `_cli/`, `_cli.json`, `_bootstrap/` never land in the installed skill dir** — all four are in `alwaysExclude` in [internal/installer/registry.go](internal/installer/registry.go).
+- **Uninstall does NOT purge the shared runtime.** Data (SQLite DBs etc.) survives; use `clawkit purge <key>` for explicit cleanup.
+- **Runtime update preserves `data_paths`.** Re-running `clawkit install` or `clawkit update` overwrites binaries and code but leaves any path listed in `data_paths` untouched.
+- **On Windows, runtime bins are copied, not symlinked.** Symlinks there usually require admin.
+- **`registry.json` is embedded into the binary via `//go:embed`.** The binary ships a snapshot; a newer remote registry at `raw.githubusercontent.com/.../registry.json` overlays it at runtime.
+
+## Cross-platform rules
 
 | Concern | Do | Don't |
 |---|---|---|
 | File paths | `filepath.Join(a, b)` | `a + "/" + b` |
 | Temp directory | `os.TempDir()` | Hardcode `/tmp` |
-| Binary names | `name := "gog"; if goos == "windows" { name += ".exe" }` | Assume no `.exe` |
-| Unix-only syscalls | Guard with `if goos != "windows"` | Call `chmod`, `sudo` unconditionally |
-| Archive format | `.zip` on Windows, `.tar.gz` elsewhere | Assume tar.gz |
+| Binary names | Append `.exe` on Windows | Assume no `.exe` |
+| Unix-only syscalls | Guard with `runtime.GOOS != "windows"` | Call `chmod` / `sudo` unconditionally |
+| Archive format | `.zip` on Windows, `.tar.gz` elsewhere | Assume `.tar.gz` |
+| Bin linking | Symlink on Unix, copy on Windows | Symlink unconditionally |
 
-### Zero external dependencies
+## Zero external dependencies
 
-The Go module uses only the standard library. The YAML frontmatter parser in `cmd/gen-registry` is hand-written. Do not add external dependencies without discussion.
+The Go module uses only the standard library. The YAML frontmatter parser is hand-written. Do not add dependencies without discussion.
 
-### Release
+## Release
 
-1. `make release-check` — local dry run (fmt + check-generate + test + dist).
+1. `make release-check` — local dry run (`fmt + check-generate + test + dist`).
 2. `make bump V=x.y.z` — update VERSION in `Makefile` and `npm/package.json` in one shot (prevents drift).
 3. Commit, tag `vx.y.z`, push tag.
 
-Pushing the `v*` tag triggers the release workflow: cross-compile all binaries, upload per-arch `.tar.gz` (macOS/Linux) + `.exe` (Windows) to the GitHub Release, and `npm publish` as `@rockship/clawkit`. The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net, but you should always bump first via `make bump` so the repo and the release agree.
+Pushing the `v*` tag triggers the release workflow: cross-compile all binaries, upload per-arch `.tar.gz` (macOS/Linux) + `.exe` (Windows) to the GitHub Release, and `npm publish` as `@rockship/clawkit`. The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net; always bump first so the repo and the release agree.

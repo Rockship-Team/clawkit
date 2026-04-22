@@ -28,6 +28,13 @@
         "*.go"
       ]
     },
+    "agent-learner": {
+      "description": "Self-learn and improve — save successful workflows, update when gaps are found, search past experience.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "version": "1.0.0"
+    },
     "bds-broker": {
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
       "version": "4.0.0",
@@ -127,24 +134,14 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "ec-strategy": {
       "description": "Evaluate and improve extracurricular activities for Vietnamese students applying to US/UK/Canada/Australia universities. Use this skill whenever a student asks about extracurricular activities, mentions 'ngoại khoá', 'EC', 'hoạt động ngoại khoá', 'extracurricular', 'cải thiện hồ sơ', 'hoạt động nào mạnh', 'tier', or wants advice on how to strengthen their non-academic profile.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "ecom-bot": {
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
@@ -184,12 +181,7 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "finance-tracker": {
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.",
@@ -200,12 +192,7 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "gog": {
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
@@ -259,17 +246,19 @@
         "*.go"
       ]
     },
+    "knowledge-vault": {
+      "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "version": "1.0.0"
+    },
     "offer-comparison": {
       "description": "Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "ops": {
       "description": "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet.",
@@ -292,24 +281,14 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "profile-assessment": {
       "description": "Guide Vietnamese students (grades 9-12) through study abroad onboarding and profile assessment. Use this skill whenever a student mentions starting their study abroad journey, wants to evaluate their profile, mentions 'đánh giá hồ sơ', 'bắt đầu', 'muốn du học', 'tư vấn du học', 'profile của em', or when a first-time user sends any message without an existing profile. This is the entry point for the entire platform — invoke it proactively whenever the student context suggests they are new or haven't completed onboarding.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "proposal": {
       "description": "Proposal generator cho SME — viet proposal chuyen nghiep, export PDF qua Manus AI, 7-step pipeline tu client data → outline → approve → PDF.",
@@ -365,33 +344,18 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "sol-finance-coach": {
       "description": "Tro ly tai chinh ca nhan 24/7: kien thuc tai chinh, theo doi chi tieu, meo tiet kiem, ban tin hang ngay, toi uu the tin dung, loyalty va deal hunter. Khong truy cap tai khoan ngan hang.",
-      "version": "1.2.1",
-      "exclude": [
-        "cmd",
-        "tools",
-        "REQUIREMENTS.md"
-      ]
+      "version": "1.2.1"
     },
     "study-plan": {
       "description": "Create and manage personalized SAT/TOEFL/IELTS study plans for Vietnamese students. Use this skill whenever a student asks about test preparation, mentions 'lộ trình SAT', 'ôn thi', 'kế hoạch học', 'study plan', 'SAT prep', 'TOEFL plan', 'luyện thi', 'điểm SAT', 'thi lại', or shares a practice test score. Also use when a weekly check-in cron job fires for a student with an active study plan. Also invoke when a student asks about GPA improvement, course selection, 'nên chọn môn gì', 'học AP hay IB', 'GPA đang giảm', or wants advice on which courses to take for their target major.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "tax": {
       "description": "Thue SME Viet Nam — lich nop thue, tinh TNCN, VAT, TNDN, nhac han. Xuat XML cho HTKK.",
@@ -414,16 +378,12 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     }
   },
   "groups": {
     "sme": ["accounting","bi","campaign","crm","engagement","hr","legal","marketing","ops","proposal","sales","tax"],
+    "self-improving-agent": ["agent-learner","knowledge-vault"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

@@ -18,10 +18,12 @@ import (
 const ConfigFileName = "clawkit.json"
 
 // SkillConfig is the per-skill clawkit.json saved after installation.
-// Stores the installed version and the user_inputs collected from
-// setup_prompts so updates can re-bake placeholders into the new SKILL.md.
+// Stores the installed version, the group the skill belongs to (empty for
+// flat skills), and the user_inputs collected from setup_prompts so updates
+// can re-bake placeholders into the new SKILL.md.
 type SkillConfig struct {
 	Version    string            `json:"version"`
+	Group      string            `json:"group,omitempty"`
 	UserInputs map[string]string `json:"user_inputs,omitempty"`
 }
 

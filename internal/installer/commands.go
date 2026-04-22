@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,8 +17,10 @@ import (
 
 	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
+	clawruntime "github.com/rockship-co/clawkit/internal/runtime"
 	"github.com/rockship-co/clawkit/internal/template"
 	"github.com/rockship-co/clawkit/internal/ui"
+	"github.com/rockship-co/clawkit/skills"
 )
 
 // CmdList lists all available skills and groups with install status.
@@ -176,11 +179,16 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		ui.Fatal("Failed to create skill directory: %v", err)
 	}
-	if err := downloadSkill(skillName, targetDir, skill.Exclude); err != nil {
+	runtimeKey, err := downloadSkill(skillName, targetDir)
+	if err != nil {
 		os.RemoveAll(targetDir)
 		ui.Fatal("Failed to install: %v", err)
 	}
 	ui.Ok("Skill files installed to %s", targetDir)
+	if runtimeKey != "" {
+		ui.Ok("Runtime installed at %s", clawruntime.Dir(runtimeKey))
+		ensureInPath(clawruntime.BinDir(), runtime.GOOS)
+	}
 
 	if len(skill.RequiresBins) > 0 {
 		fmt.Println()
@@ -215,7 +223,7 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 		}
 	}
 
-	if n, err := applyBootstrap(targetDir, skillsDir); err != nil {
+	if n, err := applyBootstrap(skillName, skillsDir); err != nil {
 		ui.Warn("Could not apply bootstrap files: %v", err)
 	} else if n > 0 {
 		ui.Ok("Applied %d bootstrap file(s) to workspace", n)
@@ -223,6 +231,7 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 
 	cfg := &config.SkillConfig{
 		Version:    skill.Version,
+		Group:      reg.GroupOf(skillName),
 		UserInputs: userInputs,
 	}
 	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
@@ -235,30 +244,91 @@ func installOne(skillsDir string, reg *Registry, skillName string, stdinReader *
 }
 
 // applyBootstrap copies top-level .md files from the skill's _bootstrap/
-// directory into the workspace root (parent of skillsDir), overwriting
-// any existing files there. Returns the number of files copied.
-func applyBootstrap(skillDir, skillsDir string) (int, error) {
-	bootstrapDir := filepath.Join(skillDir, "_bootstrap")
-	entries, err := os.ReadDir(bootstrapDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return 0, nil
+// directory — sourced directly from skills/ on disk or the embedded FS —
+// into the workspace root (parent of skillsDir), overwriting any existing
+// files there. _bootstrap/ is never staged inside the installed skill dir.
+// For grouped skills, the group's parent _bootstrap/ is used.
+// Returns the number of files copied.
+func applyBootstrap(skillName, skillsDir string) (int, error) {
+	workspaceDir := filepath.Dir(skillsDir)
+
+	if localDir := findLocalSkill(skillName); localDir != "" {
+		if src := findLocalBootstrap(localDir); src != "" {
+			return copyBootstrapLocal(src, workspaceDir)
 		}
+		return 0, nil
+	}
+
+	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
+		if src := findEmbeddedBootstrap(embeddedPath); src != "" {
+			return copyBootstrapEmbedded(src, workspaceDir)
+		}
+	}
+	return 0, nil
+}
+
+func findLocalBootstrap(localDir string) string {
+	if info, err := os.Stat(filepath.Join(localDir, "_bootstrap")); err == nil && info.IsDir() {
+		return filepath.Join(localDir, "_bootstrap")
+	}
+	parent := filepath.Join(filepath.Dir(localDir), "_bootstrap")
+	if info, err := os.Stat(parent); err == nil && info.IsDir() {
+		return parent
+	}
+	return ""
+}
+
+func findEmbeddedBootstrap(embeddedPath string) string {
+	if info, err := fs.Stat(skills.FS, embeddedPath+"/_bootstrap"); err == nil && info.IsDir() {
+		return embeddedPath + "/_bootstrap"
+	}
+	parent := filepath.ToSlash(filepath.Dir(embeddedPath))
+	if parent == "." || parent == "" {
+		return ""
+	}
+	if info, err := fs.Stat(skills.FS, parent+"/_bootstrap"); err == nil && info.IsDir() {
+		return parent + "/_bootstrap"
+	}
+	return ""
+}
+
+func copyBootstrapLocal(src, workspaceDir string) (int, error) {
+	entries, err := os.ReadDir(src)
+	if err != nil {
 		return 0, err
 	}
-	workspaceDir := filepath.Dir(skillsDir)
 	count := 0
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
 			continue
 		}
-		src := filepath.Join(bootstrapDir, e.Name())
-		dst := filepath.Join(workspaceDir, e.Name())
-		data, err := os.ReadFile(src)
+		data, err := os.ReadFile(filepath.Join(src, e.Name()))
 		if err != nil {
 			return count, fmt.Errorf("read %s: %w", e.Name(), err)
 		}
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(workspaceDir, e.Name()), data, 0o644); err != nil {
+			return count, fmt.Errorf("write %s: %w", e.Name(), err)
+		}
+		count++
+	}
+	return count, nil
+}
+
+func copyBootstrapEmbedded(src, workspaceDir string) (int, error) {
+	entries, err := fs.ReadDir(skills.FS, src)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		data, err := fs.ReadFile(skills.FS, src+"/"+e.Name())
+		if err != nil {
+			return count, fmt.Errorf("read embedded %s: %w", e.Name(), err)
+		}
+		if err := os.WriteFile(filepath.Join(workspaceDir, e.Name()), data, 0o644); err != nil {
 			return count, fmt.Errorf("write %s: %w", e.Name(), err)
 		}
 		count++
@@ -312,7 +382,7 @@ func updateOne(reg *Registry, skillName string) {
 		}
 	}
 
-	if err := downloadSkill(skillName, targetDir, skill.Exclude); err != nil {
+	if _, err := downloadSkill(skillName, targetDir); err != nil {
 		ui.Fatal("Failed to update '%s': %v", skillName, err)
 	}
 
@@ -324,6 +394,7 @@ func updateOne(reg *Registry, skillName string) {
 
 	cfg := &config.SkillConfig{
 		Version:    skill.Version,
+		Group:      reg.GroupOf(skillName),
 		UserInputs: existingCfg.UserInputs,
 	}
 	if err := config.SaveSkillConfig(targetDir, cfg); err != nil {
@@ -366,7 +437,58 @@ func CmdUninstall(skillName string) {
 
 	fmt.Println()
 	ui.Ok("'%s' uninstalled", skillName)
+	ui.Info("Shared runtime at ~/.clawkit/runtimes/ is preserved. Remove it with 'clawkit purge <key>' if you no longer need it.")
 	ui.Info("Restart the gateway to apply: openclaw gateway restart")
+}
+
+// CmdPurge removes a shared runtime directory (~/.clawkit/runtimes/<key>)
+// and unlinks its bins from ~/.clawkit/bin. Skills that still reference the
+// runtime will break until re-installed.
+func CmdPurge(key string) {
+	dir := clawruntime.Dir(key)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		ui.Fatal("No runtime found at %s", dir)
+	}
+
+	ui.Info("Purging runtime '%s'", key)
+	fmt.Printf("  This will:\n")
+	fmt.Printf("    • Delete %s (including any user data)\n", dir)
+	fmt.Printf("    • Remove matching symlinks from %s\n\n", clawruntime.BinDir())
+	fmt.Print("  Continue? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimSpace(strings.ToLower(answer))
+	if answer != "y" && answer != "yes" {
+		fmt.Println("  Cancelled.")
+		return
+	}
+
+	bins, _ := binsForRuntime(key)
+	if err := clawruntime.Purge(key, bins); err != nil {
+		ui.Fatal("Purge failed: %v", err)
+	}
+	ui.Ok("Runtime '%s' purged", key)
+}
+
+// binsForRuntime best-effort recovers the bins list for a runtime so Purge
+// can remove them. It consults the local skills/ tree's _cli.json files.
+func binsForRuntime(key string) ([]string, error) {
+	if localDir := findLocalSkill(key); localDir != "" {
+		if spec, err := clawruntime.LoadSpec(localDir); err == nil {
+			return spec.Bins, nil
+		}
+	}
+	if parent := filepath.Join("skills", key); dirExists(parent) {
+		if spec, err := clawruntime.LoadSpec(parent); err == nil {
+			return spec.Bins, nil
+		}
+	}
+	return nil, nil
+}
+
+func dirExists(p string) bool {
+	info, err := os.Stat(p)
+	return err == nil && info.IsDir()
 }
 
 // CmdStatus shows all installed skills with their version.
@@ -568,19 +690,83 @@ func ensureInPath(dir, goos string) {
 			return
 		}
 	}
-	ui.Warn("gog installed to %s — add it to your PATH if not already:", dir)
-	shell := os.Getenv("SHELL")
-	if strings.HasSuffix(shell, "/zsh") {
-		ui.Info("  echo 'export PATH=\"%s:$PATH\"' >> ~/.zshrc && source ~/.zshrc", dir)
-	} else if strings.HasSuffix(shell, "/bash") {
-		ui.Info("  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc && source ~/.bashrc", dir)
-	} else {
+	profile := shellProfile()
+	if profile == "" {
+		ui.Warn("Could not determine shell profile — add %s to your PATH manually.", dir)
 		ui.Info("  export PATH=\"%s:$PATH\"", dir)
+		return
 	}
+	line := fmt.Sprintf("export PATH=\"%s:$PATH\"", dir)
+	if profileAlreadyAppends(profile, dir) {
+		ui.Ok("%s already on PATH via %s (restart shell to pick up)", dir, profile)
+		return
+	}
+	f, err := os.OpenFile(profile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		ui.Warn("Could not update %s: %v", profile, err)
+		ui.Info("  %s", line)
+		return
+	}
+	defer f.Close()
+	block := fmt.Sprintf("\n# Added by clawkit\n%s\n", line)
+	if _, err := f.WriteString(block); err != nil {
+		ui.Warn("Could not update %s: %v", profile, err)
+		ui.Info("  %s", line)
+		return
+	}
+	ui.Ok("Added %s to PATH via %s (restart shell or 'source %s')", dir, profile, profile)
+}
+
+// shellProfile picks the user's shell rc file based on $SHELL. Returns "" if
+// the shell is unknown or the home directory cannot be resolved.
+func shellProfile() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	shell := os.Getenv("SHELL")
+	switch {
+	case strings.HasSuffix(shell, "/zsh"):
+		return filepath.Join(home, ".zshrc")
+	case strings.HasSuffix(shell, "/bash"):
+		// ~/.bashrc on Linux, ~/.bash_profile on macOS. Both read the rc file
+		// on most setups, so prefer .bashrc; fall back to .bash_profile if it
+		// exists and .bashrc doesn't.
+		bashrc := filepath.Join(home, ".bashrc")
+		if _, err := os.Stat(bashrc); err == nil {
+			return bashrc
+		}
+		bashProfile := filepath.Join(home, ".bash_profile")
+		if _, err := os.Stat(bashProfile); err == nil {
+			return bashProfile
+		}
+		return bashrc
+	case strings.HasSuffix(shell, "/fish"):
+		return filepath.Join(home, ".config", "fish", "config.fish")
+	}
+	return ""
+}
+
+// profileAlreadyAppends reports whether the given profile file already
+// references dir — so we don't double-append on every install.
+func profileAlreadyAppends(profile, dir string) bool {
+	data, err := os.ReadFile(profile)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(data), dir)
 }
 
 func installRequiredBins(bins []string) {
 	for _, bin := range bins {
+		// Already provided: on PATH, or symlinked into ~/.clawkit/bin by the
+		// runtime install step.
+		if _, err := exec.LookPath(bin); err == nil {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(clawruntime.BinDir(), bin)); err == nil {
+			continue
+		}
 		switch bin {
 		case "gog":
 			if path, err := installGogCLI(); err != nil {
@@ -590,7 +776,7 @@ func installRequiredBins(bins []string) {
 				ui.Ok("gog CLI ready at %s", path)
 			}
 		default:
-			ui.Warn("Unknown required bin '%s' — install it manually", bin)
+			ui.Warn("Required bin '%s' not found — install it manually", bin)
 		}
 	}
 }

@@ -1,0 +1,4 @@
+{
+  "exclude": ["cmd"],
+  "bins": ["sme-cli"]
+}

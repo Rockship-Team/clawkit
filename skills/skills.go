@@ -18,7 +18,7 @@ import (
 	"io/fs"
 )
 
-//go:embed bds-broker ecommerce finance study-aboard utilities
+//go:embed bds-broker ecommerce finance self-improving-agent study-aboard utilities
 var FS embed.FS
 
 // FindSkill searches the embedded FS for a skill by name across all verticals.

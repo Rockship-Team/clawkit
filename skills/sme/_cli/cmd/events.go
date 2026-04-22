@@ -39,9 +39,11 @@ func cmdEvent(args []string) {
 	case "set-payment-info":
 		eventSetPaymentInfo(args[1:])
 	case "process-registrations":
-		errOut("process-registrations not yet implemented — Phase 2 (follows after Gmail reauth + email sync validation).")
+		eventProcessRegistrations(args[1:])
 	case "confirm-payment":
-		errOut("confirm-payment not yet implemented — Phase 2 (follows process-registrations).")
+		eventConfirmPayment(args[1:])
+	case "report":
+		eventReport(args[1:])
 	case "sync-luma":
 		errOut("sync-luma not yet implemented — follows once LUMA_API_KEY flow is wired.")
 	case "create-survey":

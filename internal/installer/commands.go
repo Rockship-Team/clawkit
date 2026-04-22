@@ -382,8 +382,13 @@ func updateOne(reg *Registry, skillName string) {
 		}
 	}
 
-	if _, err := downloadSkill(skillName, targetDir); err != nil {
+	runtimeKey, err := downloadSkill(skillName, targetDir)
+	if err != nil {
 		ui.Fatal("Failed to update '%s': %v", skillName, err)
+	}
+	if runtimeKey != "" {
+		ui.Ok("Runtime updated at %s", clawruntime.Dir(runtimeKey))
+		ensureInPath(clawruntime.BinDir(), runtime.GOOS)
 	}
 
 	if len(existingCfg.UserInputs) > 0 {

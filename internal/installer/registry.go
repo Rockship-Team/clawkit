@@ -208,7 +208,10 @@ func downloadSkill(skillName, targetDir string) (string, error) {
 		return "", fmt.Errorf("download incomplete: %w", err)
 	}
 
-	return "", archive.ExtractTarGz(tmpFile.Name(), targetDir)
+	if err := archive.ExtractTarGz(tmpFile.Name(), targetDir); err != nil {
+		return "", err
+	}
+	return installLocalRuntime(skillName, targetDir)
 }
 
 // runtimeSource locates the directory that holds the _cli/ payload for a

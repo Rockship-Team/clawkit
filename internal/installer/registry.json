@@ -241,6 +241,9 @@
     "social": {
       "version": "1.0.0",
       "description": "Social media content planner cho SME — 2 bai/tuan tren Facebook (Mon + Thu 10am ICT). Topic buckets co san theo brand, validate cadence, draft → approve → schedule workflow.",
+      "requires_bins": [
+        "sme-cli"
+      ],
       "setup_prompts": [
         {
           "key": "poster_name",
@@ -255,9 +258,7 @@
       ],
       "exclude": [
         "cmd",
-        "*.go",
-        "go.mod",
-        "go.sum"
+        "*.go"
       ]
     },
     "sol-finance-coach": {

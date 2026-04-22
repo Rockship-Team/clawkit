@@ -34,7 +34,7 @@ Skill nay chi lam content planning cho Facebook. Neu user hoi:
 ### Step 1 — Check Calendar
 
 ```bash
-ocs-cli upcoming --days 14
+sme-cli social upcoming --days 14
 ```
 
 Hien thi cac post da scheduled trong 2 tuan toi. Muc dich:
@@ -44,7 +44,7 @@ Hien thi cac post da scheduled trong 2 tuan toi. Muc dich:
 ### Step 2 — Pick Slot
 
 ```bash
-ocs-cli next-slot
+sme-cli social next-slot
 ```
 
 Return slot trong ke tiep (Mon hoac Thu 10am ICT). Dung slot nay unless user chi dinh khac.
@@ -52,7 +52,7 @@ Return slot trong ke tiep (Mon hoac Thu 10am ICT). Dung slot nay unless user chi
 ### Step 3 — Pick Topic Bucket
 
 ```bash
-ocs-cli buckets
+sme-cli social buckets
 ```
 
 Return 7 bucket hardcoded + mo ta + example angles. **CHI dung bucket co trong list**, khong tu che bucket moi.
@@ -66,8 +66,8 @@ Pick bucket:
 Load voice guide + format:
 
 ```bash
-ocs-cli voice     # Print brand voice (tone, do/dont)
-ocs-cli formats   # Print post format templates
+sme-cli social voice     # Print brand voice (tone, do/dont)
+sme-cli social formats   # Print post format templates
 ```
 
 Viet draft gom 4 phan:
@@ -79,13 +79,13 @@ Viet draft gom 4 phan:
 Save vao DB:
 
 ```bash
-ocs-cli draft <bucket> "<title>"
+sme-cli social draft <bucket> "<title>"
 # Returns id, e.g. "s_a1b2c3"
 
-ocs-cli update <id> hook "..."
-ocs-cli update <id> body "..."
-ocs-cli update <id> cta "..."
-ocs-cli update <id> media_note "..."
+sme-cli social update <id> hook "..."
+sme-cli social update <id> body "..."
+sme-cli social update <id> cta "..."
+sme-cli social update <id> media_note "..."
 ```
 
 ### Step 5 — User Review
@@ -99,7 +99,7 @@ Present draft cho user xem:
 ### Step 6 — Schedule
 
 ```bash
-ocs-cli schedule <id> <YYYY-MM-DDTHH:MM+0700>
+sme-cli social schedule <id> <YYYY-MM-DDTHH:MM+0700>
 ```
 
 CLI validate:
@@ -114,9 +114,9 @@ Sau khi schedule:
 ## Post Manually Workflow
 
 Den gio post:
-1. User chay `ocs-cli get <id>` → copy Hook + Body + CTA.
+1. User chay `sme-cli social get <id>` → copy Hook + Body + CTA.
 2. User post len Facebook bang tay.
-3. Sau khi post, chay `ocs-cli mark-posted <id>` → status = posted.
+3. Sau khi post, chay `sme-cli social mark-posted <id>` → status = posted.
 
 ## References
 
@@ -128,14 +128,14 @@ Doc khi can:
 | [voice-guide.md](references/voice-guide.md)       | Truoc khi viet hook/body             |
 | [post-formats.md](references/post-formats.md)     | Chon format phu hop bucket           |
 
-Nhung luu y **primary source = CLI output** (`ocs-cli buckets`, `ocs-cli voice`, `ocs-cli formats`). Reference files cho context sau hon neu can.
+Nhung luu y **primary source = CLI output** (`sme-cli social buckets`, `sme-cli social voice`, `sme-cli social formats`). Reference files cho context sau hon neu can.
 
 ## Rules
 
-- **Bucket = `ocs-cli buckets` ONLY.** Khong tu che bucket moi.
+- **Bucket = `sme-cli social buckets` ONLY.** Khong tu che bucket moi.
 - **Slot = Mon/Thu 10am ICT.** CLI reject cac gio khac.
 - **Step 5** = present draft → WAIT for user approval truoc khi schedule.
-- **Step 6** = `ocs-cli schedule` — ONE command.
+- **Step 6** = `sme-cli social schedule` — ONE command.
 - **Post tay.** Skill khong auto-post len Facebook. Chi draft + schedule reminder.
 - **Never invent data** — luon dung CLI output lam source of truth.
 - **Respond in same language user writes in.**

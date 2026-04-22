@@ -71,6 +71,9 @@ func main() {
 		cmdEvent(os.Args[2:])
 	case "channel":
 		cmdChannel(os.Args[2:])
+	// Social
+	case "social":
+		cmdSocial(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
 		usage()
@@ -92,5 +95,6 @@ Sales:       contact, lead, quote, order
 Ops:         task, document, license
 BI:          dashboard, report
 BD:          cosmo, apollo, proposal, event
-Channel:     channel send-file|send-message`)
+Channel:     channel send-file|send-message
+Social:      social buckets|voice|formats|next-slot|draft|update|get|list|schedule|mark-posted|upcoming|delete`)
 }

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "requires_bins": [],
+  "requires_bins": ["sme-cli"],
   "setup_prompts": [
     {
       "key": "poster_name",
@@ -13,5 +13,5 @@
       "placeholder": "YourBrand"
     }
   ],
-  "exclude": ["cmd", "*.go", "go.mod", "go.sum"]
+  "exclude": ["cmd", "*.go"]
 }

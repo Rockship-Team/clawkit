@@ -1,6 +1,6 @@
 {
   "name": "@rockship/clawkit",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "CLI tool for installing and managing OpenClaw skills",
   "keywords": [
     "openclaw",

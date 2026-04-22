@@ -1,5 +1,5 @@
 ---
-name: sme-bi
+name: bi
 description: "Dashboard & bao cao SME Viet Nam — tong quan CEO, P&L, dong tien, cong no, xu huong doanh thu."
 metadata:
   openclaw:

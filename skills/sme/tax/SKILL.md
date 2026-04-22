@@ -1,5 +1,5 @@
 ---
-name: sme-tax
+name: tax
 description: "Thue SME Viet Nam — lich nop thue, tinh TNCN, VAT, TNDN, nhac han. Xuat XML cho HTKK."
 metadata:
   openclaw:

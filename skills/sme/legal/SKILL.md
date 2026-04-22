@@ -1,5 +1,5 @@
 ---
-name: sme-legal
+name: legal
 description: "Phap ly SME Viet Nam — tra cuu luat doanh nghiep, theo doi giay phep, hop dong lao dong, luat thue."
 metadata:
   openclaw:

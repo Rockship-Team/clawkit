@@ -1,5 +1,5 @@
 ---
-name: sme-hr
+name: hr
 description: "Nhan su SME Viet Nam — quan ly nhan vien, tinh luong BHXH/TNCN, nghi phep, hop dong lao dong."
 metadata:
   openclaw:

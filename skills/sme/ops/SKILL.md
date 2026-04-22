@@ -1,5 +1,5 @@
 ---
-name: sme-ops
+name: ops
 description: "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet."
 metadata:
   openclaw:

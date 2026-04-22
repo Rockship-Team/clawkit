@@ -1,5 +1,5 @@
 ---
-name: sme-accounting
+name: accounting
 description: "Ke toan SME Viet Nam — hoa don, cong no, doi soat ngan hang, du bao dong tien, chi phi. Ket noi MISA AMIS."
 metadata:
   openclaw:

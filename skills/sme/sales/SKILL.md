@@ -1,5 +1,5 @@
 ---
-name: sme-sales
+name: sales
 description: "Ban hang fulfillment cho SME Viet Nam — bao gia local, don hang, payment terms. Khong lam CRM/campaign/engagement/proposal (xem sme-crm, sme-campaign, sme-engagement, sme-proposal)."
 metadata:
   openclaw:

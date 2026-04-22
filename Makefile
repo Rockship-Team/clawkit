@@ -1,4 +1,4 @@
-VERSION := 0.4.6
+VERSION := 0.4.7
 BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X main.version=$(VERSION)

@@ -48,7 +48,7 @@ func loadVaultConfig() vaultConfig {
 		}
 	}
 
-	// 3. Legacy: knowledge-vault skill directory
+	// 3. Legacy: knowledge-vault skill directory (openclaw layout)
 	if configPath == "" {
 		legacy := filepath.Join(home, ".openclaw", "workspace", "skills", "knowledge-vault", "vault-config.json")
 		if _, err := os.Stat(legacy); err == nil {
@@ -56,16 +56,17 @@ func loadVaultConfig() vaultConfig {
 		}
 	}
 
-	// 4. Default: _cli directory (co-located with binary)
-	cliDir := filepath.Join(home, ".openclaw", "workspace", "skills", "self-improving-agent", "_cli")
+	// 4. Default: knowledge-vault inside clawkit workspace
 	if configPath == "" {
-		configPath = filepath.Join(cliDir, "vault-config.json")
+		configPath = filepath.Join(home, ".openclaw", "workspace", "skills", "knowledge-vault", "vault-config.json")
 	}
 
 	skillDir := filepath.Dir(configPath)
+	// db lives in the shared runtime dir so it survives skill re-installs
+	runtimeDataDir := filepath.Join(home, ".clawkit", "runtimes", "self-improving-agent", "data")
 	defaultCfg := vaultConfig{
 		VaultPath: skillDir,
-		DBPath:    filepath.Join(skillDir, "data", "session.db"),
+		DBPath:    filepath.Join(runtimeDataDir, "session.db"),
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -91,7 +92,7 @@ func loadVaultConfig() vaultConfig {
 		cfg.VaultPath = skillDir
 	}
 	if cfg.DBPath == "" {
-		cfg.DBPath = filepath.Join(skillDir, "data", "session.db")
+		cfg.DBPath = filepath.Join(runtimeDataDir, "session.db")
 	}
 
 	return cfg

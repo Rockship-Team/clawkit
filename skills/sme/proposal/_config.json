@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    {
+      "key": "manus_api_key",
+      "label": "Manus AI API key (bat buoc de tao PDF)",
+      "placeholder": "manus_..."
+    },
+    {
+      "key": "company_name",
+      "label": "Ten doanh nghiep cua ban (hien len proposal)",
+      "placeholder": "Rockship"
+    }
+  ]
+}

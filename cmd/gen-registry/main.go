@@ -29,7 +29,6 @@ import (
 type SkillConfig struct {
 	Version      string        `json:"version"`
 	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
-	Exclude      []string      `json:"exclude,omitempty"`
 }
 
 // SetupPrompt defines an interactive prompt shown during clawkit install.
@@ -57,7 +56,6 @@ type RegistrySkill struct {
 	RequiresConfig []string      `json:"requires_config,omitempty"`
 	Version        string        `json:"version"`
 	SetupPrompts   []SetupPrompt `json:"setup_prompts,omitempty"`
-	Exclude        []string      `json:"exclude,omitempty"`
 }
 
 // Registry is the top-level structure of registry.json.
@@ -99,7 +97,6 @@ func main() {
 			RequiresConfig: s.RequiresConfig,
 			Version:        s.Config.Version,
 			SetupPrompts:   s.Config.SetupPrompts,
-			Exclude:        s.Config.Exclude,
 		}
 	}
 
@@ -220,9 +217,9 @@ func loadSkillEntry(skillDir, dirName string) (SkillEntry, error) {
 		return SkillEntry{}, err
 	}
 
-	cfg, err := loadSkillConfig(filepath.Join(skillDir, "config.json"))
+	cfg, err := loadSkillConfig(filepath.Join(skillDir, "_config.json"))
 	if err != nil {
-		return SkillEntry{}, fmt.Errorf("config.json: %w", err)
+		return SkillEntry{}, fmt.Errorf("_config.json: %w", err)
 	}
 
 	if meta.description == "" {

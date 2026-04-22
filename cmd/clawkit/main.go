@@ -43,6 +43,12 @@ func main() {
 			os.Exit(1)
 		}
 		installer.CmdUninstall(os.Args[2])
+	case "purge":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit purge <runtime-key>")
+			os.Exit(1)
+		}
+		installer.CmdPurge(os.Args[2])
 	case "status":
 		installer.CmdStatus()
 	case "web":
@@ -83,6 +89,7 @@ Commands:
                                   selected members of a group
   update  <name> [<member>...]    Update (same resolution as install)
   uninstall <skill>               Uninstall a single skill
+  purge <runtime-key>             Remove a shared runtime (~/.clawkit/runtimes/<key>)
   status                Show installed skills
   web <skill>           Serve the skill web UI at http://localhost:7432
   dashboard             Start web dashboard (default port 7432)

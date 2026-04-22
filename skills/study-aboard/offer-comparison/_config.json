@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "requires_bins": [
+    "sa-cli"
+  ],
+  "setup_prompts": []
+}

@@ -268,10 +268,10 @@ func applyBootstrap(skillName, skillsDir string) (int, error) {
 }
 
 func findLocalBootstrap(localDir string) string {
-	if info, err := os.Stat(filepath.Join(localDir, "_bootstrap")); err == nil && info.IsDir() {
-		return filepath.Join(localDir, "_bootstrap")
+	if info, err := os.Stat(filepath.Join(localDir, "bootstrap")); err == nil && info.IsDir() {
+		return filepath.Join(localDir, "bootstrap")
 	}
-	parent := filepath.Join(filepath.Dir(localDir), "_bootstrap")
+	parent := filepath.Join(filepath.Dir(localDir), "bootstrap")
 	if info, err := os.Stat(parent); err == nil && info.IsDir() {
 		return parent
 	}
@@ -279,15 +279,15 @@ func findLocalBootstrap(localDir string) string {
 }
 
 func findEmbeddedBootstrap(embeddedPath string) string {
-	if info, err := fs.Stat(skills.FS, embeddedPath+"/_bootstrap"); err == nil && info.IsDir() {
-		return embeddedPath + "/_bootstrap"
+	if info, err := fs.Stat(skills.FS, embeddedPath+"/bootstrap"); err == nil && info.IsDir() {
+		return embeddedPath + "/bootstrap"
 	}
 	parent := filepath.ToSlash(filepath.Dir(embeddedPath))
 	if parent == "." || parent == "" {
 		return ""
 	}
-	if info, err := fs.Stat(skills.FS, parent+"/_bootstrap"); err == nil && info.IsDir() {
-		return parent + "/_bootstrap"
+	if info, err := fs.Stat(skills.FS, parent+"/bootstrap"); err == nil && info.IsDir() {
+		return parent + "/bootstrap"
 	}
 	return ""
 }

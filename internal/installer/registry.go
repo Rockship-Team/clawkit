@@ -152,7 +152,7 @@ func loadLocalRegistry() ([]byte, error) {
 // live under ~/.clawkit/runtimes/, not inside the installed skill dir.
 // _bootstrap/ is applied directly to the workspace root at install time,
 // never copied into the skill dir.
-var alwaysExclude = []string{"_config.json", runtime.CLIDir, runtime.SpecFile, "_bootstrap"}
+var alwaysExclude = []string{"_config.json", runtime.CLIDir, runtime.SpecFile, "bootstrap"}
 
 // downloadSkill installs a skill's files into targetDir. Sources in priority
 // order: local → embedded → remote .tar.gz. Returns the runtime key (group

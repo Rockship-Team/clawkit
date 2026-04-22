@@ -1,6 +1,6 @@
 {
   "name": "@rockship-team/clawkit",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },

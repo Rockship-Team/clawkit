@@ -1,4 +1,4 @@
-VERSION := 0.5.1
+VERSION := 0.5.2
 BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X github.com/rockship-co/clawkit/internal/version.Version=$(VERSION)

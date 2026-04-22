@@ -121,6 +121,10 @@ vault-cli memory replace MEMORY.md <old> <new>
 - When memory is full (>2200 chars), MUST condense before adding.
 - Every skill file MUST have: name, description, step-by-step procedure, creation date.
 
+## STORAGE LOCATION
+
+Learned skills are stored at `~/.openclaw/workspace/skills/knowledge-vault/skills/`. This directory persists across skill updates and uninstalls.
+
 ## SKILL FILE STRUCTURE
 
 Every saved skill must have:

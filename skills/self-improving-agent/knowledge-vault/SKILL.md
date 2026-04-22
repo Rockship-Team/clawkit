@@ -109,15 +109,20 @@ List sessions:
 vault-cli session list
 ```
 
+## VAULT LOCATION
+
+All notes are stored at `~/.openclaw/workspace/skills/knowledge-vault/`. This directory is separate from the skill installation folder so data persists across skill updates and uninstalls.
+
 ## INFORMATION ORGANIZATION
 
-### Suggested directories
+### Standard directories (auto-created on first use)
 
 - `meetings/` — meeting notes
 - `projects/` — project information
 - `notes/` — general notes
 - `reference/` — reference documents
 - `daily/` — daily journal
+- `skills/` — learned workflows (managed by agent-learner)
 
 ### Required frontmatter when creating notes
 

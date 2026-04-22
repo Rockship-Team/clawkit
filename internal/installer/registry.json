@@ -1,11 +1,8 @@
 {
   "skills": {
     "agent-learner": {
-      "version": "1.0.0",
       "description": "Self-learn and improve — save successful workflows, update when gaps are found, search past experience.",
-      "requires_bins": [
-        "vault-cli"
-      ],
+      "version": "1.0.0",
       "exclude": [
         "cmd",
         "*.go"
@@ -85,14 +82,14 @@
     },
     "gog": {
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
+      "requires_bins": [
+        "gog"
+      ],
       "version": "1.0.0"
     },
     "knowledge-vault": {
-      "version": "1.0.0",
       "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
-      "requires_bins": [
-        "vault-cli"
-      ],
+      "version": "1.0.0",
       "exclude": [
         "cmd",
         "*.go"
@@ -185,6 +182,7 @@
     }
   },
   "groups": {
+    "self-improving-agent": ["agent-learner","knowledge-vault"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

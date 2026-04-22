@@ -80,8 +80,8 @@ Track in `memory/heartbeat-state.json`:
 
 ```
 1. which vault-cli
-2. ~/.openclaw/workspace/skills/vault-cli/vault-cli
-3. ~/.openclaw/workspace/skills/self-improving-agent/vault-cli/vault-cli
+2. ~/.openclaw/workspace/skills/_cli/vault-cli
+3. ~/.openclaw/workspace/skills/self-improving-agent/_cli/vault-cli
 ```
 
 Use first found. Full path if not in PATH. If not found → inform user once, skip all vault-cli, continue normally.

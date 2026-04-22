@@ -28,8 +28,8 @@ To override, edit `vault-config.json` (supports `~` expansion):
 
 ```
 1. which vault-cli
-2. ~/.openclaw/workspace/skills/vault-cli/vault-cli
-3. ~/.openclaw/workspace/skills/self-improving-agent/vault-cli/vault-cli
+2. ~/.openclaw/workspace/skills/_cli/vault-cli
+3. ~/.openclaw/workspace/skills/self-improving-agent/_cli/vault-cli
 ```
 
 If not found → inform user once, skip all vault-cli calls, continue normally.

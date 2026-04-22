@@ -1,7 +1,11 @@
 ---
 name: agent-learner
 description: "Self-learn and improve — save successful workflows, update when gaps are found, search past experience."
-metadata: { "openclaw": { "emoji": "🔄" } }
+metadata:
+  openclaw:
+    emoji: "🔄"
+    requires:
+      bins: [vault-cli]
 ---
 
 # Agent Learner (Hermes Self-Improvement)

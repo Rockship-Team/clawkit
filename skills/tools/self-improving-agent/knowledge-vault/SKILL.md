@@ -1,7 +1,11 @@
 ---
 name: knowledge-vault
 description: "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information."
-metadata: { "openclaw": { "emoji": "🧠" } }
+metadata:
+  openclaw:
+    emoji: "🧠"
+    requires:
+      bins: [vault-cli]
 ---
 
 # Knowledge Vault

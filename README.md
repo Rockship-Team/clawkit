@@ -3,10 +3,16 @@
 CLI skill manager for [OpenClaw](https://docs.openclaw.ai) AI agents. Install, configure, and manage AI skills with one command.
 
 ```bash
-npm install -g @rockship/clawkit
+# One-time: authenticate with GitHub Packages (PAT needs `read:packages`)
+npm login --scope=@rockship-team --registry=https://npm.pkg.github.com
+# …or add to ~/.npmrc:
+#   @rockship-team:registry=https://npm.pkg.github.com
+#   //npm.pkg.github.com/:_authToken=<GITHUB_PAT>
+
+npm install -g @rockship-team/clawkit
 ```
 
-The package ships platform binaries, skill files, and `registry.json`. The `clawkit` command (a tiny Node wrapper) resolves the right binary for your OS/arch and points it at the skills shipped in the same package. Skill runtimes (the `_engine/` payloads) still land in `~/.clawkit/engines/` and `~/.clawkit/bin` is added to your `PATH` at first install.
+The package is distributed through **GitHub Packages** (private, free for private repos). It ships platform binaries, skill files, and `registry.json`. The `clawkit` command (a tiny Node wrapper) resolves the right binary for your OS/arch and points it at the skills shipped in the same package. Skill engines (the `_engine/` payloads) land in `~/.clawkit/engines/` and `~/.clawkit/bin` is added to your `PATH` at first install.
 
 Built by [Rockship](https://rockship.co) | [Architecture](./ARCHITECTURE.md) | [Template](./TEMPLATE.md)
 
@@ -219,7 +225,7 @@ git tag v1.2.0
 git push && git push --tags
 ```
 
-Pushing the `v*` tag triggers GitHub Actions: cross-compile all binaries, stage `npm/` (binaries + `skills/` + `registry.json`), and `npm publish` as `@rockship/clawkit`. Distribution is npm-only; the GitHub repo can stay private because npm handles the auth.
+Pushing the `v*` tag triggers GitHub Actions: cross-compile all binaries, stage `npm/` (binaries + `skills/` + `registry.json`), and `npm publish` as `@rockship-team/clawkit` to **GitHub Packages** (registry `npm.pkg.github.com`), authenticated with the repo's `GITHUB_TOKEN`. Distribution is GitHub Packages only; the repo and the package are both private.
 
 ---
 

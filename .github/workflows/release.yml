@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rockship-team'
 
       - name: Extract version from tag
         id: version
@@ -42,7 +44,7 @@ jobs:
       - name: Stage npm package
         run: make npm-stage
 
-      - name: Publish to npm
-        run: cd npm && npm publish --access restricted
+      - name: Publish to GitHub Packages
+        run: cd npm && npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

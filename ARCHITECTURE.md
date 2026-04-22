@@ -310,6 +310,6 @@ The `v*` tag triggers `.github/workflows/release.yml`:
   - Runs `npm version` so `npm/package.json` matches the tag.
 - Runs `npm publish --access restricted` from `npm/` using `${{ secrets.NPM_TOKEN }}`.
 
-Distribution is npm-only, which means the GitHub repo can stay **private** — npm (or GitHub Packages if you swap the registry) handles auth for end users. Users install via `npm install -g @rockship/clawkit`; the binary ends up under `<node>/lib/node_modules/@rockship/clawkit/binaries/…` and is invoked through the wrapper at `<node>/bin/clawkit`. Skill files live in the same npm package (`<pkg>/skills/`) and are located at runtime via the `CLAWKIT_SKILLS_DIR` env var set by the wrapper — no network fetch, no cache layer.
+Distribution is npm-only, which means the GitHub repo can stay **private** — npm (or GitHub Packages if you swap the registry) handles auth for end users. Users install via `npm install -g @rockship-team/clawkit`; the binary ends up under `<node>/lib/node_modules/@rockship-team/clawkit/binaries/…` and is invoked through the wrapper at `<node>/bin/clawkit`. Skill files live in the same npm package (`<pkg>/skills/`) and are located at runtime via the `CLAWKIT_SKILLS_DIR` env var set by the wrapper — no network fetch, no cache layer.
 
 The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net, but the canonical flow is `make bump` first.

@@ -1,4 +1,4 @@
-VERSION := 0.5.0
+VERSION := 0.5.1
 BINARY  := clawkit
 CMD     := ./cmd/clawkit
 LDFLAGS := -s -w -X github.com/rockship-co/clawkit/internal/version.Version=$(VERSION)
@@ -81,9 +81,9 @@ npm-pack: npm-stage
 	cd npm && npm pack
 	@echo "Local tarball ready: npm/rockship-clawkit-$(VERSION).tgz"
 
-## npm-publish: Stage and publish to the npm registry (needs NPM_TOKEN)
+## npm-publish: Stage and publish to GitHub Packages (needs NODE_AUTH_TOKEN)
 npm-publish: npm-stage
-	cd npm && npm publish --access restricted
+	cd npm && npm publish
 
 ## release-check: Run everything the release workflow will run (dry run)
 release-check: fmt check-generate test npm-stage

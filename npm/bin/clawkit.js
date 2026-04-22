@@ -33,7 +33,7 @@ const binary      = path.join(binariesDir, platformAsset());
 if (!fs.existsSync(binary)) {
     console.error(`clawkit: binary not found at ${binary}`);
     console.error("The npm package appears to be incomplete — try reinstalling:");
-    console.error("  npm install -g @rockship/clawkit");
+    console.error("  npm install -g @rockship-team/clawkit");
     process.exit(1);
 }
 

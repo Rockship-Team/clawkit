@@ -28,7 +28,7 @@ CGO_ENABLED=0 go test -v ./internal/archive/...
 
 ## What clawkit is
 
-A CLI skill manager for OpenClaw AI agents. A "skill" is `SKILL.md` (AI prompt with optional `{key}` placeholders) plus optional persona files (`_bootstrap/`), an optional runtime (`_engine/`), and dev metadata (`config.json`). Distributed as a single npm package `@rockship/clawkit` containing platform binaries (`binaries/`), skill files (`skills/`), and `registry.json`. A tiny Node wrapper (`bin/clawkit.js`) picks the right binary per OS/arch and points it at the packaged skills via `CLAWKIT_SKILLS_DIR` and `CLAWKIT_REGISTRY` env vars. The GitHub repo can stay private — npm (or GitHub Packages) handles auth.
+A CLI skill manager for OpenClaw AI agents. A "skill" is `SKILL.md` (AI prompt with optional `{key}` placeholders) plus optional persona files (`_bootstrap/`), an optional runtime (`_engine/`), and dev metadata (`config.json`). Distributed as a single npm package `@rockship-team/clawkit` published to **GitHub Packages** (`npm.pkg.github.com` — private registry, free for private repos), containing platform binaries (`binaries/`), skill files (`skills/`), and `registry.json`. A tiny Node wrapper (`bin/clawkit.js`) picks the right binary per OS/arch and points it at the packaged skills via `CLAWKIT_SKILLS_DIR` and `CLAWKIT_REGISTRY` env vars. 
 
 ## Install destinations
 
@@ -188,7 +188,7 @@ The Go module uses only the standard library. The YAML frontmatter parser is han
 2. `make bump V=x.y.z` — sync VERSION across `Makefile` and `npm/package.json` so dev view and published view can't drift.
 3. Commit, tag `vx.y.z`, push tag.
 
-Pushing the `v*` tag triggers `.github/workflows/release.yml`: cross-compile all binaries, run `make npm-stage` (copy binaries into `npm/binaries/`, skills into `npm/skills/`, `registry.json` into `npm/`), then `npm publish --access restricted` using `${{ secrets.NPM_TOKEN }}`. The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net; always bump first.
+Pushing the `v*` tag triggers `.github/workflows/release.yml`: cross-compile all binaries, run `make npm-stage` (copy binaries into `npm/binaries/`, skills into `npm/skills/`, `registry.json` into `npm/`), then `npm publish` to GitHub Packages (`npm.pkg.github.com`) authenticated by the repo-scoped `${{ secrets.GITHUB_TOKEN }}`. The workflow also `sed`s the Makefile VERSION in-place at runtime as a safety net; always bump first.
 
 ### How skills are located at install time
 

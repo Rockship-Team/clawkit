@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    { "key": "company_name", "label": "Ten doanh nghiep", "placeholder": "Cong ty TNHH ABC" },
+    { "key": "default_payment_terms", "label": "Dieu kien TT mac dinh (cod|net15|net30|net60|prepaid)", "placeholder": "net30" }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

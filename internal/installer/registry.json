@@ -1,5 +1,29 @@
 {
   "skills": {
+    "accounting": {
+      "description": "Ke toan SME Viet Nam — hoa don, cong no, doi soat ngan hang, du bao dong tien, chi phi. Ket noi MISA AMIS.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "tax_code",
+          "label": "Ma so thue",
+          "placeholder": "0123456789"
+        }
+      ]
+    },
     "agent-learner": {
       "description": "Self-learn and improve — save successful workflows, update when gaps are found, search past experience.",
       "requires_bins": [
@@ -25,6 +49,18 @@
           "placeholder": "123456789,987654321"
         }
       ]
+    },
+    "bi": {
+      "description": "Dashboard & bao cao SME Viet Nam — tong quan CEO, P&L, dong tien, cong no, xu huong doanh thu.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0"
     },
     "deadline-tracker": {
       "description": "Track application deadlines and send proactive alerts for Vietnamese students applying to universities. Use this skill whenever a student asks about deadlines, application status, mentions 'deadline', 'hạn nộp', 'lịch nộp hồ sơ', 'trạng thái hồ sơ', 'khi nào nộp', 'còn bao lâu nữa', 'đã submit chưa', or when proactively checking on upcoming deadlines. Also handles post-submission checklists.",
@@ -66,6 +102,30 @@
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
       "version": "1.0.0"
     },
+    "hr": {
+      "description": "Nhan su SME Viet Nam — quan ly nhan vien, tinh luong BHXH/TNCN, nghi phep, hop dong lao dong.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "region",
+          "label": "Vung luong toi thieu (I|II|III|IV)",
+          "placeholder": "I"
+        }
+      ]
+    },
     "knowledge-vault": {
       "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
       "requires_bins": [
@@ -73,10 +133,51 @@
       ],
       "version": "1.0.0"
     },
+    "legal": {
+      "description": "Phap ly SME Viet Nam — tra cuu luat doanh nghiep, theo doi giay phep, hop dong lao dong, luat thue.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "business_type",
+          "label": "Loai hinh DN (tnhh|cp|htx|ho_kd)",
+          "placeholder": "tnhh"
+        },
+        {
+          "key": "industry",
+          "label": "Nganh chinh (fnb|healthcare|education|construction|retail|it|manufacturing|transport|other)",
+          "placeholder": "retail"
+        }
+      ]
+    },
     "offer-comparison": {
       "description": "Help Vietnamese students compare real admission offers, evaluate financial aid packages, and make their final enrollment decision. Use this skill whenever a student mentions receiving admission results, 'kết quả', 'được nhận', 'offer', 'so sánh trường', 'học phí thực tế', 'nên chọn trường nào', 'deadline quyết định', 'nộp deposit', 'financial aid package', or wants to record/review acceptance/rejection results.",
       "requires_bins": [
         "sa-cli"
+      ],
+      "version": "1.0.0"
+    },
+    "ops": {
+      "description": "Van hanh SME Viet Nam — quan ly cong viec, tai lieu, cuoc hop, giay phep, phe duyet.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
       ],
       "version": "1.0.0"
     },
@@ -98,6 +199,30 @@
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\".",
       "version": "1.0.0"
     },
+    "sales": {
+      "description": "Ban hang SME Viet Nam — quan ly lead, contact, bao gia, don hang, theo doi pipeline.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "default_payment_terms",
+          "label": "Dieu kien TT mac dinh (cod|net15|net30|net60|prepaid)",
+          "placeholder": "net30"
+        }
+      ]
+    },
     "school-matching": {
       "description": "Help Vietnamese students find and evaluate universities matching their profile across USA, UK, Canada, and Australia. Use this skill whenever a student asks about choosing schools, wants school recommendations, mentions 'chọn trường', 'gợi ý trường', 'danh sách trường', 'trường nào phù hợp', 'nên apply đâu', 'Reach Target Safety', 'UCAS', 'trường Anh', 'trường Canada', 'trường Úc', or asks about a specific university. Invoke proactively when the student has a complete profile but no school list yet.",
       "requires_bins": [
@@ -116,6 +241,35 @@
       ],
       "version": "1.0.0"
     },
+    "tax": {
+      "description": "Thue SME Viet Nam — lich nop thue, tinh TNCN, VAT, TNDN, nhac han. Xuat XML cho HTKK.",
+      "os": [
+        "darwin",
+        "linux",
+        "windows"
+      ],
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "version": "1.0.0",
+      "setup_prompts": [
+        {
+          "key": "company_name",
+          "label": "Ten doanh nghiep",
+          "placeholder": "Cong ty TNHH ABC"
+        },
+        {
+          "key": "tax_code",
+          "label": "Ma so thue",
+          "placeholder": "0123456789"
+        },
+        {
+          "key": "vat_frequency",
+          "label": "Tan suat khai VAT (monthly|quarterly)",
+          "placeholder": "quarterly"
+        }
+      ]
+    },
     "weekly-checkin": {
       "description": "Proactively check in with Vietnamese students every week to review overall study abroad progress — SAT/TOEFL scores, essay drafts, EC updates, upcoming deadlines, and next priority actions. Use this skill whenever a weekly cron job fires for a student, or when a student asks for a general progress update, mentions 'tuần này', 'cập nhật tiến độ', 'tổng hợp', 'nhìn lại tuần này', 'mình đang ở đâu rồi', 'còn phải làm gì', or 'check-in'.",
       "requires_bins": [
@@ -126,6 +280,7 @@
   },
   "groups": {
     "self-improving-agent": ["agent-learner","knowledge-vault"],
+    "sme": ["accounting","bi","hr","legal","ops","sales","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

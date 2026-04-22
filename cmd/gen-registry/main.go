@@ -6,7 +6,7 @@
 //	metadata.openclaw.os, metadata.openclaw.requires.bins,
 //	metadata.openclaw.requires.config.
 //
-// config.json provides: version, setup_prompts, exclude.
+// config.json provides: version, setup_prompts.
 //
 // Usage:
 //
@@ -121,7 +121,7 @@ func main() {
 		return
 	}
 
-	if err := os.WriteFile(registryPath, generated, 0644); err != nil {
+	if err := os.WriteFile(registryPath, generated, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", registryPath, err)
 		os.Exit(1)
 	}

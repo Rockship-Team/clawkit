@@ -1,0 +1,74 @@
+{
+  "source": "Luat Doanh nghiep 2020, Luat Dau tu 2020 (Danh muc nganh nghe co dieu kien)",
+  "note": "Liet ke mot so giay phep dien hinh cho SME. Kiem tra Cong TTHC quoc gia (dichvucong.gov.vn) de xac minh yeu cau cu the theo thoi diem va dia phuong.",
+  "industries": [
+    {
+      "industry": "F&B / nha hang / quan an",
+      "required_permits": [
+        { "name": "Giay chung nhan co so du dieu kien ATTP", "authority": "Chi cuc ATTP / So Y te", "validity_years": 3 },
+        { "name": "Giay phep PCCC", "authority": "Canh sat PCCC", "validity_years": null, "note": "Yeu cau neu dien tich >= 300m2 hoac khach >= 50 nguoi" },
+        { "name": "Giay phep ban le ruou / bia (neu co)", "authority": "Phong Kinh te quan/huyen", "validity_years": 5 },
+        { "name": "Giay phep kinh doanh thuoc la (neu co)", "authority": "So Cong Thuong", "validity_years": 5 }
+      ]
+    },
+    {
+      "industry": "Y te / phong kham / nha thuoc",
+      "required_permits": [
+        { "name": "Giay phep hoat dong kham chua benh", "authority": "So Y te", "validity_years": null },
+        { "name": "Chung chi hanh nghe (cho bac si / duoc si)", "authority": "So Y te", "validity_years": null },
+        { "name": "GPP / GDP / GSP cho nha thuoc / kho thuoc", "authority": "So Y te", "validity_years": 3 }
+      ]
+    },
+    {
+      "industry": "Giao duc / trung tam ngoai ngu / day them",
+      "required_permits": [
+        { "name": "Giay phep hoat dong giao duc", "authority": "So GD&DT hoac Phong GD&DT", "validity_years": null },
+        { "name": "Quyet dinh thanh lap truong / trung tam", "authority": "UBND cap tinh/huyen tuy quy mo", "validity_years": null }
+      ]
+    },
+    {
+      "industry": "Xay dung",
+      "required_permits": [
+        { "name": "Chung chi nang luc hoat dong xay dung", "authority": "Bo Xay dung / So Xay dung", "validity_years": 10 },
+        { "name": "Chung chi hanh nghe (ca nhan)", "authority": "So Xay dung / Bo", "validity_years": 5 },
+        { "name": "Giay phep xay dung (cho tung cong trinh)", "authority": "So Xay dung / UBND", "validity_years": null }
+      ]
+    },
+    {
+      "industry": "Van tai hanh khach / hang hoa",
+      "required_permits": [
+        { "name": "Giay phep kinh doanh van tai", "authority": "So GTVT", "validity_years": 7 },
+        { "name": "Phu hieu / bien hieu xe", "authority": "So GTVT", "validity_years": 7 }
+      ]
+    },
+    {
+      "industry": "San xuat / che bien thuc pham",
+      "required_permits": [
+        { "name": "Giay chung nhan co so du dieu kien ATTP", "authority": "Bo NN&PTNT / Bo Y te / Bo Cong Thuong tuy san pham", "validity_years": 3 },
+        { "name": "Cong bo san pham / Tu cong bo", "authority": "Ban An toan thuc pham / So Y te", "validity_years": null },
+        { "name": "Giay phep moi truong (neu quy mo lon)", "authority": "So TN&MT / Bo TN&MT", "validity_years": null }
+      ]
+    },
+    {
+      "industry": "Ban le hang hoa thong thuong",
+      "required_permits": [
+        { "name": "Giay chung nhan dang ky doanh nghiep", "authority": "So KH&DT", "validity_years": null, "note": "Co ban — ai cung can" },
+        { "name": "Giay phep lap co so ban le (voi DN co von NN)", "authority": "So Cong Thuong", "validity_years": null }
+      ]
+    },
+    {
+      "industry": "IT / phan mem / dich vu so",
+      "required_permits": [
+        { "name": "Giay phep cung cap dich vu mang xa hoi (neu co)", "authority": "Bo TT&TT", "validity_years": 10 },
+        { "name": "Giay phep kinh doanh tro choi dien tu (neu co)", "authority": "Bo TT&TT / So TT&TT", "validity_years": null },
+        { "name": "Thong bao website TMDT / DK san TMDT", "authority": "Bo Cong Thuong (online.gov.vn)", "validity_years": null }
+      ]
+    }
+  ],
+  "common_to_all": [
+    "Giay chung nhan dang ky doanh nghiep (SO KH&DT).",
+    "Le phi mon bai hang nam (xem license_fees_vn.json).",
+    "Ma so thue + hoa don dien tu (Thong tu 78/2021/TT-BTC).",
+    "Khai bao lao dong + tham gia BHXH cho NLD."
+  ]
+}

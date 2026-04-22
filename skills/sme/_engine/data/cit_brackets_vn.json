@@ -1,0 +1,37 @@
+{
+  "source": "Luat Thue TNDN 2008 (sua doi 2013, 2014, 2020), Nghi dinh 218/2013/ND-CP",
+  "effective_from": "2020-01-01",
+  "standard_rate_pct": 20,
+  "preferential_rates": [
+    {
+      "rate_pct": 10,
+      "duration_years": 15,
+      "applies_to": ["du an cong nghe cao", "nghien cuu khoa hoc", "phat trien phan mem", "nang luong tai tao", "du an dau tu dac biet"]
+    },
+    {
+      "rate_pct": 17,
+      "duration_years": 10,
+      "applies_to": ["du an tai dia ban co dieu kien kinh te-xa hoi kho khan"]
+    },
+    {
+      "rate_pct": 15,
+      "applies_to": ["thu nhap tu trong trot, chan nuoi, che bien nong san o dia ban khong uu dai"]
+    }
+  ],
+  "sme_preferential": {
+    "note": "Doanh nghiep nho co doanh thu nam < 3 ty: 15%. Doanh thu 3-50 ty: 17%. Ap dung theo Nghi quyet 116/2020/QH14 / 43/2022/QH15 tung ky — CAN KIEM TRA hieu luc.",
+    "brackets": [
+      { "revenue_max": 3000000000, "rate_pct": 15 },
+      { "revenue_max": 50000000000, "rate_pct": 17 },
+      { "revenue_max": null, "rate_pct": 20 }
+    ]
+  },
+  "tax_exempt_income": [
+    "thu nhap tu trong trot, chan nuoi, nuoi trong thuy san cua hop tac xa",
+    "thu nhap tu hoat dong khoa hoc cong nghe theo quy dinh",
+    "thu nhap tu chuyen nhuong chung chi giam phat thai"
+  ],
+  "loss_carry_forward_years": 5,
+  "quarterly_temporary_filing": true,
+  "annual_finalization_deadline_months_after_fy_end": 3
+}

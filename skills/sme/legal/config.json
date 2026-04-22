@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    { "key": "company_name", "label": "Ten doanh nghiep", "placeholder": "Cong ty TNHH ABC" },
+    { "key": "business_type", "label": "Loai hinh DN (tnhh|cp|htx|ho_kd)", "placeholder": "tnhh" },
+    { "key": "industry", "label": "Nganh chinh (fnb|healthcare|education|construction|retail|it|manufacturing|transport|other)", "placeholder": "retail" }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

@@ -1,5 +1,12 @@
 {
   "skills": {
+    "agent-learner": {
+      "description": "Self-learn and improve — save successful workflows, update when gaps are found, search past experience.",
+      "requires_bins": [
+        "vault-cli"
+      ],
+      "version": "1.0.0"
+    },
     "bds-broker": {
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
       "version": "4.0.0",
@@ -21,24 +28,14 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "ec-strategy": {
       "description": "Evaluate and improve extracurricular activities for Vietnamese students applying to US/UK/Canada/Australia universities. Use this skill whenever a student asks about extracurricular activities, mentions 'ngoại khoá', 'EC', 'hoạt động ngoại khoá', 'extracurricular', 'cải thiện hồ sơ', 'hoạt động nào mạnh', 'tier', or wants advice on how to strengthen their non-academic profile.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "ecom-bot": {
       "description": "Generic e-commerce sales bot — product consultation, ordering, order tracking. Use with --profile to customize for specific domains.",
@@ -49,12 +46,7 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "finance-tracker": {
       "description": "Trợ lý chi tiêu cá nhân — ghi giao dịch vào CSV local, xem báo cáo ASCII. Chạy trên web/telegram, không cần OAuth. Song ngữ Việt/Anh.",
@@ -65,15 +57,17 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "gog": {
       "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
+      "version": "1.0.0"
+    },
+    "knowledge-vault": {
+      "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
+      "requires_bins": [
+        "vault-cli"
+      ],
       "version": "1.0.0"
     },
     "offer-comparison": {
@@ -81,36 +75,21 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "pre-departure": {
       "description": "Guide Vietnamese students through all pre-departure steps after accepting an admission offer — covering USA (F-1/I-20/SEVIS/DS-160), UK (Student Visa/CAS/BRP), Canada (Study Permit/CAQ), and Australia (Student Visa subclass 500/CoE). Use this skill whenever a student mentions 'visa', 'F-1', 'I-20', 'SEVIS', 'DS-160', 'Student Visa UK', 'CAS', 'Study Permit Canada', 'visa Úc', 'CoE', 'chuẩn bị đi học', 'trước khi đi', 'chỗ ở', 'ký túc xá', 'bảo hiểm', 'vé máy bay', 'orientation', or has accepted an admission offer.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "profile-assessment": {
       "description": "Guide Vietnamese students (grades 9-12) through study abroad onboarding and profile assessment. Use this skill whenever a student mentions starting their study abroad journey, wants to evaluate their profile, mentions 'đánh giá hồ sơ', 'bắt đầu', 'muốn du học', 'tư vấn du học', 'profile của em', or when a first-time user sends any message without an existing profile. This is the entry point for the entire platform — invoke it proactively whenever the student context suggests they are new or haven't completed onboarding.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "rockship-support": {
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\".",
@@ -121,48 +100,29 @@
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "sol-finance-coach": {
       "description": "Tro ly tai chinh ca nhan 24/7: kien thuc tai chinh, theo doi chi tieu, meo tiet kiem, ban tin hang ngay, toi uu the tin dung, loyalty va deal hunter. Khong truy cap tai khoan ngan hang.",
-      "version": "1.2.1",
-      "exclude": [
-        "cmd",
-        "tools",
-        "REQUIREMENTS.md"
-      ]
+      "version": "1.2.1"
     },
     "study-plan": {
       "description": "Create and manage personalized SAT/TOEFL/IELTS study plans for Vietnamese students. Use this skill whenever a student asks about test preparation, mentions 'lộ trình SAT', 'ôn thi', 'kế hoạch học', 'study plan', 'SAT prep', 'TOEFL plan', 'luyện thi', 'điểm SAT', 'thi lại', or shares a practice test score. Also use when a weekly check-in cron job fires for a student with an active study plan. Also invoke when a student asks about GPA improvement, course selection, 'nên chọn môn gì', 'học AP hay IB', 'GPA đang giảm', or wants advice on which courses to take for their target major.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     },
     "weekly-checkin": {
       "description": "Proactively check in with Vietnamese students every week to review overall study abroad progress — SAT/TOEFL scores, essay drafts, EC updates, upcoming deadlines, and next priority actions. Use this skill whenever a weekly cron job fires for a student, or when a student asks for a general progress update, mentions 'tuần này', 'cập nhật tiến độ', 'tổng hợp', 'nhìn lại tuần này', 'mình đang ở đâu rồi', 'còn phải làm gì', or 'check-in'.",
       "requires_bins": [
         "sa-cli"
       ],
-      "version": "1.0.0",
-      "exclude": [
-        "__pycache__",
-        "*.pyc",
-        "db/"
-      ]
+      "version": "1.0.0"
     }
   },
   "groups": {
+    "self-improving-agent": ["agent-learner","knowledge-vault"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

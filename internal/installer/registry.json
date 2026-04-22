@@ -9,6 +9,9 @@
     },
     "bds-broker": {
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
+      "requires_bins": [
+        "bds-cli"
+      ],
       "version": "4.0.0",
       "setup_prompts": [
         {

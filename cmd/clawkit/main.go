@@ -8,11 +8,8 @@ import (
 	"os"
 
 	"github.com/rockship-co/clawkit/internal/installer"
+	"github.com/rockship-co/clawkit/internal/version"
 )
-
-// version is injected via -ldflags at build time (see Makefile).
-// The default is only seen on `go install` / `go build` without ldflags.
-var version = "dev"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -45,7 +42,7 @@ func main() {
 		installer.CmdUninstall(os.Args[2])
 	case "purge":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit purge <runtime-key>")
+			fmt.Println("Usage: clawkit purge <engine-key>")
 			os.Exit(1)
 		}
 		installer.CmdPurge(os.Args[2])
@@ -69,7 +66,7 @@ func main() {
 		}
 		installer.CmdDashboard(port)
 	case "version", "--version", "-v":
-		fmt.Printf("clawkit v%s\n", version)
+		fmt.Printf("clawkit v%s\n", version.Version)
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -89,10 +86,10 @@ Commands:
                                   selected members of a group
   update  <name> [<member>...]    Update (same resolution as install)
   uninstall <skill>               Uninstall a single skill
-  purge <runtime-key>             Remove a shared runtime (~/.clawkit/runtimes/<key>)
+  purge <engine-key>              Remove a shared engine (~/.clawkit/engines/<key>)
   status                Show installed skills
   web <skill>           Serve the skill web UI at http://localhost:7432
   dashboard             Start web dashboard (default port 7432)
   version               Print version
-`, version)
+`, version.Version)
 }

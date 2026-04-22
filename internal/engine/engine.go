@@ -1,38 +1,39 @@
-// Package runtime manages shared skill runtimes under ~/.clawkit/runtimes/.
-// A runtime is the contents of a skill's or group's _cli/ directory installed
-// once per key and referenced by every skill that needs it. Binaries declared
-// in _cli.json are symlinked into ~/.clawkit/bin (on PATH) so skills can
-// invoke them by bare name, and data paths are preserved across re-installs
-// so shared databases survive skill updates.
-package runtime
+// Package engine manages shared skill engines under ~/.clawkit/engines/.
+// An engine is the contents of a skill's or group's _engine/ directory
+// installed once per key and referenced by every skill that needs it.
+// Binaries declared in engine.json are symlinked into ~/.clawkit/bin (on
+// PATH) so skills can invoke them by bare name, and data paths are preserved
+// across re-installs so shared databases survive skill updates.
+package engine
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
+	goruntime "runtime"
 	"strings"
 )
 
-// Spec is the shape of _cli.json.
+// Spec is the shape of engine.json.
 type Spec struct {
-	Exclude   []string `json:"exclude,omitempty"`    // paths inside _cli/ skipped on install (source, tests, etc.)
+	Exclude   []string `json:"exclude,omitempty"`    // paths inside _engine/ skipped on install (source, tests, etc.)
 	DataPaths []string `json:"data_paths,omitempty"` // paths preserved across re-installs
 	Bins      []string `json:"bins,omitempty"`       // names symlinked into ~/.clawkit/bin
 }
 
-// SpecFile is the name of the runtime metadata file, placed alongside _cli/.
-const SpecFile = "_cli.json"
+// SpecFile is the name of the engine metadata file, placed alongside
+// _engine/.
+const SpecFile = "engine.json"
 
-// CLIDir is the directory name that holds runtime payloads inside a skill
-// or group.
-const CLIDir = "_cli"
+// SourceDir is the directory name that holds engine payloads inside a skill
+// or group tree (before install).
+const SourceDir = "_engine"
 
-// Dir returns ~/.clawkit/runtimes/<key>.
+// Dir returns ~/.clawkit/engines/<key> — the install destination for an
+// engine identified by key.
 func Dir(key string) string {
-	return filepath.Join(rootDir(), "runtimes", key)
+	return filepath.Join(rootDir(), "engines", key)
 }
 
 // BinDir returns ~/.clawkit/bin — the dir added to PATH.
@@ -48,8 +49,8 @@ func rootDir() string {
 	return filepath.Join(home, ".clawkit")
 }
 
-// LoadSpec reads _cli.json next to parentDir/_cli/. Missing file returns a
-// zero-value Spec and nil error.
+// LoadSpec reads engine.json next to parentDir/_engine/. Missing file
+// returns a zero-value Spec and nil error.
 func LoadSpec(parentDir string) (*Spec, error) {
 	data, err := os.ReadFile(filepath.Join(parentDir, SpecFile))
 	if err != nil {
@@ -65,37 +66,21 @@ func LoadSpec(parentDir string) (*Spec, error) {
 	return &s, nil
 }
 
-// LoadEmbeddedSpec is the embedded-FS equivalent of LoadSpec.
-func LoadEmbeddedSpec(embedFS fs.FS, parentPath string) (*Spec, error) {
-	data, err := fs.ReadFile(embedFS, parentPath+"/"+SpecFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &Spec{}, nil
-		}
-		return nil, err
-	}
-	var s Spec
-	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", SpecFile, err)
-	}
-	return &s, nil
-}
-
-// Install copies srcCLIDir into ~/.clawkit/runtimes/<key>, skipping paths in
+// Install copies srcDir into ~/.clawkit/engines/<key>, skipping paths in
 // spec.Exclude and preserving existing paths in spec.DataPaths.
-func Install(key, srcCLIDir string, spec *Spec) error {
+func Install(key, srcDir string, spec *Spec) error {
 	dst := Dir(key)
 	if err := os.MkdirAll(dst, 0o755); err != nil {
-		return fmt.Errorf("create runtime dir: %w", err)
+		return fmt.Errorf("create engine dir: %w", err)
 	}
 	if err := pruneStale(dst, spec.DataPaths); err != nil {
-		return fmt.Errorf("prune stale runtime entries: %w", err)
+		return fmt.Errorf("prune stale engine entries: %w", err)
 	}
-	return filepath.Walk(srcCLIDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		rel, _ := filepath.Rel(srcCLIDir, path)
+		rel, _ := filepath.Rel(srcDir, path)
 		if rel == "." {
 			return nil
 		}
@@ -130,64 +115,6 @@ func Install(key, srcCLIDir string, spec *Spec) error {
 	})
 }
 
-// InstallEmbedded is the embedded-FS equivalent of Install. Since embed.FS
-// does not preserve executable bits, any file whose basename matches
-// spec.Bins is written with 0o755; everything else uses 0o644.
-func InstallEmbedded(key string, embedFS fs.FS, srcCLIPath string, spec *Spec) error {
-	dst := Dir(key)
-	if err := os.MkdirAll(dst, 0o755); err != nil {
-		return fmt.Errorf("create runtime dir: %w", err)
-	}
-	if err := pruneStale(dst, spec.DataPaths); err != nil {
-		return fmt.Errorf("prune stale runtime entries: %w", err)
-	}
-	binSet := make(map[string]bool, len(spec.Bins))
-	for _, b := range spec.Bins {
-		binSet[b] = true
-	}
-	return fs.WalkDir(embedFS, srcCLIPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(srcCLIPath, path)
-		if rel == "." {
-			return nil
-		}
-		if isExcluded(rel, spec.Exclude) {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		target := filepath.Join(dst, rel)
-		if d.IsDir() {
-			if isData(rel, spec.DataPaths) {
-				if _, err := os.Stat(target); err == nil {
-					return fs.SkipDir
-				}
-			}
-			return os.MkdirAll(target, 0o755)
-		}
-		if isData(rel, spec.DataPaths) {
-			if _, err := os.Stat(target); err == nil {
-				return nil
-			}
-		}
-		data, err := fs.ReadFile(embedFS, path)
-		if err != nil {
-			return fmt.Errorf("read embedded %s: %w", path, err)
-		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return err
-		}
-		mode := os.FileMode(0o644)
-		if binSet[filepath.Base(rel)] {
-			mode = 0o755
-		}
-		return os.WriteFile(target, data, mode)
-	})
-}
-
 // LinkBins chmod +x each bin and symlinks it into ~/.clawkit/bin. On Windows,
 // where symlinks often require admin, it copies instead.
 func LinkBins(key string, bins []string) error {
@@ -201,24 +128,24 @@ func LinkBins(key string, bins []string) error {
 	}
 	for _, name := range bins {
 		srcPath := filepath.Join(src, name)
-		if runtime.GOOS == "windows" {
+		if goruntime.GOOS == "windows" {
 			if _, err := os.Stat(srcPath); err != nil {
 				if _, err2 := os.Stat(srcPath + ".exe"); err2 == nil {
 					srcPath += ".exe"
 					name += ".exe"
 				} else {
-					return fmt.Errorf("bin %s not found in runtime %s", name, key)
+					return fmt.Errorf("bin %s not found in engine %s", name, key)
 				}
 			}
 		} else {
 			if _, err := os.Stat(srcPath); err != nil {
-				return fmt.Errorf("bin %s not found in runtime %s", name, key)
+				return fmt.Errorf("bin %s not found in engine %s", name, key)
 			}
 			_ = os.Chmod(srcPath, 0o755)
 		}
 		dst := filepath.Join(binDir, name)
 		_ = os.Remove(dst)
-		if runtime.GOOS == "windows" {
+		if goruntime.GOOS == "windows" {
 			data, err := os.ReadFile(srcPath)
 			if err != nil {
 				return fmt.Errorf("read bin %s: %w", name, err)
@@ -235,7 +162,7 @@ func LinkBins(key string, bins []string) error {
 	return nil
 }
 
-// Purge removes ~/.clawkit/runtimes/<key> and its bin symlinks.
+// Purge removes ~/.clawkit/engines/<key> and its bin symlinks.
 func Purge(key string, bins []string) error {
 	for _, name := range bins {
 		_ = os.Remove(filepath.Join(BinDir(), name))
@@ -243,9 +170,9 @@ func Purge(key string, bins []string) error {
 	return os.RemoveAll(Dir(key))
 }
 
-// List returns the names of every runtime currently installed.
+// List returns the names of every engine currently installed.
 func List() ([]string, error) {
-	entries, err := os.ReadDir(filepath.Join(rootDir(), "runtimes"))
+	entries, err := os.ReadDir(filepath.Join(rootDir(), "engines"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -262,7 +189,7 @@ func List() ([]string, error) {
 }
 
 // pruneStale removes every top-level entry in dst whose path is not rooted
-// at one of dataPaths. This lets re-installs reflect updated _cli.json
+// at one of dataPaths. This lets re-installs reflect updated engine.json
 // excludes (e.g. dropping a previously-copied `cmd/` directory) while
 // leaving user state untouched.
 func pruneStale(dst string, dataPaths []string) error {

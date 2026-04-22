@@ -26,7 +26,7 @@ type vaultConfig struct {
 //  1. $VAULT_CONFIG env var (absolute path to vault-config.json)
 //  2. vault-config.json in the current working directory
 //  3. ~/.openclaw/workspace/skills/knowledge-vault/vault-config.json
-//  4. ~/.openclaw/workspace/skills/self-improving-agent/_cli/vault-config.json (default)
+//  4. ~/.openclaw/workspace/skills/self-improving-agent/_engine/vault-config.json (default)
 //
 // Auto-creates vault-config.json with defaults if missing.
 func loadVaultConfig() vaultConfig {

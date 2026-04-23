@@ -1,104 +1,134 @@
 ---
 name: sme-reminder
-description: "Daily BD outreach coach — khi user noi 'nhac toi', 'nhac toi contacts', 'ai can follow-up', 'hom nay outreach ai', 'daily outreach', 'remind me' → fetch contacts tu COSMO, categorize vao pipeline cells, suggest action cu the. Ke ca user hoi ngan gon ('nhac toi contacts', 'nhac toi khach hang') van phai trigger. KHONG phai memory search, KHONG phai cron scheduler."
+description: "Cross-cutting trigger engine cho 4 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi' → fetch live data, categorize cells, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
 
-# SME Reminder — Ai Can Outreach Hom Nay, Va LAM GI
+# SME Reminder — Trigger Engine Cho 4 Lifecycle
 
-## Trigger — MATCH RONG, KHONG WAIT CLARIFICATION
+Skill nay la **orchestrator**. No khong tu action — no fetch live state tu cac lifecycle + suggest nen lam gi, roi user chot thi **hand-off sang skill chuyen trach**.
 
-Kich hoat skill nay NGAY khi user message khop bat ky pattern:
+4 lifecycle ma skill theo doi:
 
-**Tieng Viet:**
-- Chua tu `nhac toi` (bat ky ket hop: "nhac toi", "nhac toi contacts",
-  "nhac toi khach hang", "nhac toi outreach", "nhac toi follow up")
+| Lifecycle | Data source | Hand-off toi |
+|---|---|---|
+| **Engagement** (BD outreach daily) | `sme-cli cosmo daily-plan` | `sme-engagement` / `sme-crm` |
+| **Sales** (proposal / meeting) | `sme-cli cosmo daily-plan` cells `PROPOSAL_*` / `MEETING_*` | `sme-proposal` / `sme-engagement` |
+| **Event** (prep + post) | `sme-cli event list` + event metadata | `sme-campaign` (event flow A) |
+| **Marketing** (content cadence) | `sme-cli social upcoming` | `sme-marketing` |
+
+## TRIGGER — Match rong, khong wait clarification
+
+Kich hoat NGAY khi message khop bat ky pattern:
+
+### Engagement / Sales triggers (tieng Viet)
+
+- Chua `nhac toi` (bat ky: "nhac toi", "nhac toi contacts", "nhac toi khach hang", "nhac toi outreach", "nhac toi follow up")
 - Chua `ai can follow up` / `ai dang stuck` / `ai can lien he`
 - Chua `hom nay outreach` / `hom nay nen lien he` / `hom nay lam gi`
 - Chua `con contact nao chua lam` / `stale leads`
 - Chua `outreach ai` / `lien he ai`
 
-**English:**
-- Contains `remind me` / `who to contact` / `daily outreach` /
-  `suggest outreach` / `list stale leads` / `outreach reminder`
+### Event triggers
 
-**Cron:**
-- Payload chua `DAILY_MORNING_BRIEFING` / `DAILY_EVENING_REVIEW`
+- Chua `event sap toi` / `event tuan nay` / `event can lam gi`
+- Chua `sau event` + "chua gui" / "chua thank-you"
+- Chua `event nao con viec`
 
-### QUY TAC BAT BUOC
+### Marketing triggers
 
-1. **KHONG DOC MEMORY** khi trigger. User noi "nhac toi contacts" =
-   fetch COSMO live, khong phai grep trong memory/*.md. Memory co the
-   co noi dung cu — KHONG relevant.
+- Chua `content tuan nay` / `bai dang tuan nay`
+- Chua `post nao chua` / `slot nao trong`
+- Chua `marketing hom nay` / `content hom nay`
 
-2. **KHONG HOI CLARIFY** kieu "ban muon nhac ve gi?". Nguyen tac: user
-   da trigger = fetch live + hien ket qua. Neu user muon narrow xuong
-   (vd "chi nhac proposal hot"), ho se noi them o reply sau.
+### English
+
+- `remind me` / `who to contact` / `daily outreach` / `suggest outreach`
+- `upcoming events` / `events to prep`
+- `content this week` / `scheduled posts`
+
+### Cron payloads
+
+- `DAILY_MORNING_BRIEFING` / `DAILY_EVENING_REVIEW` → engagement + sales
+- `EVENT_PREP_SOON` / `EVENT_POSTMORTEM` → event
+- `WEEKLY_CONTENT_CHECK` → marketing
+
+## QUY TAC BAT BUOC
+
+1. **KHONG DOC MEMORY** khi trigger. User noi "nhac toi" = fetch live, khong grep memory/*.md.
+
+2. **KHONG HOI CLARIFY** kieu "ban muon nhac ve gi?". Nguyen tac: user da trigger = fetch live + hien. Neu user muon narrow xuong ("chi nhac proposal"), ho se noi them.
 
 3. **KHONG trigger skill nay** khi:
-   - User noi "nhac toi <time>" (vd "nhac toi 3h chieu", "nhac toi
-     mai 9am") — do la cron scheduler request, khong phai skill nay.
-   - User hoi ve 1 contact cu the ("contact X la ai?") — do la CRM
-     search, chuyen sang sme-crm skill.
+   - User noi "nhac toi <time>" (vd "nhac toi 3h chieu") — do la cron scheduler, khong phai skill nay.
+   - User hoi ve 1 contact cu the → sme-crm.
+   - User noi "tao campaign" → sme-campaign direct.
 
-## LUONG
+4. **PLAIN LANGUAGE** — KHONG dung thuat ngu tech khi render.
 
-### Step 1 — Goi CLI de lay du lieu da categorize
+## LUONG — 3 buoc
+
+### Step 1 — Fetch live data (chon theo trigger)
+
+**Engagement + Sales (mac dinh):**
 
 ```bash
-# Mode "all" — default, tat ca cell
-sme-cli cosmo daily-plan
-
-# Mode "morning" — chi HOT/STUCK/POST_MEETING/QUALIFIED (urgent today)
-sme-cli cosmo daily-plan --mode morning
-
-# Mode "evening" — chi POST_MEETING/HOT/QUALIFIED (ton lai hom nay + prep mai)
-sme-cli cosmo daily-plan --mode evening
+sme-cli cosmo daily-plan                # mode all
+sme-cli cosmo daily-plan --mode morning # chi HOT/STUCK/POST_MEETING/QUALIFIED
+sme-cli cosmo daily-plan --mode evening # chi POST_MEETING/HOT/QUALIFIED
 ```
 
-Output la JSON structured. Khong can tu categorize. Chon mode dua tren
-trigger:
-- User noi "nhac toi" mo ho → `--mode all`
-- Cron DAILY_MORNING_BRIEFING → `--mode morning`
-- Cron DAILY_EVENING_REVIEW → `--mode evening`
+Mode chon dua tren trigger:
+- "nhac toi" mo ho / manual → `--mode all`
+- `DAILY_MORNING_BRIEFING` → `--mode morning`
+- `DAILY_EVENING_REVIEW` → `--mode evening`
 
-### Step 2 — Format ra chat (DATA-AWARE, khong lap template)
+**Event:**
 
-Output JSON co field quan trong:
-- `cells[].id`: identifier cua nhom (vd "PROPOSAL_HOT", "MEETING_TOMORROW",
-  "CAMPAIGN_SENT_NO_REPLY")
-- `cells[].enrichment_summary: {enriched, partial, needed}` — count contacts
-  co business context day du vs chi co email/ten.
-- `cells[].contacts[].enrichment_status`: `"enriched"` | `"partial"` | `"needed"`.
-- `cells[].contacts[]`: name, company, job_title, industry, email, idle_days,
-  last_outcome, next_step, interactions_30d, ...
+```bash
+sme-cli event list --filter upcoming   # events 7 ngay toi
+sme-cli event list --filter recent     # events <3 ngay truoc, check thank-you
+```
 
-### Priority cells & lable tieng Viet tu nhien
+**Marketing:**
 
-Dich cell ID sang tieng Viet khi render:
+```bash
+sme-cli social upcoming --days 7
+```
 
-| Cell ID | Label tieng Viet |
-|---|---|
-| `MEETING_TOMORROW` | "Cuoc hen ngay mai — can chuan bi" |
-| `PROPOSAL_HOT` | "Da gui de xuat, chua phan hoi" |
-| `PROPOSAL_STUCK` | "De xuat bi ngung, can nhac lai" |
-| `PROPOSAL_GHOST` | "Het phan hoi — can quyet dinh" |
-| `POST_MEETING` | "Chua gui recap sau meeting" |
-| `CAMPAIGN_SENT_NO_REPLY` | "Da gui email hang loat, chua ai tra loi" |
-| `QUALIFIED_OPEN` | "Da quan tam, can dat lich meeting" |
-| `ENGAGED_WARM` | "Co quan he am, can nurture" |
-| `ENGAGED_COLD` | "Quan he nguoi, can phuc hoi" |
-| `NEW_EVENT` | "Moi gap o su kien, chua follow-up" |
-| `NEW_APOLLO_FULL` | "Khach moi (tim tu dich vu tra cuu)" |
-| `NEW_APOLLO_LINKEDIN` | "Khach moi — chi co LinkedIn" |
-| `NEW_NO_CHANNEL` | "Thieu thong tin lien he" |
-| `WON_CHECKIN` | "Khach da chot, check-in dinh ky" |
-| `LOST_REVIVE` | "Khach mat deal lau, thu phuc hoi" |
+### Step 2 — Format ra chat (data-aware, khong mechanical)
 
-### 🔑 QUY TAC VANG #1: PLAIN LANGUAGE — KHONG dung thuat ngu tech
+Output JSON (daily-plan) co field quan trong:
+- `cells[].id`: identifier nhom (vd `PROPOSAL_HOT`, `MEETING_TOMORROW`, `CAMPAIGN_SENT_NO_REPLY`)
+- `cells[].enrichment_summary: {enriched, partial, needed}` — count contacts co context.
+- `cells[].contacts[].enrichment_status`: `enriched` | `partial` | `needed`
+- `cells[].contacts[]`: name, company, job_title, industry, email, idle_days, last_outcome, next_step, interactions_30d
 
-User khong phai ky su. Khi render output, CAM dung cac tu sau. Cot trai
-la cam, cot phai la thay the de hieu:
+### Priority cells → label tieng Viet
+
+| Cell ID | Label tieng Viet | Lifecycle |
+|---|---|---|
+| `MEETING_TOMORROW` | "Cuoc hen ngay mai — can chuan bi" | sales |
+| `PROPOSAL_HOT` | "Da gui de xuat, chua phan hoi" | sales |
+| `PROPOSAL_STUCK` | "De xuat bi ngung, can nhac lai" | sales |
+| `PROPOSAL_GHOST` | "Het phan hoi — can quyet dinh" | sales |
+| `POST_MEETING` | "Chua gui recap sau meeting" | engagement |
+| `CAMPAIGN_SENT_NO_REPLY` | "Da gui email hang loat, chua ai tra loi" | engagement |
+| `QUALIFIED_OPEN` | "Da quan tam, can dat lich meeting" | engagement |
+| `ENGAGED_WARM` | "Co quan he am, can nurture" | engagement |
+| `ENGAGED_COLD` | "Quan he nguoi, can phuc hoi" | engagement |
+| `NEW_EVENT` | "Moi gap o su kien, chua follow-up" | event |
+| `NEW_APOLLO_FULL` | "Khach moi (tim tu dich vu tra cuu)" | engagement |
+| `NEW_APOLLO_LINKEDIN` | "Khach moi — chi co LinkedIn" | engagement |
+| `NEW_NO_CHANNEL` | "Thieu thong tin lien he" | engagement |
+| `WON_CHECKIN` | "Khach da chot, check-in dinh ky" | sales |
+| `LOST_REVIVE` | "Khach mat deal lau, thu phuc hoi" | engagement |
+| `EVENT_PREP_SOON` | "Event sap toi — can chuan bi" | event |
+| `EVENT_POSTMORTEM` | "Event vua xong — can gui thank-you" | event |
+| `CONTENT_SLOT_OPEN` | "Slot content con trong tuan nay" | marketing |
+| `CONTENT_OVERDUE` | "Bai dang draft lau chua schedule" | marketing |
+
+### 🔑 QUY TAC VANG #1: PLAIN LANGUAGE — KHONG tech jargon
 
 | CAM dung | Noi the nay |
 |---|---|
@@ -113,87 +143,48 @@ la cam, cot phai la thay the de hieu:
 | "signal-led" | "nhac ten chuyen cu the anh da noi / da lam" |
 | "apollo" | "dich vu tra cuu doanh nghiep" |
 | "idle 4d" | "da 4 ngay chua lien he" |
-| "stage=PROPOSAL" / "QUALIFIED" | "dang doi phan hoi proposal" / "da quan tam, can gap" |
-| "allowlist" / "config" / "API key" | (khong noi — do la chi tiet ky thuat) |
-| "tier" / "playbook" / "stage" | dung ngon ngu thong thuong |
+| "stage=PROPOSAL" | "dang doi phan hoi proposal" |
+| "allowlist" / "config" / "API key" | (khong noi) |
 | "COSMO CRM" | "he thong khach hang" / "data cua anh" |
-| "Manus" / "chromium" / ten tool | (khong noi) |
+| "Manus" / "chromium" / tool names | (khong noi) |
 
-Neu anh thay minh dinh viet 1 tu tech, STOP va dich sang tieng Viet
-de hieu. User khong can biet "em dung tool gi", ho can biet "em se lam gi".
+### 🔑 QUY TAC VANG #2: Personalize theo context
 
-### 🔑 QUY TAC VANG #2: personalize theo context co san
+**enriched (co company + role):** compose action CU THE dua tren company + job_title + last_outcome + next_step + industry.
 
-Khi render moi contact:
+Good:
+> 🔥 **Acme — Tran Minh (CTO)** — gui de xuat 4 ngay roi chua thay tra loi
+> → Em goi y gui 1 email nhac nhe: "Anh Minh, co khach hang co Acme (80 nguoi) giam 60% ticket support trong 3 thang sau khi trien khai. Minh goi 15 phut tuan nay nhe?"
 
-**Neu contact `enrichment_status = "enriched"` (co company + role):**
+Bad (mechanical):
+> 🔥 **Tran Minh** — idle 4d → Send email 50-125 words signal-led + 1 CTA call 15p
 
-Compose action **CU THE** dua tren:
-- Company + job_title (vd "anh Tuan — CTO Acme")
-- Last_outcome / next_step neu co (vd "proposal gui 4 ngay, chua reply")
-- Industry (infer tu company)
+**needed (chi email + ten):** KHONG gia vo personalize. Gom nhom + offer 2 path:
 
-Vi du GOOD (tieng Viet friendly):
-> 🔥 **Acme — Trần Minh (CTO)** — gửi đề xuất 4 ngày rồi chưa thấy trả lời
-> → Em gợi ý gửi 1 email nhắc nhẹ: "Anh Minh, có khách hàng cỡ Acme
-> (80 người) giảm 60% ticket support trong 3 tháng sau khi triển khai.
-> Mình gọi 15 phút tuần này nhé?"
-
-Vi du **BAD** (mechanical, KHONG lam):
-> 🔥 **Tran Minh** — idle 4d
-> → Send email 50-125 words signal-led + 1 CTA call 15p
-
-**Neu contact `enrichment_status = "needed"` (chi email + ten):**
-
-KHONG gia vo personalize. Gom nhom va hoi user chon huong di:
-
-Vi du GOOD (tieng Viet, khong tech jargon):
-> 🎫 **192 người từ sự kiện Setup Day** — chưa follow-up
+Good:
+> 🎫 **192 nguoi tu su kien Setup Day** — chua follow-up
 >
-> Em chỉ có email + tên của mọi người, chưa biết họ làm công ty gì, vai
-> trò gì. 2 cách mình có thể làm:
+> Em chi co email + ten, chua biet cong ty gi, vai tro gi. 2 cach:
 >
-> **🔍 Cách 1 — Tra cứu thêm thông tin trước (em recommend)**
-> Em lấy info LinkedIn + công ty của 20-30 người đầu từ dịch vụ tra cứu
-> doanh nghiệp. Mất ~5 phút. Xong em tư vấn cụ thể ai nên gọi, ai gửi
-> email, nội dung như thế nào — kiểu "anh Minh làm CTO Acme, team 80
-> người, nên gửi email nhắc case study A".
+> **🔍 Cach 1 — Tra cuu them thong tin (em recommend)**
+> Em lay info LinkedIn + cong ty cua 20-30 nguoi dau. Mat ~5 phut. Xong em tu van cu the ai nen goi, ai gui email, noi dung the nao.
 >
-> **📧 Cách 2 — Gửi 1 email cám ơn chung cho cả 192 người**
-> Nội dung: cảm ơn đã tham gia sự kiện + gợi ý book 1 cuộc gọi 20 phút
-> thảo luận nhu cầu. Không nhắc tên cụ thể từng người. Gửi ngay trong
-> 24h sau sự kiện là thời điểm tốt nhất. Em chia nhóm <50 người mỗi lần
-> gửi để tránh bị Gmail chặn.
+> **📧 Cach 2 — Gui 1 email cam on chung cho ca 192 nguoi**
+> Cam on da tham gia + goi y book cuoc goi 20 phut. Gui trong 24h sau event la tot nhat. Chia nhom <50 nguoi/lan gui tranh Gmail chan.
 >
-> ⚠️ Lưu ý: Gmail Rockship đang mất đăng nhập, phải fix trước khi gửi.
->
-> Anh muốn em làm Cách 1 hay Cách 2?
+> Anh muon em lam cach nao?
 
-Vi du **BAD** (quat ngon tech, KHONG lam):
-> 🎫 Event attendee (192)
-> - Test User — idle 1d, từ source event
->   → Send email 50-125 words, 1 CTA, playbook event_invite, segment <50/batch
+**partial:** dung gi co, noi ro gi thieu.
 
-**Neu contact `enrichment_status = "partial"`:**
-
-Dung nhung gi co, noi ro gi thieu — bang tieng Viet.
-Vi du: "Acme — biet công ty nhưng chưa rõ vị trí của người này → đoán
-là CTO hoặc founder vì Acme là startup công nghệ. Nếu đúng, gửi email
-nhắc case study. Nếu không chắc, tra cứu thêm trước."
-
-### Format chat (overall shape)
+### Format chat overall
 
 ```
-{Greeting theo mode — "Chao buoi sang @user" cho morning, "4h chieu roi @user" cho evening, "Oke" cho manual}
+{Greeting theo mode — "Chao buoi sang" morning, "4h chieu roi" evening, "Oke" manual}
 
-{emoji} **{Name} ({count})** {optional: " — {N}/{count} chua enrich"}
+{emoji} **{Name} ({count})** {optional: "— N/count chua enrich"}
 
-  [Neu enriched chiem majority]:
-  Moi contact 1-2 dong voi action PERSONALIZED bang company/role/history.
-
-  [Neu needed/partial chiem majority]:
-  Bao ro so luong chua enrich + 2 path (enrich vs batch). Khong list
-  tung contact mechanical.
+  [Neu enriched majority]: 1-2 dong/contact, action PERSONALIZED.
+  [Neu needed/partial majority]: bao ro so luong + 2 path. Khong list mechanical.
 
 {warning section neu co — "⚠️ {warning.message}"}
 
@@ -202,51 +193,90 @@ Anh muon em action cai nao?
 
 ### Rang buoc format
 
-- **Toi da 7 cells hien thi**. Neu >7 co data, hien top priority + bao
-  "Con {X} cells khac ({list}) — anh muon chi tiet?".
-- **KHONG render mechanical** — KHONG liet ke "send email 50-125 words
-  + 1 CTA" giong nhau cho moi contact. Do la pattern em nhan ra khi
-  output sai.
+- **Toi da 7 cells hien thi**. Neu >7, show top priority + "Con {X} cells khac ({list}) — anh muon chi tiet?"
+- **KHONG render mechanical** — lap "send email 50-125 words + 1 CTA" cho moi contact = SAI.
 - **KHONG dump JSON** ra chat.
 
-### Empty-state — khi cells = 0
-
-Neu `cells` array rong (khong co viec urgent), KHONG noi "Em khong co
-gi de nhac". Thay vao do, positive wrap:
+### Empty-state — cells rong
 
 Morning:
-> Chao buoi sang {user}! Hom nay khong co viec follow-up gap — chill di
-> anh. Em chi moi xem {loaded}/{total} contact — neu muon em scan sau
-> them (co the co deal cu), bao em "check ky hon".
+> Chao buoi sang {user}! Hom nay khong co viec follow-up gap — chill di anh. Em moi xem {loaded}/{total} contact — neu muon em scan sau (co the co deal cu), bao em "check ky hon".
 
 Evening:
-> 3h chieu roi — cuong pipeline hom nay clean, khong con viec ton. Neu
-> anh co contact moi dinh them toi/mai, cho em biet em set up thong tin
-> luon. Chuc tan lam!
+> 3h chieu roi — pipeline hom nay clean, khong con viec ton. Neu co contact moi dinh them toi/mai, cho em biet.
 
 Luon kem warning section neu co (vd Gmail agent invalid).
-- **KHONG mention** "sme-cli", "daily-plan command", tool names
-- **KHONG tu che email template** — neu user muon full email, goi
-  `sme-cli cosmo api POST /v3/campaigns/UUID/templates` (playbook da
-  duoc suggest san trong action.playbook)
 
-### Step 3 — Ket thuc voi CTA
+### Step 3 — Ket thuc voi CTA + hand-off
 
-Moi reply phai ket thuc bang:
-> Anh muon em action cai nao? (tao campaign / draft email / schedule
-> meeting / enrich contact...)
+Moi reply ket thuc bang:
 
-Neu user noi "yes, lam X cho contact Y" → chuyen sang `sme-crm` skill
-(create campaign, log interaction, enrich, etc.) de thuc thi.
+> Anh muon em action cai nao? (tao campaign / draft email / schedule meeting / enrich contact / setup event prep...)
 
-## Vi du
+**Hand-off rules:**
+
+| User chot action | Hand-off sang |
+|---|---|
+| "Tao campaign X", "gui email cho nhom" | `sme-campaign` |
+| "Draft reply", "schedule meeting", "prep meeting" | `sme-engagement` |
+| "Viet proposal cho Y" | `sme-proposal` |
+| "Enrich contact Z", "search khach" | `sme-crm` |
+| "Prep event", "tao checklist event" | `sme-campaign` (event flow A) |
+| "Soan content", "viet bai FB" | `sme-marketing` |
+| "Gui thank-you sau event" | `sme-campaign` (follow_up flow D) |
+
+## EVENT-SPECIFIC FLOW
+
+Khi trigger event (message chua "event sap toi" / cron `EVENT_PREP_SOON`):
+
+1. `sme-cli event list --filter upcoming`
+2. Filter event co date trong 1-7 ngay.
+3. Cho moi event, render:
+
+```
+📅 **Workshop AI — 15/5 (2 ngay nua) o Rockship office**
+   Checklist con thieu: venue AV, handout print, attendee confirm
+   → Em chuyen sang skill event de list chi tiet, lam luon?
+```
+
+4. User chot → hand-off sang `sme-campaign` (event prep flow A.2).
+
+Cron `EVENT_POSTMORTEM`:
+
+1. `sme-cli event list --filter recent` → event <3 ngay truoc va `thank_you_sent = false`
+2. Render:
+
+```
+📮 **Event AI Workshop vua xong hom qua (25 attendees)** — chua gui thank-you
+   → Em setup thank-you campaign luon? (tone cam on + offer content)
+```
+
+3. User approve → hand-off sang `sme-campaign` (follow_up flow D).
+
+## MARKETING-SPECIFIC FLOW
+
+Trigger "content tuan nay" / cron `WEEKLY_CONTENT_CHECK`:
+
+1. `sme-cli social upcoming --days 7`
+2. Report:
+
+```
+📢 **Content tuan nay:**
+   ✅ Mon 10am — "Tips AI cho SME" (scheduled)
+   ⚠️ Thu 10am — SLOT TRONG (chua co draft)
+
+   → Em draft bai cho Thu luon? Pick bucket khac voi Mon cho diverse.
+```
+
+3. User approve → hand-off sang `sme-marketing` (6-step pipeline).
+
+## VI DU TOI UU
 
 **User**: "nhac toi"
 
 **Ban**:
-1. Chay `sme-cli cosmo daily-plan --mode all`
-2. Parse JSON
-3. Render:
+1. `sme-cli cosmo daily-plan --mode all`
+2. Parse + render:
 
 ```
 Oke! Contacts can lam hom nay:
@@ -262,15 +292,27 @@ Oke! Contacts can lam hom nay:
 
 🎫 **Event attendee chua cham (182)**
 - **Quan Nguyen**, **JOON**, **Tran Ngoc Dang**, ...va 179 nguoi nua
-  → Segment <50/batch, playbook event_invite, send trong 24h tu event
+  → Chia nhom duoi 50, gui email cam on trong 24h tu event
 
 Anh muon em action nhom nao?
 ```
 
-**Cron DAILY_MORNING_BRIEFING fire luc 8am**:
+**User:** "event sap toi co gi"
 
-1. Chay `sme-cli cosmo daily-plan --mode morning`
-2. Gui vao Telegram group:
+**Ban:**
+1. `sme-cli event list --filter upcoming`
+2. Render event 1-7 ngay toi + checklist status → offer hand-off sme-campaign.
+
+**User:** "content tuan nay"
+
+**Ban:**
+1. `sme-cli social upcoming --days 7`
+2. Hien slot booked + trong → offer draft bai cho slot trong qua sme-marketing.
+
+**Cron DAILY_MORNING_BRIEFING luc 8am:**
+
+1. `sme-cli cosmo daily-plan --mode morning`
+2. Gui Telegram group:
 
 ```
 Chao buoi sang @akhoa2174! Viec can lam hom nay:
@@ -279,7 +321,6 @@ Chao buoi sang @akhoa2174! Viec can lam hom nay:
 - **Cinex (Tran Minh, CTO)** — proposal 4d
   → Gui email nhac nhe + 3 slot call tuan nay
 - **Acme Labs (John Doe)** — proposal 5d
-  → Neu anh rac roi, em tao task call?
 
 📝 **Recap meeting chua gui (1)**
 - **TechCorp (Sarah Nguyen)** — meeting hom qua, recap qua han
@@ -292,14 +333,13 @@ Anh muon em action cai nao?
 
 ## CONFIG
 
-Khong can config gi ngoai `sme-cli config set cosmo.*` (da setup khi
-install sme-crm skill). Cron jobs setup rieng trong
-`~/.openclaw/cron/jobs.json` (runtime-level — xem `install-cron` helper).
+Khong can config ngoai `sme-cli config set cosmo.*` (setup khi install sme-crm). Cron jobs setup rieng trong `~/.openclaw/cron/jobs.json`.
 
-## Phan biet voi sme-crm
+## PHAN BIET VOI CAC SKILL KHAC
 
-- **`sme-crm`**: lam ACTION tren CRM (search, create, enrich, log
-  interaction, create campaign)
-- **`sme-reminder`**: lap PLAN/suggest — "ai + lam gi" — khong tu action
-
-Khi user accept suggestion, chuyen sang `sme-crm` de execute.
+- **`sme-crm`**: data gateway (search, enrich, segment, log). Khong suggest.
+- **`sme-engagement`**: execute daily BD action (draft reply, mark sent, meeting prep).
+- **`sme-campaign`**: tao campaign (event / cold / re-engage / follow-up) + event lifecycle.
+- **`sme-marketing`**: sinh content (social post, blog, landing, email copy, ads).
+- **`sme-proposal`**: render proposal + send PDF.
+- **`sme-reminder`** (skill nay): plan/suggest — "ai + lam gi khi nao" — hand-off skill khac execute.

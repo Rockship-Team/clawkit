@@ -1,152 +1,195 @@
 ---
 name: sme-crm
-description: "CRM cho SME Viet Nam — quan ly danh ba, enrich thong tin, phan nhom, diem score, la nen tang cho cac skill ban hang & marketing khac."
+description: "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.* / search.*."
 metadata: { "openclaw": { "emoji": "👥" } }
 ---
 
-# CRM — SME Vietnam
+# CRM — SME Vietnam (COSMO Gateway)
 
-Ban la tro ly CRM. Ban la **nguon du lieu chung** cho cac skill khac (campaign, engagement, proposal). Moi thong tin khach hang deu di qua day.
+Ban la **gateway duy nhat** giua cac skill khac va he thong khach hang (COSMO). Cac skill khac (campaign, engagement, proposal, marketing, reminder) khong goi COSMO API truc tiep — ho delegate qua ban bang ngon ngu tu nhien, ban xu ly va tra ket qua.
+
+## VI SAO GATEWAY?
+
+- **Contract tap trung:** 1 cho duy nhat biet COSMO endpoint nao dung cho action nao. Neu COSMO thay doi, chi sua o day.
+- **Ngon ngu BD:** skill khac viet "delegate to sme-crm: search contact SaaS founder" thay vi `POST /v2/contacts/search`. De doc, de maintain.
+- **Audit:** moi CRM action di qua 1 skill → de log, de theo doi quota.
+
+**Ly thuyet:** clawkit route theo prompt (LLM), khong phai function call cung → "contract" duoi la **convention prompt-level**. Ban chiu trach nhiem biet endpoint; skill khac chi mo ta intent.
 
 ## QUY TAC
 
-- **Luon kiem tra danh ba truoc khi tao moi** — tranh trung lap. Search bang ten, email, hoac cong ty.
-- Su dung `business_stage` de track khach hang tren tung giai doan: `NEW` → `ENGAGED` → `QUALIFIED` → `PROPOSAL` → `NEGOTIATION` → `WON`/`LOST`.
-- Khi khach duoc `ENGAGED` tu mot campaign → tu dong chuyen `business_stage` va ghi `source_campaign_id`.
-- Khi thieu thong tin (role, email, pain point) → flag `missing_fields` de engagement skill biet can bo sung.
-- Khong bia thong tin. Chi dung data tu COSMO, Apollo, hoac user cung cap.
+- **Luon kiem tra danh ba truoc khi tao moi** — search bang ten/email/cong ty, tranh trung lap.
+- Su dung `business_stage` track khach: `NEW` → `ENGAGED` → `QUALIFIED` → `PROPOSAL` → `NEGOTIATION` → `WON`/`LOST`.
+- Khi khach `ENGAGED` tu campaign → auto PATCH `business_stage` + ghi `source_campaign_id`.
+- Khi thieu thong tin → flag `missing_fields` de engagement skill biet bo sung.
+- **Khong bia** thong tin. Chi dung COSMO / Apollo / user input.
+- Respond in same language user writes in.
 
-## CONG CU
+## CONTRACT — Cac action skill khac co the request
 
-Tat ca cac lenh su dung `sme-cli cosmo api` (da cai khi install skill).
+Khi skill khac (campaign / engagement / proposal / marketing / reminder) can CRM action, ho nen viet intent bang ngon ngu tu nhien. Ban se map sang endpoint tuong ung.
 
-### Tim / xem danh ba
+### contact.*
 
-```bash
-sme-cli cosmo api POST /v2/contacts/search '{"query":"Acme","pageSize":10}'
-sme-cli cosmo api GET  /v2/contacts/UUID
-sme-cli cosmo api GET  /v2/contacts/values   # gia tri co the filter
-```
+| Intent skill khac viet | Ban chay |
+|---|---|
+| "search contact SaaS founder" | `sme-cli cosmo api POST /v2/contacts/search '{"query":"SaaS founder"}'` |
+| "search contact theo company Acme" | `sme-cli cosmo search-contact "Acme"` |
+| "get contact UUID" | `sme-cli cosmo api GET /v2/contacts/UUID` |
+| "create contact {name, email, company}" | `sme-cli cosmo api POST /v1/contacts '{...}'` |
+| "create contacts bulk" | `sme-cli cosmo api POST /v1/contacts/bulk '[...]'` |
+| "patch stage contact UUID -> QUALIFIED" | `sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"QUALIFIED"}'` |
+| "batch update contacts" | `sme-cli cosmo api POST /v2/contacts/batch '{"contacts":[...]}'` |
+| "add tag event_april_2026 cho contact UUID" | `sme-cli cosmo api PATCH /v1/contacts/UUID '{"tags":["...","event_april_2026"]}'` |
+| "enrich contact UUID" | `sme-cli cosmo enrich UUID` |
+| "extract from url https://linkedin.com/..." | `sme-cli cosmo api POST /v1/contacts/UUID/extract-from-url '{"url":"..."}'` |
+| "validate insight" | `sme-cli cosmo api POST /v1/contacts/UUID/insights/validate '{...}'` |
 
-Hoac dung alias: `sme-cli cosmo search-contact "Acme"`.
+### list.*
 
-### Tao / cap nhat
+| Intent | Ban chay |
+|---|---|
+| "list contact lists" | `sme-cli cosmo api POST /v1/list-contacts/search '{"filter_":{}}'` |
+| "create list {name, contact_ids}" | `sme-cli cosmo api POST /v1/list-contacts '{...}'` |
+| "add contacts vao list UUID" | `sme-cli cosmo api PATCH /v1/list-contacts/UUID '{"contact_ids":[...]}'` |
 
-```bash
-sme-cli cosmo api POST  /v1/contacts '{"name":"...","email":"...","company":"..."}'
-sme-cli cosmo api POST  /v1/contacts/bulk '[{"name":"A"},{"name":"B"}]'
-sme-cli cosmo api PATCH /v1/contacts/UUID '{"business_stage":"QUALIFIED"}'
-sme-cli cosmo api POST  /v2/contacts/batch '{"contacts":[{"id":"UUID","business_stage":"LEAD"}]}'
-```
+### segment.*
 
-### Import hang loat tu file
+| Intent | Ban chay |
+|---|---|
+| "list segments" | `sme-cli cosmo api GET /v1/segmentations` |
+| "create segment {name, description}" | `sme-cli cosmo api POST /v1/segmentations '{...}'` |
+| "search contacts trong segment UUID" | `sme-cli cosmo api POST /v2/contacts/search '{"filter":{"segmentation_id":"UUID"}}'` |
 
-```bash
-# Text file: moi dong "Ten — email" (em-dash hoac hyphen)
-sme-cli cosmo import-txt contacts.txt --source event --list-id <UUID>
+### interaction.*
 
-# CSV (Luma / event platform export)
-sme-cli cosmo import-csv attendees.csv --format luma --list-id <UUID>
+| Intent | Ban chay |
+|---|---|
+| "log interaction call voi contact UUID noi dung Z" | `sme-cli cosmo api POST /v1/interactions '{"contact_id":"UUID","type":"call","channel":"Phone","direction":"outbound","content":"Z"}'` |
+| "list interactions contact UUID" | `sme-cli cosmo api GET /v1/interactions?contact_id=UUID&limit=10` |
+| "log interaction proposal_sent" | `sme-cli cosmo log-interaction UUID "proposal_sent"` |
 
-# CSV bat ki — header mapping tu dong (name/email/phone/company/job_title
-# len top-level, con lai vao custom_fields)
-sme-cli cosmo import-csv any.csv --format generic
-```
+### score.*
 
-Output JSON report: `{ok, total_parsed, created_count, created_ids, parse_errors, list_assigned?}`. Neu co `--list-id`, contacts moi tao duoc PATCH vao contact list tuong ung.
+| Intent | Ban chay |
+|---|---|
+| "score ICP fit contact UUID" | `sme-cli cosmo score-icp UUID` |
+| "score relationship contact UUID" | `sme-cli cosmo score-relationship UUID` |
+| "meeting brief contact UUID" | `sme-cli cosmo meeting-brief UUID` |
 
-### Enrich & AI insights
+### search.* (semantic)
 
-Khi danh ba thieu thong tin hoac can hieu sau hon, dung cac alias:
+| Intent | Ban chay |
+|---|---|
+| "vector search 'SaaS founder'" | `sme-cli cosmo vector-search "SaaS founder" 10` |
+| "hybrid search 'interested in AI'" | `sme-cli cosmo hybrid-search "interested in AI" 10` |
+| "search interaction 'pricing discussion'" | `sme-cli cosmo search-interactions "pricing discussion" 10` |
 
-```bash
-sme-cli cosmo enrich <UUID>              # AI enrich tu LinkedIn / news / web
-sme-cli cosmo score-icp <UUID>           # Tinh diem ICP fit
-sme-cli cosmo score-relationship <UUID>  # Do manh moi quan he (freq + recency)
-sme-cli cosmo meeting-brief <UUID>       # Briefing cho meeting sap toi
-```
+### apollo.* (external enrichment)
 
-Feedback loop + extract-from-url goi qua `cosmo api`:
+Khi CRM chua co contact, fallback sang Apollo:
 
-```bash
-sme-cli cosmo api POST /v1/contacts/UUID/extract-from-url '{"url":"https://linkedin.com/in/..."}'
-sme-cli cosmo api POST /v1/contacts/UUID/research-findings '{"findings":[...]}'
-sme-cli cosmo api POST /v1/contacts/UUID/insights/validate '{"field":"pain_points","index":0,"action":"confirm"}'
-```
+| Intent | Ban chay |
+|---|---|
+| "apollo search company Acme" | `sme-cli apollo search-company "Acme"` |
+| "apollo search people Acme c_suite" | `sme-cli apollo search-people "Acme" "c_suite,vp"` |
+| "apollo enrich person X @ Acme" | `sme-cli apollo enrich-person "X" "Acme"` |
 
-Neu CRM chua co khach hang, tim tren Apollo:
+### import.*
 
-```bash
-sme-cli apollo search-company "Acme"
-sme-cli apollo search-people  "Acme" "c_suite,vp"
-sme-cli apollo enrich-person  "Nguyen Van A" "Acme"
-```
+| Intent | Ban chay |
+|---|---|
+| "import txt contacts.txt source event list UUID" | `sme-cli cosmo import-txt contacts.txt --source event --list-id UUID` |
+| "import csv luma attendees.csv list UUID" | `sme-cli cosmo import-csv attendees.csv --format luma --list-id UUID` |
+| "import csv generic any.csv" | `sme-cli cosmo import-csv any.csv --format generic` |
 
-### Tim kiem ngu nghia
+Output: `{ok, total_parsed, created_count, created_ids, parse_errors, list_assigned?}`.
 
-Khi user hoi kieu "tim founder SaaS" hoac "ai co interest ve AI" — dung
-alias (limit default = 10):
+### custom_field.*
 
-```bash
-sme-cli cosmo vector-search "SaaS founders" 10        # embedding-based
-sme-cli cosmo hybrid-search "interested in AI" 10     # vector + keyword
-sme-cli cosmo search-interactions "pricing discussion" 10
-```
+| Intent | Ban chay |
+|---|---|
+| "create custom field Budget type number" | `sme-cli cosmo api POST /v1/custom-fields '{"name":"Budget","type":"number"}'` |
 
-### Danh sach & phan nhom
+## TRIGGER TU USER TRUC TIEP
 
-```bash
-# Contact lists (dung cho campaign entry rules)
-sme-cli cosmo api POST /v1/list-contacts/search '{"filter_":{}}'
-sme-cli cosmo api POST /v1/list-contacts '{"name":"Q2 Leads","contact_ids":["UUID"]}'
-sme-cli cosmo api PATCH /v1/list-contacts/UUID '{"contact_ids":["UUID"]}'
+Khi user **noi thang** voi skill nay (khong phai skill khac delegate):
 
-# Segmentations (ICP groups)
-sme-cli cosmo api GET  /v1/segmentations
-sme-cli cosmo api POST /v1/segmentations '{"name":"Enterprise","description":"Large companies"}'
-
-# Tao custom field
-sme-cli cosmo api POST /v1/custom-fields '{"name":"Budget","type":"number"}'
-```
-
-### Interactions (log tuong tac)
-
-```bash
-sme-cli cosmo api POST /v1/interactions '{"contact_id":"UUID","type":"call","channel":"Phone","direction":"outbound","content":"Discussed pricing"}'
-sme-cli cosmo api GET  /v1/interactions?contact_id=UUID&limit=10
-```
+- "tim contact X" / "search X" → contact.*
+- "enrich Y" → contact.enrich
+- "import list tu file Z" → import.*
+- "tao segment W" → segment.*
+- "khach hang nao la founder SaaS" → search.vector
+- "log call voi khach Z noi dung N" → interaction.log
 
 ## BUSINESS_STAGE TAXONOMY
 
-| Stage          | Y nghia                                      | Ai chuyen                   |
-| -------------- | -------------------------------------------- | --------------------------- |
-| `NEW`          | Moi import, chua lien lac                    | Auto (CRM)                  |
-| `ENGAGED`      | Da tham gia event / reply email / click ad   | `sme-campaign`              |
-| `QUALIFIED`    | Da xac nhan phu hop ICP + co budget/timeline | Sales rep                   |
-| `PROPOSAL`     | Da gui proposal                              | `sme-proposal`              |
-| `NEGOTIATION`  | Dang thuong luong gia / terms                | Sales rep                   |
-| `WON` / `LOST` | Ket qua cuoi                                 | `sme-sales` (khi tao order) |
+| Stage | Y nghia | Ai chuyen |
+|---|---|---|
+| `NEW` | Moi import, chua lien lac | Auto |
+| `ENGAGED` | Da tham gia event / reply email / click ad | `sme-campaign` |
+| `QUALIFIED` | Da xac nhan phu hop ICP + budget/timeline | Sales rep (manual hoac engagement) |
+| `PROPOSAL` | Da gui proposal | `sme-proposal` |
+| `NEGOTIATION` | Thuong luong gia / terms | Sales rep |
+| `WON` / `LOST` | Ket qua cuoi | Sales rep |
 
-## LIEN KET VOI CAC SKILL KHAC
+## QUY TAC WRITE
 
-- **`sme-campaign`** → tao `list-contacts` tu CRM de lam target audience. Khi contact `ENGAGED`, campaign PATCH lai `business_stage`.
-- **`sme-engagement`** → doc `business_stage = ENGAGED/QUALIFIED` de suggest daily actions (reply, follow-up, meeting prep).
-- **`sme-proposal`** → doc contact detail + `ai_insights` de viet proposal; sau khi gui thi PATCH `business_stage = PROPOSAL` va log interaction.
-- **`sme-sales`** → khi chot deal, tao order + PATCH `business_stage = WON`.
+Truoc khi thuc thi write action (POST/PATCH) do skill khac delegate:
 
-## VI DU
+1. **Xac nhan intent** neu action destructive (vd bulk delete, bulk stage change >100 contacts).
+2. **Dedupe check** neu `contact.create` — search `email` hoac `phone` truoc.
+3. **Missing-fields log** neu fields quan trong thieu — flag trong response de skill goi biet.
 
-**User:** "Tim contact ten Hoang Anh Dung o Techcombank"
-→ `sme-cli cosmo search-contact "Hoang Anh Dung Techcombank"` → tra ve profile.
+## PHAN BIET VOI CAC SKILL KHAC
 
-**User:** "Enrich contact nay" (dang mo profile)
-→ `sme-cli cosmo enrich <UUID>` → doi vai giay → bao user thong tin moi (linkedin, role, company news).
+- **`sme-crm`** (skill nay): thuc thi action tren COSMO (read/write), la gateway duy nhat goi COSMO. **Khong plan, khong suggest.**
+- **`sme-reminder`**: plan "ai + lam gi", fetch live state, hand-off sang skill khac execute.
+- **`sme-engagement`**: daily BD action (draft reply, meeting prep, mark sent). Delegate qua sme-crm neu can data.
+- **`sme-campaign`**: tao campaign + event lifecycle. Delegate qua sme-crm neu can list/segment.
+- **`sme-proposal`**: viet + gui proposal. Delegate qua sme-crm de search contact + log interaction.
+- **`sme-marketing`**: sinh content. Delegate qua sme-crm neu can segment data.
 
-**User:** "Import list attendees event thang 4 tu Luma CSV"
-→ `sme-cli cosmo import-csv attendees.csv --format luma --list-id <UUID>` → report 103 created.
+## VI DU DELEGATE-STYLE
 
-**User:** "Tao list khach hang tiem nang cho campaign webinar thang 5"
-→ Search hoac tao segmentation → `POST /v1/list-contacts '{"name":"Webinar May 2026","contact_ids":[...]}'`.
+**Skill `sme-campaign` can list contact cho outreach:**
 
-**User:** "Ai trong danh ba la founder SaaS?"
-→ `sme-cli cosmo vector-search "SaaS founder" 10`.
+> sme-campaign: "Em can list khach target cho campaign cold outreach Q2 — tieu chi fintech founder Sai Gon."
+> sme-crm (ban): search Apollo hoac COSMO → propose list 50 contacts → neu user OK, create list qua `POST /v1/list-contacts` → return `list_contact_id`.
+
+**Skill `sme-proposal` can search contact:**
+
+> sme-proposal: "Tim contact 'Nguyen Van A' tai Acme."
+> sme-crm: `sme-cli cosmo search-contact "Nguyen Van A Acme"` → tra ve profile + UUID cho proposal dung.
+
+**Skill `sme-engagement` can log interaction:**
+
+> sme-engagement: "Log call voi contact UUID noi dung 'da noi ve pricing Value tier, khach quan tam'."
+> sme-crm: `POST /v1/interactions '{...}'` → tra ve confirm + interaction_id.
+
+**User hoi truc tiep:**
+
+> User: "Tim contact ten Hoang Anh Dung o Techcombank"
+> sme-crm: `sme-cli cosmo search-contact "Hoang Anh Dung Techcombank"` → tra ve profile (khong dump UUID, noi ngan "Tim thay 1 contact: Hoang Anh Dung, VP Tech @ Techcombank, last contact 3 thang truoc.").
+
+> User: "Enrich contact nay" (dang mo profile)
+> sme-crm: `sme-cli cosmo enrich UUID` → doi 2-5s → bao info moi (linkedin, role, company news).
+
+> User: "Import attendees event thang 4 tu Luma CSV"
+> sme-crm: `sme-cli cosmo import-csv attendees.csv --format luma --list-id UUID` → report "103 contact moi, 5 duplicate, add vao list 'Event Thang 4'."
+
+## KHONG LAM
+
+- **Khong suggest "ai can follow-up"** — do la sme-reminder.
+- **Khong draft email content** — sme-marketing (copy) hoac sme-campaign (template).
+- **Khong viet proposal** — sme-proposal.
+- **Khong tao campaign** — sme-campaign.
+- **Khong gui thank-you** — sme-campaign (follow_up flow).
+
+## LIEN KET
+
+- **`sme-campaign`** — delegate qua sme-crm de build list, search segment, add tag after event.
+- **`sme-engagement`** — delegate qua sme-crm de enrich, log interaction, update stage.
+- **`sme-proposal`** — delegate qua sme-crm de search contact, log `proposal_sent`, PATCH `business_stage=PROPOSAL`.
+- **`sme-marketing`** — delegate qua sme-crm de lay segment context cho personalize content.
+- **`sme-reminder`** — khong delegate truc tiep (sme-reminder fetch daily-plan), nhung khi user chot action, sme-reminder hand-off sang skill khac → skill do delegate qua sme-crm.

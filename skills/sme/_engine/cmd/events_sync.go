@@ -13,10 +13,11 @@ import (
 //
 //   - free (webinar): auto-add to CRM, tag event_<id>_registered,
 //     mark ready for thank-you campaign.
+//
 //   - paid (workshop): queue into metadata.attendees.pending_payment;
 //     wait for `event confirm-payment`.
 //
-//	sme-cli event process-registrations <event_id> [--since ISO]
+//     sme-cli event process-registrations <event_id> [--since ISO]
 func eventProcessRegistrations(args []string) {
 	if len(args) == 0 {
 		errOut("usage: event process-registrations <event_id> [--since ISO_DATE]")
@@ -38,6 +39,15 @@ func eventProcessRegistrations(args []string) {
 	if pricing == "" {
 		pricing = "free" // default
 	}
+
+	// lumaTitle is the subject-match key for this event's Luma notification
+	// emails. Falls back to the event title for events created before the
+	// luma_event_title field existed. Empty title = no filter (legacy behavior).
+	lumaTitle, _ := md["luma_event_title"].(string)
+	if lumaTitle == "" {
+		lumaTitle, _ = event["title"].(string)
+	}
+	lumaTitleKey := strings.ToLower(strings.TrimSpace(lumaTitle))
 
 	// Load previously processed gmail_message_ids from event metadata to dedupe.
 	processedIDs := map[string]bool{}
@@ -81,6 +91,7 @@ func eventProcessRegistrations(args []string) {
 
 	newRegistrants := []map[string]string{}
 	skipped := 0
+	skippedOtherEvent := 0
 	for _, item := range resp.Data.List {
 		e := item.Entity
 		if len(e) == 0 {
@@ -93,6 +104,17 @@ func eventProcessRegistrations(args []string) {
 		}
 		subject, _ := e["subject"].(string)
 		content, _ := e["content"].(string)
+		// Multi-event guard: a Luma inbox can contain notifications for
+		// several events. Only accept emails whose subject or body
+		// mentions this event's luma title.
+		if lumaTitleKey != "" {
+			subjLower := strings.ToLower(subject)
+			bodyLower := strings.ToLower(content)
+			if !strings.Contains(subjLower, lumaTitleKey) && !strings.Contains(bodyLower, lumaTitleKey) {
+				skippedOtherEvent++
+				continue
+			}
+		}
 		parsed := parseLumaRegistrant(subject, content)
 		if parsed == nil {
 			skipped++
@@ -104,15 +126,17 @@ func eventProcessRegistrations(args []string) {
 
 	// Apply per pricing branch
 	result := map[string]interface{}{
-		"event_id":             eventID,
-		"event_title":          event["title"],
-		"pricing_model":        pricing,
-		"emails_scanned":       resp.Data.Total,
-		"registrants_found":    len(newRegistrants),
-		"skipped_duplicate":    skipped,
-		"action_taken":         "",
-		"new_registrants":      newRegistrants,
-		"campaign_handoff":     nil,
+		"event_id":            eventID,
+		"event_title":         event["title"],
+		"luma_title_filter":   lumaTitle,
+		"pricing_model":       pricing,
+		"emails_scanned":      resp.Data.Total,
+		"registrants_found":   len(newRegistrants),
+		"skipped_duplicate":   skipped,
+		"skipped_other_event": skippedOtherEvent,
+		"action_taken":        "",
+		"new_registrants":     newRegistrants,
+		"campaign_handoff":    nil,
 	}
 
 	if len(newRegistrants) == 0 {
@@ -149,9 +173,9 @@ func eventProcessRegistrations(args []string) {
 		pending := ensureAttendeesBucket(md, "pending_payment")
 		for _, r := range newRegistrants {
 			entry := map[string]interface{}{
-				"name":          r["name"],
-				"email":         r["email"],
-				"registered_at": time.Now().UTC().Format(time.RFC3339),
+				"name":             r["name"],
+				"email":            r["email"],
+				"registered_at":    time.Now().UTC().Format(time.RFC3339),
 				"gmail_message_id": r["gmail_message_id"],
 			}
 			pending = append(pending, entry)
@@ -386,12 +410,12 @@ func eventConfirmPayment(args []string) {
 	}
 
 	okOut(map[string]interface{}{
-		"event_id":           eventID,
-		"event_title":        event["title"],
-		"confirmed_emails":   movedEmails,
-		"already_confirmed":  alreadyConfirmed,
+		"event_id":             eventID,
+		"event_title":          event["title"],
+		"confirmed_emails":     movedEmails,
+		"already_confirmed":    alreadyConfirmed,
 		"not_found_in_pending": notFoundEmails,
-		"added_to_crm":       createdIDs,
+		"added_to_crm":         createdIDs,
 		"campaign_handoff": map[string]interface{}{
 			"skill":    "sme-campaign",
 			"playbook": "event_invite",
@@ -484,10 +508,10 @@ func eventReport(args []string) {
 		"days_until":    daysUntil,
 		"pricing_model": pricing,
 		"registrations": map[string]interface{}{
-			"total":            registeredTotal,
-			"free_registered":  len(freeReg),
-			"pending_payment":  len(pending),
-			"confirmed_paid":   len(confirmed),
+			"total":           registeredTotal,
+			"free_registered": len(freeReg),
+			"pending_payment": len(pending),
+			"confirmed_paid":  len(confirmed),
 		},
 		"capacity_used":       capacityUsed,
 		"recommended_actions": actions,

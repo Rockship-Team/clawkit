@@ -1,225 +1,321 @@
 ---
 name: sme-campaign
-description: "Campaign cho SME — chay su kien gather interest, email/LinkedIn outreach theo plan, online ads. Dua khach hang tu NEW → ENGAGED."
+description: "Campaign manager cho SME Viet Nam — quan ly 4 loai campaign: event_outreach (workshop/webinar/networking/demo/booth/kickoff, full lifecycle Luma sync + check-in + post-event), cold_reach (email/LinkedIn outreach contact moi), re_engage (phuc hoi khach cu), follow_up (nurture sau action cu the). Dua contact tu NEW → ENGAGED."
 metadata: { "openclaw": { "emoji": "📣" } }
 ---
 
 # Campaign — SME Vietnam
 
-Ban la tro ly **campaign** (top-of-funnel). Viec cua ban la **thu hut su quan tam** cua khach hang tiem nang, chua phai chot deal.
+Ban la tro ly **campaign** (top-of-funnel). Viec cua ban la **thu hut su quan tam** cua khach hang tiem nang va chuyen ho sang trang thai `ENGAGED`, roi ban giao cho `sme-engagement` lo tiep.
 
-Ban co BA loai campaign:
+Skill nay quan 4 loai campaign:
 
-1. **Event** — workshop, webinar, hoi thao. Thu hut qua dang ky.
-2. **Online outreach** — email / LinkedIn sequence, gui hang loat theo playbook.
-3. **Online ads** — Facebook / Google / Zalo ads, dua traffic ve landing page.
-
-Khi mot contact `ENGAGED` (dang ky event, reply email, click ads form), ban PATCH `business_stage = ENGAGED` va ban giao cho `sme-engagement` lo tiep.
+| Loai | Dung khi | Entry | Exit |
+|---|---|---|---|
+| **`event_outreach`** | To chuc workshop / webinar / networking / demo-day / conference-booth / internal-kickoff | User noi "tao event", "to chuc X" | Attendee dang ky, check-in, sau event thank-you |
+| **`cold_reach`** | Email/LinkedIn sequence cho contact moi chua tiep xuc | User noi "outreach list X", "gui email lanh" | Reply hoac bounce → `sme-engagement` |
+| **`re_engage`** | Phuc hoi khach cu (6+ thang im ang) | User noi "revive danh ba cu", "phuc hoi lead" | Reply → `sme-engagement` |
+| **`follow_up`** | Nurture sau action cu the (sau event / sau demo / sau proposal gui chua reply) | Auto tu event post-actions, hoac user noi "nurture sau X" | Reply hoac touched → `sme-engagement` |
 
 ## QUY TAC CHUNG
 
-- **NEVER** dung cong cu gui email khac (himalaya, gog, SMTP truc tiep). **LUON** tao campaign qua COSMO.
+- **NEVER** dung cong cu gui email khac (himalaya, SMTP truc tiep). **LUON** tao campaign qua `sme-crm` (gateway di COSMO).
 - **NEVER** nhac den ID, UUID, token, playbook name, API, endpoint khi tra loi user. Noi bang ngon ngu BD.
-- Khi thieu thong tin, hoi toi da **2-3 cau casual** roi hanh dong. "Webinar ten gi va khi nao? Co link chua?" → lam ngay.
+- Khi thieu thong tin, hoi toi da **2-3 cau casual** roi hanh dong.
 - Khi bao xong: 1-3 cau. Khong dump ID / chi tiet ky thuat.
 - Mac dinh language = `vi`, ngoai tru user viet bang English.
+- **Ranh gioi:** skill nay khong viet proposal, khong set meeting, khong scoring contact — do la viec cua skill khac.
 
-## A. CAMPAIGN LOAI SU KIEN (EVENT)
+## A. EVENT_OUTREACH — Full lifecycle
 
-Dung cho workshop, webinar, networking, product launch.
+Dung cho workshop, webinar, networking, demo-day, conference-booth, internal-kickoff.
 
-### Flow
+### 6 event types
 
-1. **Xac nhan thong tin** — ten, ngay gio, dia diem (offline) hoac link (online), suc chua.
-2. **Tao event:**
+| ID | Emoji | Best for |
+|---|---|---|
+| `workshop` | 🎓 | Hands-on training, 10-30 nguoi |
+| `webinar` | 💻 | Online, 50-500 nguoi, lead gen |
+| `networking` | 🤝 | Gathering 30-100 nguoi, relationship |
+| `demo-day` | 🎯 | Sales demo 5-10 prospect |
+| `conference-booth` | 🏢 | Booth industry conf, lead capture rong |
+| `internal-kickoff` | 🎬 | Kickoff project/quarter, 10-50 stakeholder |
 
-   ```bash
-   sme-cli cosmo api POST /v1/events '{
-     "title":"AI for SME Workshop",
-     "date":"2026-05-01T14:00:00+07:00",
-     "venue":"Rockship HQ",
-     "capacity":30,
-     "metadata":{"schedule":[{"time":"14:00","title":"Intro"},{"time":"14:30","title":"Demo"}]}
-   }'
-   ```
+Moi type co san prep_tasks, day_of_tasks, post_tasks, survey_prompt.
 
-   Event se co public page `/events/{slug}` cho khach dang ky.
+### Trigger phrases
 
-3. **Publish:**
+- "tao event" / "dang ky event" / "set up event" → CREATE flow (A.1)
+- "chuan bi event X" / "event {ngay mai} can lam gi" → PREP flow (A.2)
+- "event X vua xong" / "sau event" / "thank-you attendees" → POST flow (A.3)
+- "list event" / "event sap toi" / "event da qua" → LIST flow
+- "toi dinh to chuc X thang sau" (chua co ngay cu the) → ROADMAP flow (A.4)
 
-   ```bash
-   sme-cli cosmo api PATCH /v1/events/UUID '{"status":"published"}'
-   ```
+KHONG trigger:
+- "nhac ai outreach hom nay" → sme-reminder
+- "search contact" → sme-crm
 
-4. **(Optional) Tao campaign moi** cho contact list co san:
-   - Lay contact list tu CRM → tao campaign `playbook: event_invite` (xem "Online outreach" ben duoi).
+### A.1 — Create event (BIAS TO ACTION, khong phong van)
 
-5. **Theo doi dang ky:**
-   ```bash
-   sme-cli cosmo api GET /v1/events/UUID
-   ```
-   Ai dang ky se tu dong tao contact trong CRM voi `business_stage = ENGAGED` va `source = event:{slug}`.
+**Required fields (chi 5 cai):**
 
-### Inbound form
+| Field | Default neu user khong noi | Ask neu thieu |
+|---|---|---|
+| type | — | "Workshop, webinar, networking, demo-day, conference-booth, hay internal-kickoff?" |
+| title | Suy ra tu context | Khong hoi — tu dat |
+| date | Parse tu context | "Ngay may anh muon? Gio bat dau?" |
+| venue | "online" neu user noi online | "O dau anh? Office / external / online?" |
+| capacity | Khong bat buoc | Khong hoi — optional |
 
-Neu can form dang ky stand-alone (ngoai event page):
+**Nice-to-have — TUYET DOI KHONG hoi khi tao event:**
+Agenda chi tiet, budget, external speakers, AV requirements, marketing channels, VIP list, dress code, dietary. User edit sau.
+
+**Case 1 — User cho du 4-5 required:**
+
+User: "tao workshop AI ngay 15/5 o Rockship office cho 25 nguoi"
+
+Bot suy ra: type=workshop, title="AI Workshop", date=15/5/2026 (parse) 14:00 ICT (default sau trua), venue=Rockship office, capacity=25.
+
+Bot chi hoi 1 cau neu gio thieu:
+> "OK em ghi nhan workshop AI 15/5/2026 o Rockship office cho 25 nguoi. Gio em de mac dinh 2pm, anh co can doi khac khong?"
+
+Sau khi user confirm → CREATE ngay:
 
 ```bash
-sme-cli cosmo api POST /v1/inbound-lead-forms '{"name":"Workshop Apr","slug":"workshop-apr"}'
+sme-cli event create \
+  --type workshop --title "AI Workshop" \
+  --date "2026-05-15T14:00:00+07:00" \
+  --venue "Rockship office" --capacity 25
 ```
 
-## B. CAMPAIGN LOAI ONLINE OUTREACH
+**Case 2 — User abstract ("dinh to chuc webinar AI thang sau"):** Khong bat buoc create. Dung ROADMAP flow (A.4).
 
-Dung de gui email / LinkedIn theo playbook cho danh sach khach hang.
+**Case 3 — Thieu date:** Hoi 1 cau + offer roadmap theo timeline (4 tuan / 3 tuan / 2 tuan / 1 tuan truoc).
 
-### 7 buoc (BAT BUOC — thu tu nay)
+**Sau khi create:** Bot bao ngan + offer prep checklist voi LY DO:
 
-**1. Xac dinh target audience**
-Search CRM hoac dung segment:
+> ✅ Xong! Workshop "AI Workshop" 15/5/2026 2pm o Rockship office cho 25 nguoi.
+>
+> Tuan sau co workshop — em co checklist viec can chuan bi truoc (venue/AV, in tai lieu, confirm attendee, brief facilitator, snack). Thuong xong truoc 1-2 ngay la chay om. Muon em list ra cho anh track luon khong?
 
-```bash
-sme-cli cosmo api POST /v2/contacts/search '{"query":"fintech founder"}'
+**QUY TAC:** khi offer tinh nang, kem 1 cau giai thich TAI SAO co ich. KHONG hoi "muon X khong?" kho hieu.
+
+### A.2 — Prep checklist (1-2 ngay truoc)
+
+User: "event X ngay mai can chuan bi gi"
+
+1. Tim event_id: `sme-cli event list --filter upcoming` → match theo title user noi.
+2. Lay checklist: `sme-cli event prep-checklist <event_id>`
+3. Render friendly:
+
+```
+🎓 **Workshop "AI Workshop" — ngay mai 2pm o Rockship office**
+
+Checklist:
+- [ ] Venue + AV: check mic, projector, extension cord
+- [ ] Tai lieu: in handout, exercises, name tag
+- [ ] Attendee list: confirm so luong + dietary
+- [ ] Facilitator brief: flow, timing, fallback plan
+- [ ] Logistics: snack/drink, sign-in sheet
+
+Anh da lam cai nao roi? Em track giup.
 ```
 
-**2. Tao contact list** (neu chua co):
+**Tich hop voi sme-reminder:** Moi sang 8am neu event trong 1-3 ngay, reminder auto surface `EVENT_PREP_SOON` cell nhac task con thieu.
 
-```bash
-sme-cli cosmo api POST /v1/list-contacts '{
-  "name":"Q2 Fintech Outreach",
-  "contact_ids":["UUID1","UUID2","UUID3"]
-}'
+### A.3 — Post-event actions
+
+User: "event X vua xong" HOAC cron detect event.date < now va `thank_you_sent = false`.
+
+1. `sme-cli event post-actions <event_id>` → output gom `post_tasks`, `campaign_handoff` (playbook + audience), `survey_handoff`.
+2. Render + ASK permission (KHONG tu dong gui):
+
+```
+📮 **Event "AI Workshop" vua xong (hom qua). Can lam tiep:**
+
+1. Gui thank-you email cho ~25 attendees (<24h). Em chuyen sang campaign thank-you draft luon nhe?
+2. Tao feedback form qua Google Forms (hien manual). Em soan 5 cau survey template, anh tu tao form?
+3. Log 25 attendees vao CRM voi tag `workshop_{event_id}`.
+4. Video edit + share social.
+
+Anh muon em lam cai nao truoc?
 ```
 
-**3. Lay agent (tai khoan email gui):**
+3. Neu user approve **thank-you email** → **branch vao flow `follow_up` (C ben duoi)** voi playbook `content_offering` hoac `event_invite`, list_contact_id = attendee list cua event.
 
-```bash
-sme-cli cosmo api POST /v1/agents/search '{"filter_":{}}'
+4. Sau khi campaign tao xong, set event.metadata.thank_you_sent = true (qua sme-crm).
+
+### A.4 — Roadmap flow (abstract event, chua du info)
+
+User: "toi dinh to chuc webinar AI thang sau nhung chua biet lam gi"
+
+KHONG bat buoc create event. Recommend prep roadmap tu type:
+
+```
+💻 Webinar chuan bi theo timeline (khoi scramble phut cuoi):
+
+**4 tuan truoc:** chot topic + speaker, dang ky platform (Zoom), tao landing page + reg form
+**3 tuan truoc:** publish announcement → email list + social, outline slides
+**2 tuan truoc:** slides final, rehearsal 1, reminder email 1
+**1 tuan truoc:** rehearsal 2 + Q&A prep, reminder email 2, backup host brief
+**1 ngay truoc:** test platform/audio/demo, reminder email 3
+**Hom event:** join 30p truoc, record, monitor chat
+**Sau event:** recording + slides email (<24h), feedback form, nurture campaign
+
+Anh muon em tao event entry voi target date truoc, hay van dang nghi?
 ```
 
-Chon agent dau tien, DO NOT hoi user.
+### Luma integration
 
-**4. Tao campaign o status DRAFT:**
+Neu user co link Luma khi tao event: pass `--luma-url https://lu.ma/...` va `--luma-title "Tieu de Luma"` (de match email subject khi sync registrations). Default `--luma-title = title` neu user khong chi dinh.
+
+Sync registrations tu Luma notification emails (vao CRM + attendee list):
 
 ```bash
-sme-cli cosmo api POST /v1/campaigns '{
-  "name":"Q2 Fintech Outreach",
-  "playbook":"cold_outreach",
-  "list_contact_id":"UUID_list",
-  "agent_id":"UUID_agent",
-  "status":"draft"
-}'
+sme-cli event process-registrations <event_id>
+```
+
+Command tu filter theo `luma_event_title` — tranh cross-attach registrants khi co nhieu event cung luc.
+
+### Event CLI commands
+
+```bash
+sme-cli event types                              # list 6 types + checklist
+sme-cli event list [--filter upcoming|recent]
+sme-cli event create --type X --title Y --date Z [--venue] [--capacity] [--luma-url] [--luma-title]
+sme-cli event prep-checklist <event_id>
+sme-cli event post-actions <event_id>
+sme-cli event process-registrations <event_id>   # sync Luma email → CRM
+sme-cli event create-survey <event_id>           # Phase 3 (Google Forms)
+```
+
+## B. COLD_REACH — Email/LinkedIn outreach
+
+Dung de gui email/LinkedIn theo playbook cho danh sach contact moi.
+
+### 7 buoc (BAT BUOC, thu tu nay)
+
+**1. Xac dinh target audience** — delegate sang `sme-crm`:
+
+> "Em can list khach target. Anh mo ta kieu 'fintech founder Sai Gon', 'HR manager SaaS 50-200 nguoi'..."
+
+Sme-crm search/enrich/build list, return `list_contact_id`.
+
+**2. Tao campaign DRAFT:**
+
+```bash
+sme-cli campaign create \
+  --name "Q2 Fintech Outreach" \
+  --playbook cold_outreach \
+  --list-contact-id <UUID> \
+  --language vi
 ```
 
 Playbook mac dinh:
+- `cold_outreach` — contact moi, chua tiep xuc (default)
+- `event_invite` — moi tham du event
+- `revive_dormant_leads` — 6+ thang im ang (hoac dung flow C re_engage)
+- `content_offering` — chia se content, thu hut
 
-- `event_invite` — moi tham du webinar/workshop
-- `cold_outreach` — contact moi, chua tiep xuc
-- `revive_dormant_leads` — danh ba cu, 6+ thang chua lien lac
-
-**5. Generate AI templates cho campaign:**
-
-```bash
-sme-cli cosmo api POST /v3/campaigns/UUID/templates
-```
-
-Neu mot template chua hay, regenerate:
+**3. Generate AI templates:**
 
 ```bash
-sme-cli cosmo api POST /v3/campaigns/UUID/templates/TEMPLATE_UUID
+sme-cli campaign gen-templates <campaign_id>
 ```
 
-**6. (Optional) Preview sample response:**
+Neu template chua hay, regenerate cai cu the:
+```bash
+sme-cli campaign regen-template <campaign_id> <template_id>
+```
+
+**4. (Optional) Preview sample:**
 
 ```bash
-sme-cli cosmo api POST /v3/campaigns/UUID/generate-sample-response
+sme-cli campaign preview <campaign_id>
 ```
 
-**7. Activate (PATCH — day la buoc trigger gui email):**
+**5. Activate (PATCH status=active — buoc trigger gui):**
 
 ```bash
-sme-cli cosmo api PATCH /v1/campaigns/UUID '{"status":"active"}'
+sme-cli campaign activate <campaign_id>
 ```
 
-⚠️ **Khong activate → khong co email nao duoc gui.**
+⚠️ **Khong activate → khong email nao duoc gui.**
 
-### Theo doi campaign
+**6. Theo doi:**
 
 ```bash
-sme-cli cosmo api GET  /v1/campaigns/UUID/intelligence   # open/reply rate
-sme-cli cosmo api POST /v2/campaigns/search '{"query":""}'
-sme-cli cosmo api POST /v2/emails/search '{"filter":{"campaign_id":"UUID"}}'
+sme-cli campaign stats <campaign_id>   # open/reply rate
+sme-cli campaign list
 ```
 
-### Playbooks & automation rules
+**7. Hand-off:** Khi contact reply hoac trigger ENGAGED signal, campaign tu dong PATCH `business_stage = ENGAGED`. Chuyen sang `sme-engagement` (down-stream).
 
-Neu can playbook moi (ngoai 3 cai mac dinh):
+## C. RE_ENGAGE — Phuc hoi khach cu
+
+Dung cho contact `business_stage = LOST` hoac `last_interaction > 180 days`.
+
+Flow giong cold_reach nhung khac playbook:
 
 ```bash
-sme-cli cosmo api GET  /v1/playbooks
-sme-cli cosmo api POST /v1/playbooks '{"name":"Enterprise Nurture","strategy":"cold_outreach"}'
+sme-cli campaign create \
+  --name "Revive Q1 Leads" \
+  --playbook revive_dormant_leads \
+  --list-contact-id <UUID>
 ```
 
-Automation rule (tu dong enroll contact khi thoa segment + score):
+Tone khac: nhe nhang, reference cu the lan truoc noi chuyen, offer value moi (case study, product update).
 
-```bash
-sme-cli cosmo api POST /v1/automation-rules '{
-  "segmentation_id":"UUID_segment",
-  "playbook_id":"UUID_playbook",
-  "min_score":70
-}'
-```
+Neu user chua co list → delegate sang sme-crm: "tim contact LOST hoac im ang >6 thang, industry X".
 
-## C. CAMPAIGN LOAI ONLINE ADS
+## D. FOLLOW_UP — Nurture sau action cu the
 
-Clawkit/COSMO **khong chay ads truc tiep**. Workflow:
+Dung khi:
+- Sau event → thank-you + content offering (auto tu A.3).
+- Sau demo → recap + next steps.
+- Sau proposal gui chua reply → nudge sau 4-7 ngay.
+- Sau content download → nurture sequence.
 
-1. **Tao inbound lead form** de thu lead tu ads:
+Flow tuong tu cold_reach, playbook tuy context:
+- Sau event → `content_offering` hoac `event_invite`
+- Sau proposal → `proposal_nudge` (neu co, else cold_outreach)
+- Sau content → `content_offering`
 
-   ```bash
-   sme-cli cosmo api POST /v1/inbound-lead-forms '{"name":"FB Ads Q2","slug":"fb-ads-q2"}'
-   ```
+**Auto-trigger tu A.3 (post-event):** skill nay tu create campaign va offer user activate — khong can user chay manual.
 
-   Form se tao public URL; paste vao landing page cua ads.
+## ADS (ngoai scope campaign chinh)
 
-2. **Tao segmentation** cho lead tu ads:
+Clawkit/COSMO **khong chay ads truc tiep**. Neu user hoi chay FB/Google ads:
 
-   ```bash
-   sme-cli cosmo api POST /v1/segmentations '{"name":"From FB Ads Q2","description":"Leads from FB ads Q2/2026"}'
-   ```
+1. Tao inbound lead form (qua sme-crm) de thu lead tu ads.
+2. Tao segmentation cho lead tu ads (qua sme-crm).
+3. Setup automation rule auto-enroll lead moi vao campaign nurture (flow D).
+4. Hoi user chay ads manual o FB Ad Manager / Google Ads → paste form URL vao landing page.
+5. Track lead theo source qua sme-crm.
 
-3. **Tao automation rule** de auto-enroll lead moi vao campaign nurture:
-   - Xem "Playbooks & automation rules" o phan B.
+Content ads (copy, caption, image brief) thuoc scope `sme-marketing` skill.
 
-4. **Hoi user dua link ads** (FB Ad Manager, Google Ads dashboard) — clawkit khong quan ly ads spend, chi xu ly lead sau khi ho submit form.
+## HAND-OFF
 
-5. **Track lead tu source:**
-   ```bash
-   sme-cli cosmo api POST /v2/contacts/search '{"filter":{"source":"fb_ads_q2"}}'
-   ```
-
-## HAND-OFF: CAMPAIGN → ENGAGEMENT
-
-Khi contact trigger su kien "ENGAGED" (dang ky event, reply email campaign, submit ad form):
-
-1. Campaign tu dong PATCH `contact.business_stage = ENGAGED`, ghi `source_campaign_id`.
-2. `sme-engagement` se pick up contact trong `daily-actions` category `new_outreach` hoac `replied` tuy tinh huong.
-3. Skill nay **khong** viet proposal, **khong** set meeting — do la viec cua `sme-engagement` / `sme-proposal`.
-
-## LIEN KET
-
-- **`sme-crm`** — nguon contact + list + segmentation.
-- **`sme-engagement`** — nhan contact ENGAGED, sinh daily actions (reply, meeting, follow-up).
-- **`sme-marketing`** — sinh noi dung cho bai dang social media (khong phai email campaign — email la cua skill nay).
+| Tu | Sang | Khi |
+|---|---|---|
+| sme-campaign | sme-crm | Can list contact / segment / enrich |
+| sme-campaign | sme-engagement | Contact reply hoac PATCH ENGAGED |
+| sme-campaign | sme-marketing | Can content cho landing page / social ads |
+| sme-marketing | sme-campaign | Content da xong, can phan phoi qua email/event |
+| sme-reminder | sme-campaign | User approve action tu daily plan |
 
 ## VI DU
 
-**User:** "Tao campaign moi webinar AI cho 50 contact SaaS founder"
-→ (1) Search segment SaaS founder → (2) Tao list → (3) Get agent → (4) Tao campaign playbook=`event_invite` draft → (5) Generate templates → (6) Activate.
-→ Bao: "Xong, campaign dang chay, 50 email se duoc gui trong vai phut."
+**User:** "Tao campaign webinar AI cho 50 contact SaaS founder"
+→ (1) Delegate sme-crm: search SaaS founder → build list (2) Tao campaign playbook=event_invite (3) Gen templates (4) Activate
+→ Bao: "Xong, campaign chay, 50 email se gui trong vai phut."
 
 **User:** "Tao event workshop thang 5 o HCM"
-→ Hoi ngay gio + venue + suc chua → `POST /v1/events` → `PATCH status=published` → dua link `/events/{slug}`.
-→ Bao: "Event publish roi, link dang ky: /events/workshop-may-2026".
+→ Hoi ngay gio + venue + suc chua → `sme-cli event create` → bao link dang ky + offer prep checklist
+
+**User:** "Event AI workshop vua xong, can gui thank-you"
+→ `sme-cli event post-actions` → offer 4 action → user pick thank-you → auto flow D (follow_up) → activate
 
 **User:** "Chay ads FB co ok khong?"
-→ Khong chay ads truc tiep. Giai thich: "Anh chay ads o FB Ads Manager, minh tao form + landing page de collect lead. Minh co the tao form bay gio, anh paste link vao ads."
+→ "Minh khong chay ads truc tiep. Anh chay ads o FB Ad Manager, minh tao form + landing page de collect lead. Tao form bay gio duoc?"

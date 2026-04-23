@@ -282,7 +282,7 @@ func eventList(args []string) {
 // eventCreate POSTs a new event to /v1/events. Supports --type --title
 // --date --venue --capacity --luma-url --pricing --price flags.
 func eventCreate(args []string) {
-	var typeID, title, date, venue, lumaURL, pricing string
+	var typeID, title, date, venue, lumaURL, lumaTitle, pricing string
 	capacity, priceVND := 0, 0
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -316,6 +316,11 @@ func eventCreate(args []string) {
 				lumaURL = args[i+1]
 				i++
 			}
+		case "--luma-title":
+			if i+1 < len(args) {
+				lumaTitle = args[i+1]
+				i++
+			}
 		case "--pricing":
 			if i+1 < len(args) {
 				pricing = args[i+1] // "free" or "paid"
@@ -329,7 +334,7 @@ func eventCreate(args []string) {
 		}
 	}
 	if title == "" || date == "" {
-		errOut("usage: event create --type <type> --title <t> --date <ISO_DATE> [--venue] [--capacity] [--luma-url]")
+		errOut("usage: event create --type <type> --title <t> --date <ISO_DATE> [--venue] [--capacity] [--luma-url] [--luma-title]")
 	}
 	if _, ok := findEventType(typeID); !ok {
 		errOut(fmt.Sprintf("invalid --type %q — run `sme-cli event types` to see supported values", typeID))
@@ -346,9 +351,17 @@ func eventCreate(args []string) {
 			pricing = "free"
 		}
 	}
+	// luma_event_title is the key used by event process-registrations to
+	// match Luma notification email subjects, so multi-event setups don't
+	// cross-attach registrants. Default to the event title when the user
+	// hasn't given an explicit Luma title.
+	if lumaTitle == "" {
+		lumaTitle = title
+	}
 	metadata := map[string]interface{}{
-		"event_type_id": strings.ToLower(typeID),
-		"pricing_model": pricing,
+		"event_type_id":    strings.ToLower(typeID),
+		"pricing_model":    pricing,
+		"luma_event_title": lumaTitle,
 	}
 	if priceVND > 0 {
 		metadata["price_vnd"] = priceVND
@@ -478,7 +491,7 @@ func eventPostActions(args []string) {
 				playbook),
 		},
 		"survey_handoff": map[string]interface{}{
-			"command": fmt.Sprintf("sme-cli event create-survey %s   (Phase 3, coming soon — uses Google Forms API)", eventID),
+			"command":         fmt.Sprintf("sme-cli event create-survey %s   (Phase 3, coming soon — uses Google Forms API)", eventID),
 			"manual_fallback": "Until Phase 3 lands: create Google Form manually using `survey_prompt` as guide, then attach URL to event metadata.survey_url.",
 		},
 	})

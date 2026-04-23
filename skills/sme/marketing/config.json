@@ -1,6 +1,17 @@
 {
   "version": "1.0.0",
   "requires_bins": ["sme-cli"],
-  "setup_prompts": [],
+  "setup_prompts": [
+    {
+      "key": "poster_name",
+      "label": "Ten nguoi post (hien tren draft, vd 'Khoa')",
+      "placeholder": "Khoa"
+    },
+    {
+      "key": "brand_name",
+      "label": "Ten brand chinh (hien tren hashtag va voice guide)",
+      "placeholder": "YourBrand"
+    }
+  ],
   "exclude": ["cmd", "*.go"]
 }

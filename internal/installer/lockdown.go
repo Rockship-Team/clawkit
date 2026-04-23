@@ -1,442 +1,85 @@
-// Package installer — workspace lockdown for skill installation.
+// Package installer — workspace allowlist management.
 //
-// Two install modes:
-//
-//  1. EXCLUSIVE (default): workspace dedicates itself to ONE skill.
-//     - Default workspace MD files (AGENTS.md, SOUL.md, IDENTITY.md, USER.md,
-//       BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md) are replaced/removed so the
-//       agent adopts the skill's persona.
-//     - The agent's skill allowlist is set to only this skill.
-//     - Any prior conversation sessions are cleared.
-//     - If a different skill was previously installed, it is removed first.
-//
-//  2. ADDITIVE (`--add` flag): stack a skill alongside existing ones.
-//     - Prior skills stay installed.
-//     - Workspace persona files (SOUL.md/AGENTS.md/etc.) are KEPT from the
-//       first install; the new skill inherits that persona.
-//     - The new skill's runtime name is APPENDED to the allowlist.
-//     - Sessions are NOT reset.
-//     - Only safe when skills share a compatible persona (e.g. sme-*
-//       family sharing a "BD teammate" persona). Use exclusive mode when
-//       switching between unrelated domains.
+// When a user installs a skill via `clawkit install <skill>`, the skill is
+// added to the agent's allowlist so it appears in <available_skills>. When
+// the last skill is uninstalled, the allowlist is cleared.
 package installer
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/rockship-co/clawkit/internal/config"
 	"github.com/rockship-co/clawkit/internal/ui"
 )
 
-// BootstrapFilesDirName is the subdirectory inside a skill package that
-// contains files to be copied into the user's workspace root on install.
-// Files here replace the user's default workspace persona files (AGENTS.md,
-// SOUL.md, IDENTITY.md, USER.md) so the agent adopts the skill's character.
-const BootstrapFilesDirName = "bootstrap-files"
-
-// genericWorkspaceFiles are the default OpenClaw assistant files that ship
-// with a fresh `openclaw onboard` setup. They turn the agent into a
-// generic personal assistant with heartbeat polling, journaling, and other
-// behaviors that conflict with a dedicated skill persona. We delete them
-// during lockdown so they stop being loaded as system prompt context.
-var genericWorkspaceFiles = []string{
-	"BOOTSTRAP.md",
-	"HEARTBEAT.md",
-	"TOOLS.md",
+// SetupWorkspace adds a newly installed skill to the allowlist.
+func SetupWorkspace(skillsDir, skillName string) {
+	priorSkills := listInstalledSkills(skillsDir, skillName)
+	allSkills := append(priorSkills, skillName)
+	if err := setSkillsAllowlist(allSkills...); err != nil {
+		ui.Warn("Could not update agents.defaults.skills: %v", err)
+		ui.Info("Run manually: openclaw config set agents.defaults.skills '%s'", mustMarshalJSON(allSkills))
+	} else {
+		ui.Ok("Set agents.defaults.skills = %s", mustMarshalJSON(allSkills))
+	}
 }
 
-// LockdownWorkspace performs the install-time workspace configuration.
-//
-// In EXCLUSIVE mode (addMode=false, default):
-//  1. Removes any previously installed skill (with user prompt).
-//  2. Backs up existing workspace MD files to .clawkit-backup/<timestamp>/.
-//  3. Copies bootstrap-files/* from the new skill to workspace root.
-//  4. Deletes generic assistant files (BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md).
-//  5. Resets existing conversation sessions.
-//  6. Sets agents.defaults.skills = [<skillName>] via openclaw config.
-//
-// In ADDITIVE mode (addMode=true, --add flag):
-//  1. Leaves prior skills alone (no removal).
-//  2. Keeps existing workspace persona files untouched.
-//  3. Skips bootstrap-files copy (first-install persona wins).
-//  4. Does NOT delete generic files / reset sessions.
-//  5. APPENDS the runtime name to agents.defaults.skills allowlist.
-//
-// skillsDir is the OpenClaw skills directory (~/.openclaw/workspace/skills).
-// skillDir is the path where the new skill was just installed.
-// skillName is the skill being installed.
-func LockdownWorkspace(skillsDir, skillDir, skillName string, addMode bool) {
-	workspaceDir := filepath.Dir(skillsDir) // ~/.openclaw/workspace
-
-	allowlistName := readSkillRuntimeName(skillDir, skillName)
-
-	if addMode {
-		// Additive install — only touch the allowlist.
-		if err := appendSkillsAllowlist(allowlistName); err != nil {
-			ui.Warn("Could not append to agents.defaults.skills: %v", err)
-			ui.Info("Run manually: openclaw config set agents.defaults.skills '[..., \"%s\"]'", allowlistName)
-		} else {
-			ui.Ok("Added \"%s\" to agents.defaults.skills (existing skills kept)", allowlistName)
+// listInstalledSkills returns names of installed skills (excluding excludeName).
+func listInstalledSkills(skillsDir, excludeName string) []string {
+	entries, err := os.ReadDir(skillsDir)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, e := range entries {
+		if !e.IsDir() || e.Name() == excludeName {
+			continue
 		}
-		ui.Info("Additive install: workspace persona files (SOUL.md / AGENTS.md / etc.) unchanged")
+		if _, err := os.Stat(filepath.Join(skillsDir, e.Name(), "SKILL.md")); err == nil {
+			names = append(names, e.Name())
+		}
+	}
+	return names
+}
+
+// RemoveFromWorkspace removes a skill from the allowlist. If it was the last
+// skill, clears the allowlist entirely.
+func RemoveFromWorkspace(skillsDir, skillName string) {
+	remaining := listInstalledSkills(skillsDir, skillName)
+
+	if len(remaining) == 0 {
+		if err := ClearSkillsAllowlist(); err != nil {
+			ui.Warn("Could not clear skill allowlist: %v", err)
+			ui.Info("Run manually: openclaw config unset agents.defaults.skills")
+		} else {
+			ui.Ok("Cleared agents.defaults.skills")
+		}
 		return
 	}
 
-	// EXCLUSIVE mode below.
-
-	// Step 1: handle prior skill. If another skill is already installed,
-	// ask user whether to remove it — the 1-skill-at-a-time model forbids
-	// keeping both.
-	if err := removePriorSkills(skillsDir, skillName); err != nil {
-		ui.Warn("Could not remove prior skills: %v", err)
-	}
-
-	// Step 2: backup the user's current workspace MD files so they can
-	// be restored via `clawkit uninstall` or manual recovery.
-	backupDir, backupErr := backupWorkspaceFiles(workspaceDir)
-	if backupErr != nil {
-		ui.Warn("Could not back up workspace files: %v", backupErr)
-	} else if backupDir != "" {
-		ui.Info("Backed up workspace files to %s", backupDir)
-	}
-
-	// Step 3: copy bootstrap-files/* from the skill into workspace root.
-	// This is how the skill stamps its persona onto the agent's system prompt.
-	overridesDir := filepath.Join(skillDir, BootstrapFilesDirName)
-	if _, err := os.Stat(overridesDir); err == nil {
-		count, err := applyBootstrapFiles(overridesDir, workspaceDir)
-		if err != nil {
-			ui.Warn("Could not apply bootstrap files: %v", err)
-		} else if count > 0 {
-			ui.Ok("Applied %d bootstrap file(s) from skill", count)
-		}
-	}
-
-	// Step 4: delete generic OpenClaw assistant files. These files from
-	// `openclaw onboard` turn the agent into a generic personal assistant
-	// that conflicts with a dedicated skill persona.
-	for _, f := range genericWorkspaceFiles {
-		p := filepath.Join(workspaceDir, f)
-		if _, err := os.Stat(p); err == nil {
-			if err := os.Remove(p); err != nil {
-				ui.Warn("Could not remove %s: %v", f, err)
-			}
-		}
-	}
-
-	// Step 5: reset any existing agent sessions. Without this, an active
-	// session's cached system prompt (from the old persona) would leak
-	// into the first reply after install.
-	if err := resetAgentSessions(workspaceDir); err != nil {
-		ui.Warn("Could not reset sessions: %v", err)
-	}
-
-	// Step 6: set the agent skill allowlist to only this skill. The
-	// allowlist must use the SKILL.md frontmatter `name`, since OpenClaw
-	// matches by that field — not by install/dir name. They differ for
-	// namespaced skills (e.g. dir `proposal` with frontmatter
-	// `name: sme-proposal`).
-	if err := setSkillsAllowlist(allowlistName); err != nil {
-		ui.Warn("Could not set agents.defaults.skills: %v", err)
-		ui.Info("Run manually: openclaw config set agents.defaults.skills '[\"%s\"]'", allowlistName)
+	if err := setSkillsAllowlist(remaining...); err != nil {
+		ui.Warn("Could not update agents.defaults.skills: %v", err)
 	} else {
-		ui.Ok("Set agents.defaults.skills = [\"%s\"]", allowlistName)
+		ui.Ok("Updated agents.defaults.skills = %s", mustMarshalJSON(remaining))
 	}
 }
 
-// readSkillRuntimeName returns the SKILL.md frontmatter `name` field,
-// falling back to the provided default when the frontmatter is missing or
-// the field cannot be parsed. OpenClaw identifies skills by this field at
-// runtime, so it is what the allowlist needs.
-func readSkillRuntimeName(skillDir, fallback string) string {
-	data, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
-	if err != nil {
-		return fallback
-	}
-	content := string(data)
-	if !strings.HasPrefix(content, "---\n") {
-		return fallback
-	}
-	end := strings.Index(content[4:], "\n---")
-	if end == -1 {
-		return fallback
-	}
-	for _, line := range strings.Split(content[4:4+end], "\n") {
-		if !strings.HasPrefix(line, "name:") {
-			continue
-		}
-		v := strings.TrimSpace(line[len("name:"):])
-		v = strings.Trim(v, `"'`)
-		if v != "" {
-			return v
-		}
-	}
-	return fallback
-}
-
-// removePriorSkills finds other skill directories in skillsDir and prompts
-// the user to remove them. Enforces the 1-skill-at-a-time model.
-func removePriorSkills(skillsDir, currentSkillName string) error {
-	entries, err := os.ReadDir(skillsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	var prior []string
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		if e.Name() == currentSkillName {
-			continue
-		}
-		// Only treat as "installed skill" if it has a SKILL.md file.
-		if _, err := os.Stat(filepath.Join(skillsDir, e.Name(), "SKILL.md")); err == nil {
-			prior = append(prior, e.Name())
-		}
-	}
-
-	if len(prior) == 0 {
-		return nil
-	}
-
-	fmt.Println()
-	ui.Warn("Another skill is already installed: %s", strings.Join(prior, ", "))
-	fmt.Println("  clawkit enforces a 1-skill-at-a-time model — installing a new skill")
-	fmt.Println("  requires removing the old one. The current skill's data directory")
-	fmt.Println("  (including its orders database, OAuth tokens, and assets) will be")
-	fmt.Println("  deleted from ~/.openclaw/workspace/skills/.")
-	fmt.Print("  Remove the existing skill(s) and continue? [y/N]: ")
-	reader := bufio.NewReader(os.Stdin)
-	answer, _ := reader.ReadString('\n')
-	answer = strings.TrimSpace(strings.ToLower(answer))
-	if answer != "y" && answer != "yes" {
-		ui.Fatal("Cancelled. Run `clawkit uninstall %s` manually, then retry.", prior[0])
-	}
-
-	for _, name := range prior {
-		dir := filepath.Join(skillsDir, name)
-		if err := os.RemoveAll(dir); err != nil {
-			return fmt.Errorf("remove %s: %w", name, err)
-		}
-		ui.Ok("Removed prior skill: %s", name)
-	}
-	return nil
-}
-
-// backupWorkspaceFiles copies workspace MD files to a timestamped backup
-// directory before they get overwritten. Returns the backup dir path or
-// empty string if nothing was backed up.
-func backupWorkspaceFiles(workspaceDir string) (string, error) {
-	candidates := []string{
-		"AGENTS.md", "SOUL.md", "IDENTITY.md", "USER.md",
-		"BOOTSTRAP.md", "HEARTBEAT.md", "TOOLS.md",
-	}
-
-	var toBackup []string
-	for _, f := range candidates {
-		p := filepath.Join(workspaceDir, f)
-		if _, err := os.Stat(p); err == nil {
-			toBackup = append(toBackup, f)
-		}
-	}
-	if len(toBackup) == 0 {
-		return "", nil
-	}
-
-	stamp := time.Now().UTC().Format("2006-01-02T15-04-05Z")
-	backupDir := filepath.Join(workspaceDir, ".clawkit-backup", stamp)
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return "", err
-	}
-
-	for _, f := range toBackup {
-		src := filepath.Join(workspaceDir, f)
-		dst := filepath.Join(backupDir, f)
-		if err := copyFile(src, dst); err != nil {
-			return "", fmt.Errorf("backup %s: %w", f, err)
-		}
-	}
-	return backupDir, nil
-}
-
-// applyBootstrapFiles copies every file directly inside overridesDir
-// into workspaceDir, overwriting existing files. It does not recurse into
-// subdirectories — only top-level files.
-func applyBootstrapFiles(overridesDir, workspaceDir string) (int, error) {
-	entries, err := os.ReadDir(overridesDir)
-	if err != nil {
-		return 0, err
-	}
-	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-		return 0, err
-	}
-	count := 0
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		src := filepath.Join(overridesDir, e.Name())
-		dst := filepath.Join(workspaceDir, e.Name())
-		if err := copyFile(src, dst); err != nil {
-			return count, fmt.Errorf("copy %s: %w", e.Name(), err)
-		}
-		count++
-	}
-	return count, nil
-}
-
-// resetAgentSessions clears active conversation sessions so the new persona
-// takes effect on the next incoming message. It renames existing *.jsonl
-// files to *.jsonl.reset.<timestamp>.bak and empties sessions.json.
-//
-// OpenClaw stores sessions at ~/.openclaw/agents/<agent>/sessions/. By
-// default there's only the "main" agent. We iterate over all agent
-// directories to handle non-default setups.
-func resetAgentSessions(workspaceDir string) error {
-	// agents dir sits next to workspace dir: ~/.openclaw/agents/
-	openclawDir := filepath.Dir(workspaceDir) // ~/.openclaw
-	agentsDir := filepath.Join(openclawDir, "agents")
-
-	agents, err := os.ReadDir(agentsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	stamp := time.Now().UTC().Format("2006-01-02T15-04-05Z")
-	touched := 0
-
-	for _, agent := range agents {
-		if !agent.IsDir() {
-			continue
-		}
-		sessionsDir := filepath.Join(agentsDir, agent.Name(), "sessions")
-		if _, err := os.Stat(sessionsDir); os.IsNotExist(err) {
-			continue
-		}
-
-		entries, err := os.ReadDir(sessionsDir)
-		if err != nil {
-			continue
-		}
-		for _, e := range entries {
-			if e.IsDir() {
-				continue
-			}
-			if !strings.HasSuffix(e.Name(), ".jsonl") {
-				continue
-			}
-			src := filepath.Join(sessionsDir, e.Name())
-			dst := filepath.Join(sessionsDir, e.Name()+".reset."+stamp+".bak")
-			if err := os.Rename(src, dst); err != nil {
-				ui.Warn("Could not archive session %s: %v", e.Name(), err)
-				continue
-			}
-			touched++
-		}
-
-		// Empty the sessions index file so OpenClaw treats this agent as
-		// having zero active sessions on next startup.
-		sessionsJSON := filepath.Join(sessionsDir, "sessions.json")
-		if _, err := os.Stat(sessionsJSON); err == nil {
-			// Back up then overwrite.
-			_ = os.Rename(sessionsJSON, sessionsJSON+".reset."+stamp+".bak")
-			if err := os.WriteFile(sessionsJSON, []byte("{}\n"), 0644); err != nil {
-				return fmt.Errorf("write sessions.json: %w", err)
-			}
-		}
-	}
-
-	if touched > 0 {
-		ui.Ok("Archived %d prior conversation session(s)", touched)
-	}
-	return nil
-}
-
-// setSkillsAllowlist runs `openclaw config set agents.defaults.skills [<name>]`
-// so the LLM only sees this skill in <available_skills>. Returns an error if
-// the openclaw CLI is not on PATH or the command fails.
-func setSkillsAllowlist(skillName string) error {
-	return writeSkillsAllowlist([]string{skillName})
-}
-
-// appendSkillsAllowlist reads the current agents.defaults.skills, adds
-// skillName (deduped), and writes it back. Used by additive install
-// (`clawkit install --add <skill>`).
-//
-// Important: when the allowlist is UNSET before this call, OpenClaw
-// defaults to permissive ("all skills allowed"). Writing just
-// [skillName] here would REGRESS that — it would silently block all
-// previously installed skills. So when unset, we leave it unset and the
-// new skill picks up the default permissive mode alongside siblings.
-func appendSkillsAllowlist(skillName string) error {
-	current, err := readSkillsAllowlist()
-	if err != nil {
-		// Allowlist unset / CLI read failed. Leave it unset — the runtime
-		// will default to permissive mode, which naturally includes the
-		// newly installed skill alongside any prior ones. Do not force
-		// a restrictive list here.
-		return nil
-	}
-	if len(current) == 0 {
-		// Explicitly empty array — treat like unset, don't clobber.
-		return nil
-	}
-	for _, s := range current {
-		if s == skillName {
-			return nil // already present
-		}
-	}
-	current = append(current, skillName)
-	return writeSkillsAllowlist(current)
-}
-
-// readSkillsAllowlist returns the current agents.defaults.skills array, or
-// an empty slice if unset / unreadable.
-func readSkillsAllowlist() ([]string, error) {
-	openclawBin, err := exec.LookPath("openclaw")
-	if err != nil {
-		return nil, fmt.Errorf("openclaw binary not found on PATH: %w", err)
-	}
-	cmd := exec.Command(openclawBin, "config", "get", "agents.defaults.skills")
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-	trimmed := strings.TrimSpace(string(output))
-	if trimmed == "" || trimmed == "null" {
-		return []string{}, nil
-	}
-	var list []string
-	if err := json.Unmarshal([]byte(trimmed), &list); err != nil {
-		return nil, fmt.Errorf("parse allowlist: %w (raw: %s)", err, trimmed)
-	}
-	return list, nil
-}
-
-func writeSkillsAllowlist(skills []string) error {
+// setSkillsAllowlist runs `openclaw config set agents.defaults.skills [names...]`.
+func setSkillsAllowlist(names ...string) error {
 	openclawBin, err := exec.LookPath("openclaw")
 	if err != nil {
 		return fmt.Errorf("openclaw binary not found on PATH: %w", err)
 	}
-	val, err := json.Marshal(skills)
+
+	val, err := json.Marshal(names)
 	if err != nil {
 		return err
 	}
+
 	cmd := exec.Command(openclawBin, "config", "set", "agents.defaults.skills", string(val))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -445,86 +88,7 @@ func writeSkillsAllowlist(skills []string) error {
 	return nil
 }
 
-// copyFile copies src to dst, creating parent directories as needed. If dst
-// exists it is overwritten. Uses buffered io.Copy so it handles large files
-// without blowing up memory.
-func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
-	}
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return nil
-}
-
-// RestoreWorkspaceFromBackup is the reverse of LockdownWorkspace: restore
-// the most recent .clawkit-backup/<stamp>/ files to the workspace root.
-// Called by `clawkit uninstall`.
-func RestoreWorkspaceFromBackup(workspaceDir string) error {
-	backupRoot := filepath.Join(workspaceDir, ".clawkit-backup")
-	entries, err := os.ReadDir(backupRoot)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // nothing to restore
-		}
-		return err
-	}
-
-	// Pick the latest backup (directories are timestamp-named and sort
-	// lexicographically).
-	var latest string
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		if e.Name() > latest {
-			latest = e.Name()
-		}
-	}
-	if latest == "" {
-		return nil
-	}
-
-	latestDir := filepath.Join(backupRoot, latest)
-	files, err := os.ReadDir(latestDir)
-	if err != nil {
-		return err
-	}
-
-	// Remove the current bootstrap files first so restoration is
-	// clean (no orphan files from the skill we're uninstalling).
-	overrideNames := []string{"AGENTS.md", "SOUL.md", "IDENTITY.md", "USER.md"}
-	for _, f := range overrideNames {
-		_ = os.Remove(filepath.Join(workspaceDir, f))
-	}
-
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		src := filepath.Join(latestDir, f.Name())
-		dst := filepath.Join(workspaceDir, f.Name())
-		if err := copyFile(src, dst); err != nil {
-			return fmt.Errorf("restore %s: %w", f.Name(), err)
-		}
-	}
-	ui.Ok("Restored workspace files from %s", latestDir)
-	return nil
-}
-
-// ClearSkillsAllowlist removes the agents.defaults.skills config entry so
-// the agent goes back to unrestricted skill access. Called by uninstall.
+// ClearSkillsAllowlist removes the agents.defaults.skills config entry.
 func ClearSkillsAllowlist() error {
 	openclawBin, err := exec.LookPath("openclaw")
 	if err != nil {
@@ -538,9 +102,15 @@ func ClearSkillsAllowlist() error {
 	return nil
 }
 
-// ResolveWorkspaceDir returns the OpenClaw workspace directory for the
-// current user — derived from config.GetSkillsDir() for consistency with
-// preflight detection.
+// ResolveWorkspaceDir returns the OpenClaw workspace directory.
 func ResolveWorkspaceDir() string {
 	return filepath.Dir(config.GetSkillsDir())
+}
+
+func mustMarshalJSON(v any) string {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "[]"
+	}
+	return string(data)
 }

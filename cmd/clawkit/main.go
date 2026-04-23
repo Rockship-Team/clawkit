@@ -8,9 +8,8 @@ import (
 	"os"
 
 	"github.com/rockship-co/clawkit/internal/installer"
+	"github.com/rockship-co/clawkit/internal/version"
 )
-
-var version = "0.1.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -23,47 +22,38 @@ func main() {
 		installer.CmdList()
 	case "install":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit install <skill-name> [--profile <name>] [--add]")
+			fmt.Println("Usage: clawkit install <name> [<member>...]")
+			fmt.Println("  <name> is a flat skill, or a group to install all its members")
+			fmt.Println("  extra args select specific members of a group")
 			os.Exit(1)
 		}
-		profileName := ""
-		addMode := false
-		for i := 3; i < len(os.Args); i++ {
-			switch os.Args[i] {
-			case "--profile":
-				if i+1 < len(os.Args) {
-					i++
-					profileName = os.Args[i]
-				} else {
-					fmt.Println("--profile requires a name")
-					os.Exit(1)
-				}
-			case "--add":
-				addMode = true
-			}
-		}
-		installer.CmdInstall(os.Args[2], profileName, addMode)
+		installer.CmdInstall(os.Args[2], os.Args[3:]...)
 	case "update":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit update <skill-name>")
+			fmt.Println("Usage: clawkit update <name> [<member>...]")
 			os.Exit(1)
 		}
-		installer.CmdUpdate(os.Args[2])
+		installer.CmdUpdate(os.Args[2], os.Args[3:]...)
 	case "uninstall", "remove":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: clawkit uninstall <skill-name>")
 			os.Exit(1)
 		}
 		installer.CmdUninstall(os.Args[2])
-	case "status":
-		installer.CmdStatus()
-	case "package":
+	case "purge":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: clawkit package <skill-name>")
-			fmt.Println("  Packages a skill from skills/ into a .tar.gz for distribution")
+			fmt.Println("Usage: clawkit purge <engine-key>")
 			os.Exit(1)
 		}
-		installer.CmdPackage(os.Args[2])
+		installer.CmdPurge(os.Args[2])
+	case "status":
+		installer.CmdStatus()
+	case "web":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: clawkit web <skill-name>")
+			os.Exit(1)
+		}
+		installer.CmdWeb(os.Args[2])
 	case "dashboard":
 		port := 7432
 		for i, arg := range os.Args[2:] {
@@ -76,7 +66,7 @@ func main() {
 		}
 		installer.CmdDashboard(port)
 	case "version", "--version", "-v":
-		fmt.Printf("clawkit v%s\n", version)
+		fmt.Printf("clawkit v%s\n", version.Version)
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -91,25 +81,15 @@ Usage:
   clawkit <command> [arguments]
 
 Commands:
-  list                  List available skills
-  install <skill> [--profile <name>]  Install a skill (locks workspace to its persona)
-  uninstall <skill>     Uninstall a skill (restores prior workspace files)
-  update  <skill>       Update an installed skill
+  list                            List available skills and groups
+  install <name> [<member>...]    Install a flat skill, a whole group, or
+                                  selected members of a group
+  update  <name> [<member>...]    Update (same resolution as install)
+  uninstall <skill>               Uninstall a single skill
+  purge <engine-key>              Remove a shared engine (~/.clawkit/engines/<key>)
   status                Show installed skills
+  web <skill>           Serve the skill web UI at http://localhost:7432
   dashboard             Start web dashboard (default port 7432)
-  package <skill>       Package a skill for distribution (dev)
   version               Print version
-
-Note: by default, clawkit dedicates the workspace to ONE skill (replaces
-persona files, removes prior skills). Use --add to install a new skill
-alongside existing ones (keeps persona; appends to allowlist). Use --add
-only when the skills share a compatible persona (e.g. sme-* family).
-
-Examples:
-  clawkit list
-  clawkit install shop-hoa
-  clawkit install ecommerce-bot --profile shop-hoa
-  clawkit install sme-reminder --add    (stack alongside existing skill)
-  clawkit uninstall shop-hoa
-`, version)
+`, version.Version)
 }

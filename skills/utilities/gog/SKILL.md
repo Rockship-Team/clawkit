@@ -1,12 +1,64 @@
 ---
 name: gog
-description: Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs
+description: "Google Workspace CLI cho Gmail / Calendar / Drive / Contacts / Sheets / Docs. KICH HOAT khi user noi: 'check mail', 'doc email', 'search inbox', 'tim mail tu X', 'co mail moi khong', 'mail ve [chu de]', 'xem lich', 'meeting hom nay', 'event tuan nay', 'tao event', 'gui mail', 'reply mail X', 'tai file Drive', 'search Drive'. Tren bot-clawkit: account default rockship17.co@gmail.com da auth san — KHONG can hoi user setup OAuth."
 metadata: {"openclaw":{"requires":{"bins":["gog"]}},"clawdbot":{"emoji":"🎮","install":[{"id":"brew","kind":"brew","formula":"steipete/tap/gogcli","bins":["gog"],"label":"Install gog (macOS/brew)"},{"id":"clawkit","kind":"clawkit","label":"Install via clawkit (Linux/Windows — auto-installed during setup)"}]}}
 ---
 
 # gog
 
-Use `gog` for Gmail/Calendar/Drive/Contacts/Sheets/Docs. Requires OAuth setup.
+Use `gog` for Gmail/Calendar/Drive/Contacts/Sheets/Docs.
+
+## ACCOUNT DEFAULT (bot-clawkit)
+
+**Da auth san** account `rockship17.co@gmail.com` — keyring password `GOG_KEYRING_PASSWORD` set san trong env cua gateway, child `exec` inherit tu dong.
+
+**MOI lenh phai co `-a rockship17.co@gmail.com`** — KHONG hoi user OAuth, KHONG xin credentials, KHONG bao "chua setup". Cu chay `gog` truc tiep qua `exec`.
+
+Vi du chuan:
+```
+gog gmail search "from:supabase.com" -a rockship17.co@gmail.com --max 10 -j
+```
+
+## TAO GOOGLE DOC (cho long-form output)
+
+**LƯU Ý:** `gog docs create` / `gog docs write` KHÔNG tồn tại. Subcommand `gog docs` chỉ có `export`. Để TẠO Google Doc, dùng workflow 3 bước qua Drive API:
+
+```bash
+# 1. Sinh content vào file md (markdown)
+cat > /tmp/<slug>.md << 'EOF'
+# Tiêu đề
+Nội dung markdown ở đây
+EOF
+
+# 2. Upload + convert sang Google Doc
+gog drive upload /tmp/<slug>.md \
+  --name "<Tên doc>" \
+  --convert-to doc \
+  -a rockship17.co@gmail.com \
+  --json
+# Output có .file.id và .file.webViewLink
+
+# 3. Share anyone-with-link writer (cho team review/edit)
+gog drive share <fileId> \
+  --to anyone --role writer --force \
+  -a rockship17.co@gmail.com --json
+```
+
+**KHI NÀO dùng:** plan, proposal, blog, content calendar (>250 words). Output: paste URL vào chat + 3 bullet summary, KHÔNG paste full text.
+
+**KHI NÀO KHÔNG dùng:** cold email body, FB post ngắn, reminder text, tin nhắn Telegram (paste trực tiếp dễ copy hơn).
+
+## TRIGGER (khi nao kich hoat)
+
+Kich hoat NGAY khi user noi bat ky pattern:
+- "check mail", "co mail moi khong", "doc email", "search inbox"
+- "tim mail tu X", "mail ve {topic}", "mail co {keyword}"
+- "xem lich", "meeting hom nay", "event tuan nay", "{ngay} co lich gi"
+- "gui mail cho X", "reply mail X" (PHAI confirm voi user noi dung truoc khi send)
+- "tai file Drive", "search Drive {query}"
+- "viet doc Google", "tao Sheet X"
+
+KHONG hoi clarification gi cho cac yeu cau co du context — chay luon, return ket qua.
 
 Setup (once)
 1. Tạo OAuth2 credentials tại https://console.cloud.google.com/apis/credentials

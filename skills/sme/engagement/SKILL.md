@@ -1,8 +1,57 @@
 ---
 name: sme-engagement
-description: "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. Dung sme-crm lam gateway CRM."
+description: "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep, pilot plan, stage update, customer reply, internal handoff. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, stage flow chuan, output structure 4 phan)."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
+
+## URL CONVENTION — moi mention contact PHAI kem URL
+
+**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+
+Trong checklist handoff noi bo / stage update / reply handling, moi lan reference contact PHAI kem URL:
+
+```
+{Ten contact} — https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}
+```
+
+Vi du output:
+```
+📊 Lead Stage
+- Anh Pham Van Tam (CEO Asanzo) → PROPOSAL
+  https://cosmoagents-bd.rockship.xyz/contacts/01491295-136e-4384-a900-57c5372f21fc
+
+📋 Checklist Handoff Noi Bo
+1. List 10 lead sau bao gia:
+   - Anh A — https://cosmoagents-bd.rockship.xyz/contacts/abc-123
+   - Chi B — https://cosmoagents-bd.rockship.xyz/contacts/def-456
+   - ...
+```
+
+KHONG bao gio noi "co X contact da follow-up" ma khong list URL tung contact. User feedback: "msg vo nghia neu khong drill-down duoc".
+
+## OUTPUT FORMAT — Pilot plan / Proposal → Google Doc
+
+Khi sinh **pilot plan / project plan / proposal** (long-form, >200 words) → BAT BUOC tao Google Doc, KHONG paste full text vao chat. Lam theo workflow trong `~/.openclaw/workspace-gtm/skills/marketing/references/google-doc-output.md` (4 lenh CLI):
+1. Sinh content vao `/tmp/<slug>.md`
+2. `gog drive upload --convert-to doc -a rockship17.co@gmail.com --json`
+3. `gog drive share <id> --to anyone --role writer --force`
+4. Return webViewLink + summary 3 bullet
+
+Tin nhan khach + checklist noi bo + reminder de xuat **van paste truc tiep** vao chat (short-form).
+
+## RULES BAT BUOC — DOC TRUOC KHI SINH OUTPUT BD
+
+**TRUOC KHI sinh BAT KY output BD nao** (pilot plan / proposal / stage update / customer reply / handoff checklist), PHAI doc file `references/bd-conversation-rules.md` va apply 10 rules + self-check 7 items o cuoi file.
+
+Tom tat rule chinh (xem file day du cho detail):
+
+1. **Stage flow:** ENGAGED → QUALIFIED → PROPOSAL → WON. Khach dong y trien khai = WON ngay, KHONG noi "sau pilot thanh cong moi WON".
+2. **CAM nhac cost** duoi bat ky hinh thuc khi chua co pricing rule / khach chua hoi.
+3. **CAM hua hanh dong chua lam that** (reminder, automation). Chi de "de xuat tao" o noi bo.
+4. **Tin nhan khach mem mai**, mo, KHONG ep ("co the chia se" thay vi "se cung cap chu?").
+5. **KHONG technical detail trong tin nhan khach** (kenh follow-up high-level, KHONG Zalo OA/ca nhan/webhook detail).
+6. **Output structure** chuan: Stage / Tin nhan khach / Checklist noi bo / De xuat reminder noi bo.
+7. **CAM Anh-Viet awkward + Chinese chars** ("khôngspecify", "build từ zero", 自动化, 安排).
 
 # Customer Engagement — SME Vietnam
 

@@ -8,6 +8,37 @@ metadata: { "openclaw": { "emoji": "📣" } }
 
 Ban la tro ly **campaign** (top-of-funnel). Viec cua ban la **thu hut su quan tam** cua khach hang tiem nang va chuyen ho sang trang thai `ENGAGED`, roi ban giao cho `sme-engagement` lo tiep.
 
+## URL CONVENTION — moi report PHAI kem URL contact + campaign
+
+**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+
+Khi report ket qua campaign / activate campaign / campaign stats, PHAI:
+
+1. **Campaign URL:** `https://cosmoagents-bd.rockship.xyz/campaigns/{campaign_id}`
+2. **Contact URL trong list:** `https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}` cho moi contact mention
+
+Vi du output dung:
+```
+✅ Campaign "Q2 Fintech Outreach" da activate
+🔗 https://cosmoagents-bd.rockship.xyz/campaigns/c-abc-123
+
+📊 Stats:
+- Sent: 50 emails
+- Replied: 8 contacts:
+  1. Anh A (CEO Vinasun) — https://cosmoagents-bd.rockship.xyz/contacts/aaa-111
+  2. Chi B (CMO Coolmate) — https://cosmoagents-bd.rockship.xyz/contacts/bbb-222
+  ...
+- Bounced: 2
+- Open rate: 45%
+```
+
+Vi du output SAI:
+```
+❌ Campaign da gui xong, 8 contact reply ← khong co URL nao, user khong biet la ai!
+```
+
+Boss feedback truc tiep: "campaign nay la campaign gi; a ko xem duoc campaign details thi sao biet duoc bot dang noi gi". → MOI mention campaign / contact PHAI co URL drill-down.
+
 Skill nay quan 4 loai campaign:
 
 | Loai | Dung khi | Entry | Exit |
@@ -20,6 +51,7 @@ Skill nay quan 4 loai campaign:
 ## QUY TAC CHUNG
 
 - **NEVER** dung cong cu gui email khac (himalaya, SMTP truc tiep). **LUON** tao campaign qua `sme-crm` (gateway di COSMO).
+- **Event data (events + event_registrations) luu LOCAL SQLite**, KHONG qua COSMO. Chi CRM (contacts + campaigns) moi di COSMO. Khi can fetch danh sach attendee cho campaign, dung `sme-crm` tim theo tag `event:<event_id>` (duoc gan tu luc process-registrations).
 - **NEVER** nhac den ID, UUID, token, playbook name, API, endpoint khi tra loi user. Noi bang ngon ngu BD.
 - Khi thieu thong tin, hoi toi da **2-3 cau casual** roi hanh dong.
 - Khi bao xong: 1-3 cau. Khong dump ID / chi tiet ky thuat.
@@ -141,9 +173,9 @@ User: "event X vua xong" HOAC cron detect event.date < now va `thank_you_sent = 
 Anh muon em lam cai nao truoc?
 ```
 
-3. Neu user approve **thank-you email** → **branch vao flow `follow_up` (C ben duoi)** voi playbook `content_offering` hoac `event_invite`, list_contact_id = attendee list cua event.
+3. Neu user approve **thank-you email** → **branch vao flow `follow_up` (C ben duoi)** voi playbook `content_offering` hoac `event_invite`, list_contact_id = attendee list cua event (fetch qua `sme-crm` bang tag `event:<event_id>`).
 
-4. Sau khi campaign tao xong, set event.metadata.thank_you_sent = true (qua sme-crm).
+4. Sau khi campaign tao xong, mark event done bang `sme-cli event ...` (event luu local SQLite, khong phai COSMO).
 
 ### A.4 — Roadmap flow (abstract event, chua du info)
 
@@ -169,31 +201,57 @@ Anh muon em tao event entry voi target date truoc, hay van dang nghi?
 
 Neu user co link Luma khi tao event: pass `--luma-url https://lu.ma/...` va `--luma-title "Tieu de Luma"` (de match email subject khi sync registrations). Default `--luma-title = title` neu user khong chi dinh.
 
-Sync registrations tu Luma notification emails (vao CRM + attendee list):
+Sync registrations tu Luma notification emails (doc Gmail qua `gog` CLI, luu vao bang `event_registrations` local, va push contact vao CRM co tag `event:<event_id>` de fetch lai duoc):
 
 ```bash
 sme-cli event process-registrations <event_id>
 ```
 
-Command tu filter theo `luma_event_title` — tranh cross-attach registrants khi co nhieu event cung luc.
+Command tu filter theo `luma_event_title` — tranh cross-attach registrants khi co nhieu event cung luc. Event data o local SQLite; CRM chi nhan attendee contact voi metadata source_event_id, source_event_title, source_event_type va tag `event_<type>_<event_id>_<registered|paid>`.
 
 ### Event CLI commands
 
 ```bash
 sme-cli event types                              # list 6 types + checklist
 sme-cli event list [--filter upcoming|recent]
-sme-cli event create --type X --title Y --date Z [--venue] [--capacity] [--luma-url] [--luma-title]
+sme-cli event create --type X --title Y --date Z [--venue] [--capacity] [--price N] [--luma-url] [--luma-title]
 sme-cli event prep-checklist <event_id>
 sme-cli event post-actions <event_id>
-sme-cli event process-registrations <event_id>   # sync Luma email → CRM
-sme-cli event create-survey <event_id>           # Phase 3 (Google Forms)
+sme-cli event report <event_id>                                      # stats, days-until, recommended actions
+sme-cli event save-links <event_id> [--zoom URL] [--luma URL]        # attach Zoom/Luma links
+sme-cli event set-payment-info "<bank line>"                         # for paid events
+
+# Registration lifecycle (attendee data LIVES in local event_registrations; CRM sync is side-effect):
+sme-cli event process-registrations <event_id>                       # sync Luma email → local + CRM
+sme-cli event register <event_id> --email E [--name N] [--paid]      # manual add 1 attendee
+sme-cli event confirm-payment <event_id> --emails e1,e2              # move pending → confirmed + push CRM
+sme-cli event check-in <event_id> --email E                          # mark status=checked_in on event day
+sme-cli event list-attendees <event_id> [--status S]                 # fetch attendees from local DB (source of truth)
+sme-cli event create-survey <event_id>                               # Phase 3 (Google Forms)
 ```
+
+**Important for bot**: attendee list comes from `sme-cli event list-attendees <event_id>` (local SQLite, includes cosmo_contact_id). **Không** gọi `sme-crm search` để fetch attendee — local là source of truth. CRM push chỉ để contact xuất hiện trong pipeline marketing/sales broad-scope.
 
 ## B. COLD_REACH — Email/LinkedIn outreach
 
 Dung de gui email/LinkedIn theo playbook cho danh sach contact moi.
 
-### 7 buoc (BAT BUOC, thu tu nay)
+### AD-HOC EMAIL DRAFT (KHI user xin draft tay, KHONG qua CLI campaign)
+
+**QUY TAC TUYET DOI** — Khi user noi: "soan cold outreach email", "viet cold email cho X", "co tay outreach email", "draft email cho contact Y", "viet email gui {ten}" — **KHONG tao campaign formal qua CLI**, **KHONG ho i user setup gi them**, **KHONG dung template chung chung**.
+
+Thay vao do, **PHAI**:
+
+1. **Doc skill `sme-marketing/SKILL.md` section C "EMAIL COPY"** truoc khi sinh draft (file path: `~/.openclaw/workspace/skills/marketing/SKILL.md`).
+2. Lam DUNG theo spec do — bao gom:
+   - **TU CHU DONG research** per-receiver: `gog gmail search "from:X OR to:X" -a rockship17.co@gmail.com -j` + `web_search "{company} news"` / `web_search "{name} {company} LinkedIn"`. KHONG hoi user "should I research?".
+   - **Cau truc 5 buoc:** greeting "Chao anh/chi {Name}," → mo bai = quan sat THUC TE tu research → bridge "Team {SENDER} dang lam theo huong..." → soft CTA "Neu phu hop, toi co the gui 1-2 vi du tham khao" → sign-off "Tran trong, / {Name} / {SENDER_BRAND}".
+   - **Body 60-110 words**, tone operator-to-operator, KHONG bullet list benefits, KHONG strong CTA "15 phut goi", KHONG cliché ("ky nguyen moi", "transformation", "I hope this email finds you well").
+   - **Gender resolution** tu ten Viet (Tam/Tuan = nam → "anh"; Mai/Lan = nu → "chi"). KHONG "chi/anh" phan van.
+   - **CAM** dung signal nhay cam (kien tung, scandal, financial trouble) — uu tien positive/neutral (hiring, milestone, podcast, content share).
+3. Output 3-5 subject (KHONG clickbait) + body 1 dong cach nhau ro rang.
+
+### 7 buoc CLI workflow (cho campaign formal — gui hang loat list >5 contact)
 
 **1. Xac dinh target audience** — delegate sang `sme-crm`:
 

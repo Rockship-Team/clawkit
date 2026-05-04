@@ -1,8 +1,32 @@
 ---
 name: sme-crm
-description: "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.* / search.*."
+description: "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.rockship.xyz/contacts/{contact_id} de user drill-down."
 metadata: { "openclaw": { "emoji": "👥" } }
 ---
+
+## URL CONVENTION — BAT BUOC khi mention contact
+
+**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+
+Moi lan return contact cho user, PHAI kem URL detail:
+
+```
+{Ten contact} ({email}) — https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}
+```
+
+Vi du:
+- ✅ DUNG: `Anh Pham Van Tam (tam.pham@asanzo.com) — https://cosmoagents-bd.rockship.xyz/contacts/01491295-136e-4384-a900-57c5372f21fc`
+- ❌ SAI: `Anh Pham Van Tam (tam.pham@asanzo.com)` — thieu URL, user khong drill-down duoc
+- ❌ SAI: `Co 1 contact ten ABC` — thieu ID, thieu URL → user khong biet la ai
+
+Khi tra list contact:
+- Format markdown bullet hoac table, moi item co URL
+- Neu list dai >10 → tom 3-5 dau + tong + link list page `https://cosmoagents-bd.rockship.xyz/contacts`
+
+Khi tra summary aggregate (vd "5 contact da follow-up"):
+- Phai liet ke 5 ten + URL, KHONG chi noi con so 5
+
+Vi pham = bug UX. User feedback truc tiep: "msg cua bot vo nghia neu khong drill-down duoc".
 
 # CRM — SME Vietnam (COSMO Gateway)
 

@@ -1,6 +1,6 @@
 ---
 name: sme-marketing
-description: "Marketing content cho SME Viet Nam — sinh bai dang social media (Facebook / Zalo OA / LinkedIn / Instagram) voi cadence Mon+Thu 10am, blog + landing copy, email subject/body (for sme-campaign), FB/Google ads copy, A/B variant. Content only — khong gui email, khong chay ads."
+description: "Marketing content cho SME Viet Nam — bat buoc kich hoat khi user noi 'soan email', 'viet email', 'cold outreach', 'cold email', 'outreach email', 'draft email', 'soan bai dang social', 'viet content', 'caption ads'. KHI sinh email cold_outreach: PHAI tu chu dong research per-receiver (gog gmail + web_search), PHAI follow 5-step structure (greeting/observation/bridge/soft CTA/sign-off), PHAI 60-110 words, CAM bullet list benefit, CAM strong CTA '15 phut goi', CAM cliché. Content only — khong gui email, khong chay ads."
 metadata: { "openclaw": { "emoji": "📢" } }
 ---
 
@@ -34,7 +34,70 @@ Nhung viec do thuoc skill khac:
 | **Ads copy** | "Caption FB ads", "Google ads headline" | Sinh thang |
 | **A/B variant** | "Lam 2 variant" | Sinh 2 version khac tone/angle |
 
+## OUTPUT FORMAT — Google Doc cho long-form content
+
+**BAT BUOC** doc file `references/google-doc-output.md` truoc khi sinh output dai (>250 words / plan / proposal / blog / landing / content calendar).
+
+Quy tac ngan:
+- Long-form (>250 words, plan, proposal, blog, content calendar) → tao Google Doc qua `gog drive upload --convert-to doc` + `gog drive share --to anyone --role writer --force` → return webViewLink
+- Short (cold email body, reminder text, FB post <250 words, code snippet) → paste truc tiep vao chat
+- KHONG paste full content + Google Doc URL cung luc — chon 1 trong 2
+
+Output template khi tao Google Doc:
+```
+Đã tạo Google Doc: https://docs.google.com/document/d/<id>/edit
+
+Tóm tắt:
+- {bullet 1}
+- {bullet 2}
+- {bullet 3}
+
+Anh review + edit, em chờ feedback.
+```
+
 ## A. SOCIAL POSTS — Multi-platform cadence
+
+### AD-HOC POST DRAFT (KHI user xin viet 1 bai, KHONG qua CLI workflow)
+
+Khi user noi: "viet bai FB", "viet content cho LogicX", "post FB ve {topic}", "soan caption", "viet noi dung {chu de}" — KHONG bat buoc qua 6-step CLI. Sinh inline theo cau truc nay.
+
+**KHONG dung subagent (sessions_spawn)** — subagent loi context spec, ra ban generic. Viet TRUC TIEP trong session chinh.
+
+**Cau truc BAT BUOC:**
+
+1. **Hook (1-2 cau):** 1 luan diem RO, KHONG mo bai chung chung kieu "Trong thoi dai...", "Ngay nay...", "Cac doanh nghiep ngay cang...". Phai hook bang:
+   - 1 cau hoi cu the gay tranh cai ("Co bao gio anh thay nhan vien lam viec ma giong robot khong?")
+   - 1 con so/observation thuc te ("3/4 SME van nhap don hang bang tay")
+   - 1 luan diem trai voi y kien chung ("AI Agent KHONG phai chatbot. Day la 2 thu khac nhau.")
+   - 1 anecdote/scene cu the ("Sang nay khach goi luc 6h, owner phai tu reply...")
+
+2. **Body (3-5 cau):** Develop 1 LUAN DIEM duy nhat. KHONG roundup nhieu y. KHONG section heading. KHONG bullet list dai. Co the co toi da 1 mini-list 3 item nhung phai inline-narrative, khong phai brochure.
+
+3. **CTA (1 cau):** Soft, conversational. KHONG "Lien he ngay" / "Nhan tin de duoc tu van" sales-y. Vi du:
+   - "Anh/chi nghi sao?"
+   - "Co ai tung thu chua, share kinh nghiem voi minh?"
+   - "Bai sau minh se viet ve {topic}, anh/chi muon nghe ve gi?"
+
+4. **Hashtag (toi da 3-5):** chon cu the, KHONG spam #AI #DigitalTransformation #Innovation.
+
+**CAM tuyet doi:**
+- Section heading dang "{Topic} la gi?" / "Loi ich:" / "Ung dung:" / "Bat dau tu dau?" — day la format blog/website, KHONG phai FB post
+- Bullet list >3 item lien tiep
+- Phrase "trong thoi dai 4.0", "chuyen doi so", "cach mang AI"
+- "Nhieu doanh nghiep da..." (vague trend roundup)
+- Hua hen so cu the khong co data backing ("giam 50% thoi gian")
+- Emoji decoration cho moi bullet (✅ ✅ ✅) — chon doi 1-2 emoji y nghia thoi
+
+**Do dai:** 100-200 tu cho FB. Ngan hon = scroll-friendly hon.
+
+**Khi user yeu cau rewrite:**
+- Doc ban truoc + yeu cau cu the cua user
+- Tu rewrite NGAY trong cung turn, KHONG paste lai ban cu va hoi user lam ho
+- KHONG dung subagent — lam inline
+- Neu user noi "ngan hon" → cat 30-50%
+- Neu user noi "bot generic" → fix hook (uu tien anecdote/specific number) + bo section heading + ket hop nhieu y thanh 1 luan diem
+
+
 
 Scope chinh: Facebook (primary, full pipeline). Zalo OA / LinkedIn / IG: sinh adapted voi cung bucket + voice.
 
@@ -153,18 +216,150 @@ Khi user viet blog hoac landing page:
 
 **Landing specific:** Hero headline + 3 benefit bullets + social proof + CTA + FAQ.
 
-## C. EMAIL COPY (cho sme-campaign dung)
+## C. EMAIL COPY (cho sme-campaign dung) — see also AGENTS.md "COLD EMAIL HARD RULES"
 
-Khi user noi "soan email cho campaign X":
+Khi user noi "soan email cho campaign X" / "viet cold email" / "co tay outreach email":
 
-1. Hoi muc tieu (cold outreach, invite, nurture, thank-you).
-2. Hoi audience (segment, industry, pain point) — neu thieu → delegate sme-crm lay segment data.
-3. Sinh:
-   - **Subject:** 3-5 variant (khac tone: curiosity / direct value / social proof)
-   - **Body:** 80-150 words, 1 CTA ro rang, personalize token `{first_name}`, `{company}`
-   - **Follow-up:** neu campaign co cadence 3-7-7, soan 3 email (outreach + FU1 + FU2)
+### CASE TEMPLATE LIBRARY (uu tien lookup truoc khi sinh)
 
-Xuat text → user paste vao sme-campaign (hoac skill nay chuyen sang sme-campaign `gen-templates` neu user muon auto).
+Folder `references/case-templates/` chua cac template structured cho tung segment receiver. Truoc khi sinh email, **PHAI lookup** template phu hop:
+
+| Receiver profile | Template file |
+|---|---|
+| SME B2B (5-100 nguoi), receiver = sales lead / sales mgr / ops mgr / COO / founder | `references/case-templates/sme-b2b-sales-ops.md` |
+| (TBD) D2C consumer brand | (chua co — fallback ve generic) |
+| (TBD) Enterprise 1000+ | (chua co — fallback ve generic) |
+| (TBD) Agency / Creative | (chua co — fallback ve generic) |
+
+**Workflow:**
+1. Doc receiver context (industry, role, company size) tu user prompt + research signal.
+2. Match template phu hop trong table tren.
+3. Doc file template → dung `Goc mo email` + `Bridge` + `CTA` + `Subject` lam BASE.
+4. Personalize bang research signal cu the (vd swap "nhieu team SME da thu AI" → "Coolmate vua raise Series C — chuc mung. Nhung khi scale...").
+5. Neu KHONG match template nao → fallback ve 4 pain pattern generic + cau truc 5-step duoi day.
+
+**Override rule:** neu research tim duoc signal CU THE rieng cho receiver → uu tien signal do, KHONG dung goc mo template generic.
+
+### TRUOC KHI SINH cold_outreach: TU CHU DONG research per-receiver (BAT BUOC)
+
+**QUY TAC TUYET DOI:** Neu user cung cap receiver cu the (email / name / company), bot **TU CHU DONG research NGAY**, KHONG duoc:
+- Hoi user "should I research publicly available info?" / "co muon em research khong?"
+- Hoi user "ban co pain point cu the nao ve cong ty X khong?" — phai tu tim, neu khong tim duoc moi fallback
+- Yeu cau user cung cap LinkedIn URL / news link — tu search
+
+Bot CHI duoc hoi them khi: (a) thieu sender brand, (b) thieu mục tiêu (cold/invite/nurture/thank-you), (c) thieu receiver hoan toan. Neu co du sender + receiver + mục tiêu → SKIP hoi va proceed.
+
+Thu tu research BAT BUOC:
+
+1. **Gmail history check** — qua `exec` chay `gog gmail search` (LUU Y: KHONG dung `gog search` — do la alias cho Drive). Cu phap CHUAN:
+   ```
+   gog gmail search "from:{receiver_email} OR to:{receiver_email}" -a rockship17.co@gmail.com --limit 5 -j
+   ```
+   - **PHAI co flag `-a rockship17.co@gmail.com`** — la account default cua Rockship (auth san trong keyring).
+   - **PHAI co flag `-j`** — output JSON cho de parse.
+   - Env `GOG_KEYRING_PASSWORD` da co san trong gateway process — bot exec se inherit, KHONG can set thu cong.
+   - Neu lenh fail (binary missing, account khong auth) → bao user 1 cau "Gmail history khong check duoc" va tiep buoc 2.
+   - Neu output co `threads` array khong rong → CO prior thread, KHONG con la cold email. Bao user va chuyen sang `re_engage` / `follow_up` flow.
+   - Neu output `threads: []` hoac empty → KHONG prior thread → tiep buoc 2.
+
+2. **Public signal research** — goi tool `web_search` (native, KHONG `exec curl`) voi 2-3 query:
+   - "{company} news 2026" / "{company} hiring" / "{company} milestone"
+   - "{name} {company} LinkedIn" / "{name} interview"
+   - Industry signal lien quan segment (vd "retail VN omnichannel 2026")
+   - Optional: `web_fetch` URL ket qua de doc full content neu can.
+   - Goal: tim 1 fact CU THE (vd "{company} moi mo office HCM thang truoc", "{name} chia se ve scale ops o podcast X", "industry retail VN push omnichannel Q2 2026")
+
+3. **Quan sat o Buoc 1 cua email body PHAI tu research nay**, KHONG fabricate signal khong co data backing. Neu signal qua specific (rui ro stalker tone) → vung ve hoa.
+   - **CAM** dung signal nhay cam: vu kien tung, scandal, drama nhan su, financial trouble, legal challenges. Ngay ca neu da public — KHONG mo email cold bang chu de nay.
+   - Uu tien signal POSITIVE / NEUTRAL: hiring, expansion, milestone, product launch, conference, podcast appearance, content share.
+   - **Gender resolution:** xac dinh gioi tinh tu ten Vietnamese (Tam/Tuan/Minh/Hung/Bao/Son... = nam → "anh"; Lan/Hoa/Mai/Linh/Trang/Phuong... = nu → "chi"). Neu khong chac → dung ten thuan ("Chao anh Tam" cho safe — KHONG bao gio "chi/anh" gay phan van).
+
+4. **Fallback** neu khong tim duoc signal sau 2-3 query:
+   - Dung 1 trong 4 pain pattern generic (segment-level) lam mo bai.
+   - GHI CHU cuoi output cho user: "[chua tim duoc signal rieng — dung pain pattern generic theo segment]"
+
+5. **Khi sinh batch (vd 50 contact 1 list)** — research per-contact qua ton resource:
+   - Default: dung pain pattern segment-level + Gmail history check moi contact (de tranh nham cold/warm).
+   - Neu user noi "research sau", explicitly tang time budget va lam buoc 2 cho tung contact.
+
+**Vi du flow dung:**
+> User: "soan cold outreach. Sender: LogicX. Receiver: anh A — CEO Asanzo (a@asanzo.com)"
+> Bot: [tu goi gog Gmail search a@asanzo.com] → no thread
+> Bot: [tu web_search "Asanzo news 2026", "Asanzo hiring", "anh A Asanzo LinkedIn"] → tim duoc 1-2 fact
+> Bot: sinh email mo bai bang fact tim duoc, KHONG hoi them user.
+
+**Vi du flow SAI:**
+> User: "soan cold outreach. Sender: LogicX. Receiver: anh A — CEO Asanzo (a@asanzo.com)"
+> Bot: "Anh co pain point gi ve Asanzo can reference khong? Hoac em research?" ← CAM, phai tu lam.
+
+### Cau truc BAT BUOC cho cold_outreach
+
+Email cold_outreach phai theo dung 5 buoc, KHONG duoc skip / re-order:
+
+0. **Greeting (1 dong):** "Chao {anh|chi} {first_name},"
+   - Resolve gender tu ten: Tam/Tuan/Minh/Hung/Bao/Son = nam → "anh"; Lan/Hoa/Mai/Linh/Trang/Phuong = nu → "chi"
+   - **CAM** "chi/anh" — phai pick 1 decisively. Neu khong chac → default "anh" cho cac chuc danh CEO/CTO/Founder/Head (statistically nam Viet) hoac dung ten thuan.
+
+1. **Mo bai = quan sat thuc te** (1-2 cau): 
+   - **UU TIEN signal CU THE tu research o tren** (vd "Thay {company} moi mo office HCM thang truoc...", "Doc bai {name} viet ve scale ops...")
+   - **Fallback** neu khong co signal: "Gan day toi thay [pattern/trend industry]..." 
+   - KHONG assumption manh ve nguoi nhan ("I see you are doing X" → CAM neu khong co data backing)
+   - KHONG noi "Toi noticed cong ty anh..." khi chua research
+   - 4 pain pattern fallback (chon theo segment khi khong co signal):
+     - Team nho van follow-up + cap nhat CRM thu cong
+     - Thong tin rai rac giua email / file / bao cao
+     - Viec lap lai khong kho nhung ton thoi gian
+     - Da thu AI cho content / chatbot nhung workflow phia sau van lam tay
+   - Neu user cung cap pain rieng → uu tien dung pain do
+
+2. **Cau noi (1-2 cau):** "Team [SENDER_BRAND] dang lam theo huong [approach cu the]"
+   - Approach phai cu the (vd "gan AI truc tiep vao workflow de xu ly follow-up, cap nhat du lieu, tong hop bao cao")
+   - KHONG brochure-style, KHONG bullet list benefit, KHONG mention pricing/timeline
+
+3. **Soft CTA (1 cau):** "Neu phu hop, toi co the gui anh/chi 1-2 vi du ngan de tham khao"
+   - KHONG dung "Neu khong phu hop, bo qua cung duoc" — redundant, de bi xoa
+   - KHONG link / form / calendar booking trong cold email dau tien
+   - KHONG urgency phake ("chi con 3 slot")
+
+4. **Sign-off (BAT BUOC, KHONG duoc bo):** 
+   ```
+   Tran trong,
+   {Sender_Name}
+   {SENDER_BRAND}
+   ```
+   - Plain text, KHONG tagline, KHONG link website, KHONG signature image, KHONG phone, KHONG slogan.
+   - Neu user khong cung cap Sender_Name → dung "[Your name]" placeholder de user fill.
+
+### Tu vung CAM (cliche / sales-y)
+
+KHONG dung trong cold email:
+- "ky nguyen moi", "thoi dai 4.0", "doi pha", "transformation"
+- "Game-changer", "revolutionary", "unparalleled"
+- "I hope this email finds you well"
+- "Just checking in", "Quick question"
+- "We're a leading provider of..."
+
+### Bat buoc
+
+- **Body 60-110 words** (NGAN hon truoc kia 80-150 — cold email khong nen dai)
+- **Tone operator-to-operator** — straight, KHONG sales-y, KHONG "I hope this email finds you well"
+- **Subject 3-5 variant** nhung KHONG clickbait. Form goi y: "Cau hoi ve [topic] — [SENDER_BRAND]" / "Tu dong hoa quy trinh lam viec" / "Quan sat ve [pattern]"
+- **Personalize token** `{first_name}`, `{company}` van ho tro nhung pain pattern phai TRUNG voi segment, KHONG token-spam
+- **BEN GUI = SENDER_BRAND** — lay tu context (user noi "ben em la X" / "tu cong ty Y" / sender brand trong campaign metadata). Neu KHONG co context → HOI lai user truoc khi sinh: "Sender brand la gi?". KHONG hardcode "LogicX" — do chi la 1 vi du. KHONG nham sender voi receiver / cong ty cua ho. Truoc khi sinh, xac dinh ro: who is sender, who is receiver.
+- **KHONG dung phrase** "I hope...", "Just checking in", "Quick question..." (cliché)
+
+### Follow-up cadence 3-7-7
+
+Neu user noi "soan 3 email cadence":
+- **FU1 (sau 3 ngay):** mo bang quan sat KHAC voi outreach 1, ngan hon (40-70 words), recap nhe + cau hoi mo
+- **FU2 (sau 7 ngay):** "break-up email" — ngan nhat (30-50 words), neu ro day la lan cuoi reach out, soft door-open
+
+Steps tong:
+1. Hoi muc tieu (cold_outreach / invite / nurture / thank-you).
+2. Hoi sender brand + receiver (email / name / company) + segment → delegate sme-crm neu thieu segment data.
+3. **Neu cold_outreach co receiver cu the** → chay block "TRUOC KHI SINH" (Gmail history + public signal research) truoc khi sinh body.
+4. Sinh theo cau truc 4 buoc o tren. Cold_outreach BAT BUOC theo template, cac muc tieu khac (invite/nurture/thank-you) co the linh hoat hon.
+5. Xuat text → user paste vao sme-campaign (hoac skill nay chuyen sang sme-campaign `gen-templates` neu user muon auto).
 
 ## D. ADS COPY (FB / Google / Zalo ads)
 

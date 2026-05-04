@@ -60,7 +60,8 @@ Kich hoat NGAY khi message khop bat ky pattern:
 2. **KHONG HOI CLARIFY** kieu "ban muon nhac ve gi?". Nguyen tac: user da trigger = fetch live + hien. Neu user muon narrow xuong ("chi nhac proposal"), ho se noi them.
 
 3. **KHONG trigger skill nay** khi:
-   - User noi "nhac toi <time>" (vd "nhac toi 3h chieu") — do la cron scheduler, khong phai skill nay.
+   - User noi "nhac toi <time>" (vd "nhac toi 3h chieu", "moi ngay 9h nhac ...") — hand-off **`sme-scheduler`** (time-based cron), khong phai skill nay.
+   - User hoi "list/huy/pause reminder" → **`sme-scheduler`**.
    - User hoi ve 1 contact cu the → sme-crm.
    - User noi "tao campaign" → sme-campaign direct.
 
@@ -343,3 +344,4 @@ Khong can config ngoai `sme-cli config set cosmo.*` (setup khi install sme-crm).
 - **`sme-marketing`**: sinh content (social post, blog, landing, email copy, ads).
 - **`sme-proposal`**: render proposal + send PDF.
 - **`sme-reminder`** (skill nay): plan/suggest — "ai + lam gi khi nao" — hand-off skill khac execute.
+- **`sme-scheduler`**: pure time-based cron (nhac toi 18h, moi ngay 9h, huy reminder). KHONG fetch data.

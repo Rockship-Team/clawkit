@@ -41,7 +41,7 @@
     },
     "crm": {
       "version": "1.0.0",
-      "description": "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.* / search.*.",
+      "description": "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.rockship.xyz/contacts/{contact_id} de user drill-down.",
       "requires_bins": [
         "sme-cli"
       ],
@@ -72,7 +72,7 @@
     },
     "engagement": {
       "version": "1.0.0",
-      "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. Dung sme-crm lam gateway CRM.",
+      "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep, pilot plan, stage update, customer reply, internal handoff. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, stage flow chuan, output structure 4 phan).",
       "requires_bins": [
         "sme-cli"
       ],
@@ -99,14 +99,14 @@
     },
     "gog": {
       "version": "1.0.0",
-      "description": "Google Workspace CLI - Gmail, Calendar, Drive, Contacts, Sheets, Docs",
+      "description": "Google Workspace CLI cho Gmail / Calendar / Drive / Contacts / Sheets / Docs. KICH HOAT khi user noi: 'check mail', 'doc email', 'search inbox', 'tim mail tu X', 'co mail moi khong', 'mail ve [chu de]', 'xem lich', 'meeting hom nay', 'event tuan nay', 'tao event', 'gui mail', 'reply mail X', 'tai file Drive', 'search Drive'. Tren bot-clawkit: account default rockship17.co@gmail.com da auth san — KHONG can hoi user setup OAuth.",
       "requires_bins": [
         "gog"
       ]
     },
     "marketing": {
       "version": "1.0.0",
-      "description": "Marketing content cho SME Viet Nam — sinh bai dang social media (Facebook / Zalo OA / LinkedIn / Instagram) voi cadence Mon+Thu 10am, blog + landing copy, email subject/body (for sme-campaign), FB/Google ads copy, A/B variant. Content only — khong gui email, khong chay ads.",
+      "description": "Marketing content cho SME Viet Nam — bat buoc kich hoat khi user noi 'soan email', 'viet email', 'cold outreach', 'cold email', 'outreach email', 'draft email', 'soan bai dang social', 'viet content', 'caption ads'. KHI sinh email cold_outreach: PHAI tu chu dong research per-receiver (gog gmail + web_search), PHAI follow 5-step structure (greeting/observation/bridge/soft CTA/sign-off), PHAI 60-110 words, CAM bullet list benefit, CAM strong CTA '15 phut goi', CAM cliché. Content only — khong gui email, khong chay ads.",
       "requires_bins": [
         "sme-cli"
       ],
@@ -160,6 +160,10 @@
     "rockship-support": {
       "version": "1.0.0",
       "description": "Rockship support consultant — answers questions about OpenClaw, Rockship services, and Rockship's past work. Use this skill whenever someone asks about OpenClaw, Rockship, how to install OpenClaw, pricing, use cases, troubleshooting, Rockship's case studies, past projects, web development services, AI solutions, or anything related to Rockship as a company. Trigger even for casual questions like \"what is openclaw\", \"how do I get started\", \"which plan should I choose\", \"what has Rockship built before\", or \"my openclaw is not working\"."
+    },
+    "scheduler": {
+      "version": "1.0.0",
+      "description": "Time-based user-scheduled reminders & recurring tasks. UU TIEN cao hon sme-reminder khi message co TIME-EXPRESSION (14h, 6h chieu, mai, 25/5, moi ngay, 30 phut nua, every Monday, at 9am...). Khi user noi 'nhac toi 6h chieu report task', 'nhac toi 14:00 hom nay dang bai', 'moi thu sang nhac toi X', '30 phut nua nhac Y', 'huy/list reminder' → goi native tool cron (add/list/update/remove/run). Tach bach voi sme-reminder (trigger engine cho live BD data, KHONG time). Skill nay KHONG fetch data, KHONG suggest action — chi schedule prompt de gateway chay sau."
     },
     "sol-finance-coach": {
       "version": "1.0.0",

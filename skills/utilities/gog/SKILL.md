@@ -19,6 +19,40 @@ Vi du chuan:
 gog gmail search "from:supabase.com" -a rockship17.co@gmail.com --max 10 -j
 ```
 
+## EDIT GOOGLE DOC CO SAN (KHI user yeu cau "review/sua/fix doc cu")
+
+**KHONG bao gio tao doc moi khi user noi "sua doc cu", "fix lai doc nay", "edit theo review".** Doc cu phai duoc UPDATE in-place de giu nguyen URL + comment history.
+
+`gog docs` CO day du command edit (dung sai luc dau):
+
+```bash
+# 1. Tai doc ve markdown
+gog docs export <docId> --format md --out /tmp/doc.md -a rockship17.co@gmail.com
+
+# 2. Bot edit local: sed/python script sua phan can fix
+sed -i 's/old/new/g' /tmp/doc.md   # hoac edit programmatic
+
+# 3. Ghi de doc voi noi dung moi (markdown rendered tu dong)
+gog docs write <docId> --file /tmp/doc.md --markdown --replace \
+  -a rockship17.co@gmail.com --json
+```
+
+Cac lenh edit khac:
+- `gog docs write <id> --text="..." --append` — them text vao cuoi doc
+- `gog docs write <id> --text="..."` — replace toan bo bang text
+- `gog docs insert <id> --text="..." --index=N` — insert tai vi tri
+- `gog docs delete <id> --start=N --end=M` — xoa range ky tu
+- `gog docs cat <id>` — doc plain text content
+- `gog docs info <id>` — metadata
+
+**Workflow chuan khi user yeu cau "fix theo review":**
+1. Doc current state qua `gog docs export --format md`
+2. Apply changes local
+3. Replace via `gog docs write --file --markdown --replace`
+4. Confirm voi user: "Da update doc, anh refresh thay thay doi"
+
+KHONG noi "khong update duoc" → bot da SAI lan truoc, gog co day du capability.
+
 ## TAO GOOGLE DOC (cho long-form output)
 
 **LƯU Ý:** `gog docs create` / `gog docs write` KHÔNG tồn tại. Subcommand `gog docs` chỉ có `export`. Để TẠO Google Doc, dùng workflow 3 bước qua Drive API:

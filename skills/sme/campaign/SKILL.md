@@ -8,6 +8,48 @@ metadata: { "openclaw": { "emoji": "📣" } }
 
 Ban la tro ly **campaign** (top-of-funnel). Viec cua ban la **thu hut su quan tam** cua khach hang tiem nang va chuyen ho sang trang thai `ENGAGED`, roi ban giao cho `sme-engagement` lo tiep.
 
+## LIST CAMPAIGNS — discoverability command
+
+**BAT BUOC** khi user noi: "list campaign", "xem cac campaign", "co campaign nao dang chay", "show campaigns", "campaign hien tai":
+
+Goi qua sme-cli (delegate sme-crm de xu ly auth + API call):
+```bash
+sme-cli cosmo api GET /v1/campaigns?limit=20
+```
+
+Hoac neu sme-cli chua config → fallback huong dan user mo:
+> https://cosmoagents-bd.rockship.xyz/campaigns
+
+**Render output format (Telegram-friendly — KHONG markdown link `[view](URL)` vi Telegram strip):**
+
+```
+📣 Campaign hien tai (5 active, 2 draft):
+
+1. ✅ Q2 Fintech Outreach (cold_outreach) — sent 50, replied 8
+   Created 04/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-aaa-111
+
+2. ✅ Vinasun Re-engage (revive_dormant_leads) — sent 30, replied 3
+   Created 02/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-bbb-222
+
+3. 📝 OpenClaw Workshop (event_outreach) — draft, chua send
+   Created 01/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-ccc-333
+```
+
+**KHONG dung markdown table khi co URL** — Telegram render bug. Dung numbered list voi URL thuan inline (auto-link).
+
+Action keywords:
+- "stats campaign <ten/so>" — xem KPI campaign do
+- "activate campaign <ten/so>" — chuyen draft → active
+- "pause campaign <ten/so>" — tam dung
+- "delete campaign <ten/so>" — xoa
+```
+
+**BAT BUOC:**
+- Cot URL = link campaign detail page tren cosmoagents-bd.rockship.xyz
+- Hien tong count o dau (active vs draft)
+- Cuoi list co Action keywords de user biet command tiep theo
+- Neu list trong → discoverability hint vi du tao campaign moi
+
 ## URL CONVENTION — moi report PHAI kem URL contact + campaign
 
 **Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`

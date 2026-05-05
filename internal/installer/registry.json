@@ -1,5 +1,16 @@
 {
   "skills": {
+    "accounting": {
+      "version": "1.0.0",
+      "description": "Ke toan SME Viet Nam — hoa don, cong no, doi soat ngan hang, du bao dong tien, chi phi. Ket noi MISA AMIS.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
+      ]
+    },
     "bds-broker": {
       "version": "4.0.0",
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
@@ -14,6 +25,17 @@
           "label": "Telegram User ID của admin (nhiều ID cách nhau bằng dấu phẩy)",
           "placeholder": "123456789,987654321"
         }
+      ]
+    },
+    "bi": {
+      "version": "1.0.0",
+      "description": "Dashboard & bao cao SME Viet Nam — tong quan CEO, P&L, dong tien, cong no, xu huong doanh thu.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "cmd",
+        "*.go"
       ]
     },
     "campaign": {

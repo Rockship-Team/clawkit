@@ -52,6 +52,106 @@ Kich hoat NGAY khi message khop bat ky pattern:
 - `DAILY_MORNING_BRIEFING` / `DAILY_EVENING_REVIEW` → engagement + sales
 - `EVENT_PREP_SOON` / `EVENT_POSTMORTEM` → event
 - `WEEKLY_CONTENT_CHECK` → marketing
+- `PIPELINE_WATCH` → real-time alert moi 10p (Gmail reply + stuck deal)
+
+## PIPELINE_WATCH MODE — REAL-TIME ALERT
+
+Cron job moi 10 phut (8h-22h ICT) trigger mode nay. Job lam 2 viec:
+
+### A. Gmail reply detection (auto stage update)
+
+Step 1 — Pull unread Gmail tu 15 phut qua:
+```bash
+gog gmail search "is:unread newer_than:15m" -a rockship17.co@gmail.com --max 20 -j
+```
+
+Step 2 — Cho moi thread:
+1. Lay `from` email → search trong COSMO contacts (qua sme-cli cosmo search-contact hoac DB query)
+2. Neu KHONG match → bo qua (khong phai BD reply)
+3. Neu MATCH → continue:
+
+Step 3 — Phan tich noi dung reply (LLM call ngan):
+- Sentiment: `positive` / `neutral` / `polite_decline` / `negative`
+- Intent: `interested` / `asking_pricing` / `asking_info` / `not_now` / `pass`
+- Suggested stage:
+  - "interested" + "asking_pricing" → `QUALIFIED → PROPOSAL`
+  - "interested" + "asking_info" → giu `QUALIFIED`, tra info
+  - "not_now" → `QUALIFIED → DROPPED`
+  - "pass" → `LOST`
+
+Step 4 — Alert + draft reply (KHONG auto-update DB without OK):
+
+```
+📨 Vinasun (anh Pham Van Tam) vua reply!
+
+Sentiment: positive
+Intent: hoi pricing
+Suggested: chuyen QUALIFIED → PROPOSAL
+
+📧 Em da draft reply (preview):
+---
+Chao anh Tam,
+Cam on anh quan tam. De em gui anh proposal chi tiet voi 3 muc gia...
+---
+
+→ Go "1" de em gui reply + update stage QUALIFIED → PROPOSAL
+→ Go "2" de em gui draft email khac (sua noi dung)
+→ Go "3" de em chi update stage, KHONG gui email tu dong
+
+https://cosmoagents-bd.logicx.vn/contacts/{contact_id}
+```
+
+**Dedupe:** Luu `last_processed_thread_id` vao memory file `~/.openclaw/workspace-gtm/memory/pipeline-watch-state.json` de KHONG xu ly thread cu lap lai.
+
+### B. Stuck deal detection (proactive nudge)
+
+Step 1 — Query DB cho contact stuck:
+```bash
+sme-cli cosmo api GET '/v1/contacts?stage=PROPOSAL&inactive_days=5'
+```
+
+(Hoac dung COSMO API direct: `GET /v2/contacts/search` voi filter `business_stage=PROPOSAL AND updated_at < now()-5d`)
+
+Step 2 — Dedupe: skip neu contact da duoc alert trong 24h qua (check memory file `pipeline-watch-state.json` field `last_alert_per_contact`).
+
+Step 3 — Alert tap trung 1 message (nhom theo group):
+
+```
+⚠️ 3 deal stuck > 5 ngay chua phan hoi:
+
+1. Vinasun — anh Pham Van Tam (CTO)
+   https://cosmoagents-bd.logicx.vn/contacts/abc-111
+   PROPOSAL gui 7 ngay truoc.
+
+2. Lazada — chi B (CMO)
+   https://cosmoagents-bd.logicx.vn/contacts/def-222
+   PROPOSAL gui 6 ngay truoc.
+
+3. Pharmacity — anh C (Director)
+   https://cosmoagents-bd.logicx.vn/contacts/ghi-333
+   PROPOSAL gui 5 ngay truoc.
+
+→ Go "1" de em soan nudge cho ca 3
+→ Hoac "1a" / "1b" / "1c" de chon tung deal
+```
+
+### Quy tac PIPELINE_WATCH
+
+- **Quiet hours:** Cron chi chay 8h-22h ICT. Sau 22h KHONG bot nhac (boss yen tinh).
+- **Frequency:** moi 10p, KHONG nhanh hon (de tranh quota Gmail API + spam alert)
+- **No alert if nothing new:** Im lang neu khong co reply moi + khong co stuck deal moi. KHONG send "Em check xong, 0 thay doi" — anti-noise.
+- **Telegram channel:** Send vao chat ca nhan @akhoa2174 (KHONG vao group BD — tranh ngo voi team).
+- **Confirmation pattern:** Stage update = side-effect → PHAI hoi OK truoc khi update DB. Em chi suggest, anh OK roi moi execute.
+- **State file:** `~/.openclaw/workspace-gtm/memory/pipeline-watch-state.json`:
+  ```json
+  {
+    "last_processed_threads": ["thread-id-1", "thread-id-2", ...],
+    "last_alert_per_contact": {
+      "contact-id-1": "2026-05-05T10:00:00Z",
+      "contact-id-2": "2026-05-05T11:30:00Z"
+    }
+  }
+  ```
 
 ## QUY TAC BAT BUOC
 
@@ -197,6 +297,64 @@ Anh muon em action cai nao?
 - **Toi da 7 cells hien thi**. Neu >7, show top priority + "Con {X} cells khac ({list}) — anh muon chi tiet?"
 - **KHONG render mechanical** — lap "send email 50-125 words + 1 CTA" cho moi contact = SAI.
 - **KHONG dump JSON** ra chat.
+
+### URL DRILL-DOWN BAT BUOC
+
+Moi mention contact PHAI kem URL `https://cosmoagents-bd.logicx.vn/contacts/{contact_id}` (1 dong rieng sau ten).
+
+Vi du output dung:
+```
+- **Pharmacity — Le Thi Mai Anh (Head of Digital Health)**
+  https://cosmoagents-bd.logicx.vn/contacts/1e0cb5a1-055d-4a61-b03f-c773be17d7fb
+  → 14 ngay im lang. Em de xuat email scope nho.
+```
+
+KHONG list contact ma khong kem URL — user khong drill-down duoc.
+
+### 1-KEY REPLY SHORTCUT BAT BUOC
+
+Sau moi action group, chi dinh 1 chu so de user reply nhanh thay vi phai go cau dai:
+
+```
+⏳ **Proposal stuck 14+ ngay (3 nguoi)**
+- Pharmacity — Le Thi Mai Anh — https://cosmo.../contacts/abc-123
+- Vinamilk — Nguyen Van Minh — https://cosmo.../contacts/def-456
+
+→ Go "1" de em soan email revive cho ca 3.
+
+📧 **Campaign chua reply (8 nguoi)**
+- CineX — Trung — https://cosmo.../contacts/ghi-789
+
+→ Go "2" de em follow-up tay 1-1.
+
+⚠️ Gmail mat xac thuc — go "3" de em huong dan reconnect.
+
+Reply 1/2/3 hoac mo ta cu the.
+```
+
+User gan nhu KHONG bao gio go cau dai. PHAI cho 1-key shortcut.
+
+### ROI METRIC (chi morning briefing — Monday weekly recap)
+
+**Chi morning briefing thu Hai** (start of week), them block "Tuan qua":
+
+```
+📊 Tuan qua em da giup anh:
+- {N} email da soan (anh review + OK)
+- {M} stage update tu Gmail reply
+- {K} reminder/meeting set
+- Tiet kiem ~{H}h thoi gian
+
+→ Cho boss thay value bot tao ra.
+```
+
+Cach uoc luong:
+- 1 email auto-drafted = ~10p tiet kiem
+- 1 stage update auto = ~3p
+- 1 reminder set qua bot = ~2p
+- 1 research contact = ~15p
+
+Lay so tu logs gateway. Neu khong fetch duoc, surface "chua track duoc — em se enable metric tu mai".
 
 ### Empty-state — cells rong
 

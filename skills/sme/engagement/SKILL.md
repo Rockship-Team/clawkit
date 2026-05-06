@@ -6,24 +6,24 @@ metadata: { "openclaw": { "emoji": "🎯" } }
 
 ## URL CONVENTION — moi mention contact PHAI kem URL
 
-**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+**Domain Cosmo:** `https://cosmoagents-bd.logicx.vn`
 
 Trong checklist handoff noi bo / stage update / reply handling, moi lan reference contact PHAI kem URL:
 
 ```
-{Ten contact} — https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}
+{Ten contact} — https://cosmoagents-bd.logicx.vn/contacts/{contact_id}
 ```
 
 Vi du output:
 ```
 📊 Lead Stage
 - Anh Pham Van Tam (CEO Asanzo) → PROPOSAL
-  https://cosmoagents-bd.rockship.xyz/contacts/01491295-136e-4384-a900-57c5372f21fc
+  https://cosmoagents-bd.logicx.vn/contacts/01491295-136e-4384-a900-57c5372f21fc
 
 📋 Checklist Handoff Noi Bo
 1. List 10 lead sau bao gia:
-   - Anh A — https://cosmoagents-bd.rockship.xyz/contacts/abc-123
-   - Chi B — https://cosmoagents-bd.rockship.xyz/contacts/def-456
+   - Anh A — https://cosmoagents-bd.logicx.vn/contacts/abc-123
+   - Chi B — https://cosmoagents-bd.logicx.vn/contacts/def-456
    - ...
 ```
 

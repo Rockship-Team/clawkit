@@ -1,27 +1,27 @@
 ---
 name: sme-crm
-description: "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.rockship.xyz/contacts/{contact_id} de user drill-down."
+description: "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.logicx.vn/contacts/{contact_id} de user drill-down."
 metadata: { "openclaw": { "emoji": "👥" } }
 ---
 
 ## URL CONVENTION — BAT BUOC khi mention contact
 
-**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+**Domain Cosmo:** `https://cosmoagents-bd.logicx.vn`
 
 Moi lan return contact cho user, PHAI kem URL detail:
 
 ```
-{Ten contact} ({email}) — https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}
+{Ten contact} ({email}) — https://cosmoagents-bd.logicx.vn/contacts/{contact_id}
 ```
 
 Vi du:
-- ✅ DUNG: `Anh Pham Van Tam (tam.pham@asanzo.com) — https://cosmoagents-bd.rockship.xyz/contacts/01491295-136e-4384-a900-57c5372f21fc`
+- ✅ DUNG: `Anh Pham Van Tam (tam.pham@asanzo.com) — https://cosmoagents-bd.logicx.vn/contacts/01491295-136e-4384-a900-57c5372f21fc`
 - ❌ SAI: `Anh Pham Van Tam (tam.pham@asanzo.com)` — thieu URL, user khong drill-down duoc
 - ❌ SAI: `Co 1 contact ten ABC` — thieu ID, thieu URL → user khong biet la ai
 
 Khi tra list contact:
 - Format markdown bullet hoac table, moi item co URL
-- Neu list dai >10 → tom 3-5 dau + tong + link list page `https://cosmoagents-bd.rockship.xyz/contacts`
+- Neu list dai >10 → tom 3-5 dau + tong + link list page `https://cosmoagents-bd.logicx.vn/contacts`
 
 Khi tra summary aggregate (vd "5 contact da follow-up"):
 - Phai liet ke 5 ten + URL, KHONG chi noi con so 5
@@ -159,11 +159,74 @@ Khi user **noi thang** voi skill nay (khong phai skill khac delegate):
 
 ## QUY TAC WRITE
 
-Truoc khi thuc thi write action (POST/PATCH) do skill khac delegate:
+Truoc khi thuc thi write action (POST/PATCH/DELETE) do skill khac delegate:
 
 1. **Xac nhan intent** neu action destructive (vd bulk delete, bulk stage change >100 contacts).
 2. **Dedupe check** neu `contact.create` — search `email` hoac `phone` truoc.
 3. **Missing-fields log** neu fields quan trong thieu — flag trong response de skill goi biet.
+
+## ENDPOINT REFERENCE — BAT BUOC dung dung pattern
+
+KHONG guess endpoint. Backend cosmo expose chinh xac:
+
+| Action | Method + Path | Body / Note |
+|---|---|---|
+| Search contacts | `POST /v2/contacts/search` | body `{filter:{...}}` |
+| Get 1 contact | `GET /v2/contacts/{id}` | response `{status, data: ContactEntity}` |
+| Create | `POST /v1/contacts` | body Contact JSON |
+| Update | `PATCH /v1/contacts/{id}` | body partial Contact |
+| **DELETE 1 hoac nhieu contact** | `DELETE /v1/contacts` | body `{"ids": ["uuid1","uuid2",...]}` ← **BULK ENDPOINT** |
+| Field values | `GET /v1/contacts/values?fields=...` | |
+
+**LUU Y QUAN TRONG ve DELETE:**
+
+❌ SAI: `DELETE /v1/contacts/{id}` — endpoint nay tra 405 Method Not Allowed!
+
+✅ DUNG: `DELETE /v1/contacts` voi body `{"ids":["uuid1","uuid2",...]}` (bulk, kha 1 id cung phai dung pattern nay)
+
+Cu phap CLI DUNG (verified end-to-end May 2026):
+```bash
+sme-cli cosmo api DELETE /v1/contacts '{"ids":["uuid-1","uuid-2","uuid-3"]}'
+```
+
+QUAN TRONG:
+- **Inline JSON body** la argument thu 3 (sau METHOD + PATH).
+- Boc body trong **single quote** `'...'` de bash KHONG expand `$` hoac escape `"`.
+- KHONG dung `--data-file=` (flag nay sme-cli khong support).
+
+Vi du day du voi 3 contact UUID:
+```bash
+sme-cli cosmo api DELETE /v1/contacts '{"ids":["abc-111-222","def-333-444","ghi-555-666"]}'
+```
+
+Response success:
+```json
+{
+  "data": [<deleted_contact_obj>, ...],
+  "status": "success"
+}
+```
+
+Backend dung **soft delete** (set `is_deleted=true`), KHONG physically remove. Frontend list query tu loc `is_deleted=false` → user khong thay duoc.
+
+## VERIFY SAU MOI WRITE ACTION (BAT BUOC)
+
+Sau khi POST/PATCH/DELETE, **PHAI verify** state DB thuc te:
+
+```bash
+# Vi du sau DELETE bulk:
+# 1. Count truoc: gia su 223
+# 2. Goi DELETE /v1/contacts {"ids":[...6 ids]}
+# 3. Count lai sau:
+sme-cli cosmo api GET /v1/contacts/count  # hoac search count
+# Phai = 217 (223 - 6)
+```
+
+**KHONG noi "Da xoa thanh cong" neu khong verify** — phai count truoc + sau, match expected.
+
+Neu mismatch:
+- "Da xoa N/M item" voi N != M → SAY "Xoa duoc N/M, M-N con lai gap loi"
+- Tuyet doi KHONG nói "thanh cong" khi response code != 200/204.
 
 ## PHAN BIET VOI CAC SKILL KHAC
 

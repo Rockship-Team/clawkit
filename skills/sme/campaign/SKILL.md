@@ -18,7 +18,7 @@ sme-cli cosmo api GET /v1/campaigns?limit=20
 ```
 
 Hoac neu sme-cli chua config → fallback huong dan user mo:
-> https://cosmoagents-bd.rockship.xyz/campaigns
+> https://cosmoagents-bd.logicx.vn/campaigns
 
 **Render output format (Telegram-friendly — KHONG markdown link `[view](URL)` vi Telegram strip):**
 
@@ -26,13 +26,13 @@ Hoac neu sme-cli chua config → fallback huong dan user mo:
 📣 Campaign hien tai (5 active, 2 draft):
 
 1. ✅ Q2 Fintech Outreach (cold_outreach) — sent 50, replied 8
-   Created 04/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-aaa-111
+   Created 04/05 — https://cosmoagents-bd.logicx.vn/campaigns/c-aaa-111
 
 2. ✅ Vinasun Re-engage (revive_dormant_leads) — sent 30, replied 3
-   Created 02/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-bbb-222
+   Created 02/05 — https://cosmoagents-bd.logicx.vn/campaigns/c-bbb-222
 
 3. 📝 OpenClaw Workshop (event_outreach) — draft, chua send
-   Created 01/05 — https://cosmoagents-bd.rockship.xyz/campaigns/c-ccc-333
+   Created 01/05 — https://cosmoagents-bd.logicx.vn/campaigns/c-ccc-333
 ```
 
 **KHONG dung markdown table khi co URL** — Telegram render bug. Dung numbered list voi URL thuan inline (auto-link).
@@ -45,30 +45,30 @@ Action keywords:
 ```
 
 **BAT BUOC:**
-- Cot URL = link campaign detail page tren cosmoagents-bd.rockship.xyz
+- Cot URL = link campaign detail page tren cosmoagents-bd.logicx.vn
 - Hien tong count o dau (active vs draft)
 - Cuoi list co Action keywords de user biet command tiep theo
 - Neu list trong → discoverability hint vi du tao campaign moi
 
 ## URL CONVENTION — moi report PHAI kem URL contact + campaign
 
-**Domain Cosmo:** `https://cosmoagents-bd.rockship.xyz`
+**Domain Cosmo:** `https://cosmoagents-bd.logicx.vn`
 
 Khi report ket qua campaign / activate campaign / campaign stats, PHAI:
 
-1. **Campaign URL:** `https://cosmoagents-bd.rockship.xyz/campaigns/{campaign_id}`
-2. **Contact URL trong list:** `https://cosmoagents-bd.rockship.xyz/contacts/{contact_id}` cho moi contact mention
+1. **Campaign URL:** `https://cosmoagents-bd.logicx.vn/campaigns/{campaign_id}`
+2. **Contact URL trong list:** `https://cosmoagents-bd.logicx.vn/contacts/{contact_id}` cho moi contact mention
 
 Vi du output dung:
 ```
 ✅ Campaign "Q2 Fintech Outreach" da activate
-🔗 https://cosmoagents-bd.rockship.xyz/campaigns/c-abc-123
+🔗 https://cosmoagents-bd.logicx.vn/campaigns/c-abc-123
 
 📊 Stats:
 - Sent: 50 emails
 - Replied: 8 contacts:
-  1. Anh A (CEO Vinasun) — https://cosmoagents-bd.rockship.xyz/contacts/aaa-111
-  2. Chi B (CMO Coolmate) — https://cosmoagents-bd.rockship.xyz/contacts/bbb-222
+  1. Anh A (CEO Vinasun) — https://cosmoagents-bd.logicx.vn/contacts/aaa-111
+  2. Chi B (CMO Coolmate) — https://cosmoagents-bd.logicx.vn/contacts/bbb-222
   ...
 - Bounced: 2
 - Open rate: 45%

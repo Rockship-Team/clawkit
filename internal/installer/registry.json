@@ -63,7 +63,7 @@
     },
     "crm": {
       "version": "1.0.0",
-      "description": "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.rockship.xyz/contacts/{contact_id} de user drill-down.",
+      "description": "COSMO gateway cho SME — GATEWAY DUY NHAT goi he thong khach hang (contact search/create/enrich/segment/list/interaction). Moi skill khac (campaign / engagement / proposal / marketing / reminder) delegate qua day thay vi goi COSMO API truc tiep. Expose contract action-based: contact.* / list.* / segment.* / interaction.* / score.*. BAT BUOC: moi mention contact phai kem URL detail https://cosmoagents-bd.logicx.vn/contacts/{contact_id} de user drill-down.",
       "requires_bins": [
         "sme-cli"
       ],
@@ -199,6 +199,16 @@
         "IMPLEMENTATION.md",
         "TEST-SCENARIOS.md",
         "*_test.go"
+      ]
+    },
+    "strategy": {
+      "version": "1.0.0",
+      "description": "Strategic layer cho BD/GTM SME — research market+competitor, propose tactics adjust theo pipeline data, validate hypothesis. KICH HOAT khi user noi 'research thi truong', 'phan tich pipeline', 'dieu chinh chien luoc', 'pivot tactic', 'tai sao win/lose', 'so sanh competitor X', 'next quarter plan', 'review thang qua', 'ROI campaign', 'hypothesis nay co dung khong', 'data noi gi'. KHONG execute action (delegate sang sme-crm/sme-marketing). Output luon co: insight + recommendation + measurable next step.",
+      "requires_bins": [
+        "sme-cli"
+      ],
+      "exclude": [
+        "*.tmp"
       ]
     }
   }

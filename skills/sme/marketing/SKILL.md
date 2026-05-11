@@ -24,15 +24,18 @@ Nhung viec do thuoc skill khac:
 - 1-3 cau khi reply, khong dump chi tiet ky thuat.
 - **NEVER** nhac API, JSON, UUID, endpoint, file path, tool names.
 
-## SCOPE — 5 loai content
+## SCOPE — 8 loai content
 
-| Loai | Khi dung | CLI backend |
+| Loai | Khi dung | Reference |
 |---|---|---|
-| **Social post** | "Viet bai FB / Zalo / LinkedIn / IG", scheduled cadence | `sme-cli social` |
-| **Blog / landing** | "Viet blog X", "landing page Y" | Sinh thang (khong CLI) |
+| **Social post** | "Viet bai FB / Zalo / LinkedIn / IG", scheduled cadence | `references/post-formats.md` |
+| **Blog / landing** | "Viet blog X", "landing page Y" | Sinh thang qua Google Doc |
 | **Email copy** | "Soan subject + body cho campaign" | Tra ve text → dua cho sme-campaign dung |
 | **Ads copy** | "Caption FB ads", "Google ads headline" | Sinh thang |
 | **A/B variant** | "Lam 2 variant" | Sinh 2 version khac tone/angle |
+| **Ebook / lead magnet** | "Viet ebook X", "lead magnet pdf" | `references/ebook-outline-template.md` |
+| **Thought leadership** | "Take contrarian", "industry critique", "prediction post" | `references/thought-leadership-format.md` |
+| **Event description** | "Mo ta event Luma", "invite copy workshop X", "agenda event Y" | `references/event-description-template.md` |
 
 ## OUTPUT FORMAT — Google Doc cho long-form content
 

@@ -209,6 +209,96 @@ Response success:
 
 Backend dung **soft delete** (set `is_deleted=true`), KHONG physically remove. Frontend list query tu loc `is_deleted=false` → user khong thay duoc.
 
+## PAGINATION + FILTER — RULE BAT BUOC
+
+### Pagination — `offset` LA PAGE NUMBER, KHONG phai raw offset
+
+⚠️ **TRAP:** Backend `/v2/contacts/search?offset=N` treat `N` la **page index** (0/1/2/3) chu KHONG phai raw offset.
+
+Code backend: `.Offset(pagination.Offset * pagination.Limit)` → request `offset=100, limit=100` se cho ra SQL `OFFSET 10000` → 0 rows.
+
+❌ SAI: `offset=100` voi limit=100 (tuong skip 100 record) → backend tra 0
+✅ DUNG: `offset=0` page 1, `offset=1` page 2, `offset=2` page 3...
+
+```python
+import math
+all_contacts = []
+limit = 100
+page = 0
+while True:
+    path = f"/v2/contacts/search?limit={limit}&offset={page}"
+    r = sme_cli_post(path, {"filter": {}})
+    items = r["data"]["list"]
+    if not items: break
+    all_contacts.extend([x.get("entity", x) for x in items])
+    total = r["data"]["total"]
+    page += 1
+    if page * limit >= total: break
+```
+
+**Total 235 contacts, limit=100** → 3 lan call (page 0, 1, 2) → 100+100+35 = 235.
+
+**Body `{"limit":100}` bi backend ignore** — phai dung query string.
+
+### FILTER — chia 2 nhom
+
+**Nhom A: column thuc trong table `contacts`** — backend filter SQL truc tiep:
+
+```
+name, email, phone, source, business_stage, status, next_step, outreach_decision,
+outreach_stage, company, job_title, industry, city, country, contact_channel,
+context_level, last_outcome, scenario
+```
+
+Vi du:
+```bash
+sme-cli cosmo api POST '/v2/contacts/search?limit=100' '{"filter":{"business_stage":"WON"}}'
+sme-cli cosmo api POST '/v2/contacts/search?limit=100' '{"filter":{"source":"Zalo","business_stage":"QUALIFIED"}}'
+```
+
+**Nhom B: field nested trong `profile` jsonb** — backend filter KHONG support, fail SQL/`Failed to get contacts`:
+
+```
+customer_type, priority, stage_label, next_step_label, website, linkedin,
+facebook, whatsapp, zalo_group, original_company
+```
+
+→ **Fetch FULL (paginate 100/page) roi filter LOCAL bang Python:**
+
+```python
+import subprocess, json
+all_contacts = []
+offset = 0
+while True:
+    r = json.loads(subprocess.run(
+        ['sme-cli','cosmo','api','POST',
+         f'/v2/contacts/search?limit=100&offset={offset}',
+         '{"filter":{}}'],
+        capture_output=True, text=True).stdout)
+    items = r['data']['list']
+    if not items: break
+    all_contacts.extend([x.get('entity', x) for x in items])
+    offset += 100
+    if offset >= r['data']['total']: break
+
+# Filter local theo profile field (response da flatten ra top level)
+prospects = [c for c in all_contacts if c.get('customer_type') == 'Prospect']
+high_pri  = [c for c in all_contacts if c.get('priority') == 'High']
+in_disc   = [c for c in all_contacts if c.get('stage_label') == 'In Discussion']
+```
+
+**Note:** Backend response da FLATTEN profile keys ra top level → access `c['customer_type']` chu KHONG phai `c['profile']['customer_type']`.
+
+### KHI USER HOI ANALYTICAL QUERY
+
+Pattern: "co bao nhieu Prospect / Client / Partner?" / "list contact High priority Follow Up Proposal" / "contact dang In Discussion"
+
+**Bot phai:**
+1. Identify field thuoc Nhom A hay B
+2. Neu Nhom A → 1 call filter, dung
+3. Neu Nhom B → fetch full → filter local → tra ngan gon (count + 5-10 sample)
+4. KHONG noi "backend pagination broken" — sai
+
 ## VERIFY SAU MOI WRITE ACTION (BAT BUOC)
 
 Sau khi POST/PATCH/DELETE, **PHAI verify** state DB thuc te:

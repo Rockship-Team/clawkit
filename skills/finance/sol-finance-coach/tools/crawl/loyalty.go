@@ -20,24 +20,6 @@ type LoyaltyCatalogEntry struct {
 	Partners       map[string]string `json:"partners,omitempty"`
 }
 
-// Known loyalty program sources.
-var loyaltySources = []struct {
-	Program string
-	Display string
-	Type    string
-	URL     string
-}{
-	{"lotusmiles", "Vietnam Airlines Lotusmiles", "airline", "https://www.vietnamairlines.com/vn/vi/lotusmiles/about"},
-	{"bamboo_club", "Bamboo Airways Club", "airline", "https://www.bambooairways.com/bamboo-club"},
-	{"grab_rewards", "GrabRewards", "wallet", "https://www.grab.com/vn/rewards/"},
-	{"shopee_coins", "Shopee Xu", "wallet", "https://shopee.vn/m/shopee-coins"},
-	{"momo_rewards", "MoMo Rewards", "wallet", "https://momo.vn"},
-	{"zalopay_rewards", "ZaloPay Rewards", "wallet", "https://zalopay.vn"},
-	{"the_coffee_house", "The Coffee House Rewards", "retail", "https://www.thecoffeehouse.com"},
-	{"highlands", "Highlands Coffee Rewards", "retail", "https://highlandscoffee.com.vn"},
-	{"cgv", "CGV Cinema Club", "retail", "https://www.cgv.vn"},
-}
-
 func runLoyalty() {
 	cfg := getConfig()
 	var catalog []LoyaltyCatalogEntry

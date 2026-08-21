@@ -1,0 +1,63 @@
+{
+  "source": "Thong tu 111/2013/TT-BTC, Thong tu 92/2015/TT-BTC, Thong tu 26/2016/TT-BLDTBXH",
+  "note": "Cac khoan tro cap, phu cap KHONG tinh vao thu nhap chiu thue TNCN (trong muc quy dinh). Vuot muc thi phan vuot phai chiu thue.",
+  "non_taxable_allowances": [
+    {
+      "name": "Tien an giua ca",
+      "monthly_cap_vnd": 730000,
+      "source": "Thong tu 26/2016/TT-BLDTBXH",
+      "note": "Neu DN to chuc bua an tai cho / cap phieu an thi khong tinh vao thu nhap chiu thue (khong gioi han). Neu tra tien thay com tru 730k."
+    },
+    {
+      "name": "Phu cap dien thoai",
+      "monthly_cap_vnd": null,
+      "note": "Khong tinh thue neu nam trong muc quy dinh tai quy che tai chinh cua doanh nghiep va hop dong lao dong."
+    },
+    {
+      "name": "Phu cap trang phuc (bang tien)",
+      "annual_cap_vnd": 5000000,
+      "note": "Neu bang hien vat thi khong gioi han."
+    },
+    {
+      "name": "Tien xang xe, di lai",
+      "note": "Khong tinh thue khi phuc vu cong tac. Neu khoan tien co dinh hang thang thi tinh thue."
+    },
+    {
+      "name": "Cong tac phi",
+      "note": "Khong tinh thue neu co day du chung tu (ve may bay, khach san, ...). Khoan khoan di lai cong tac co dinh khong vuot muc quy che thi khong chiu thue."
+    },
+    {
+      "name": "Dam cuoi / dam tang",
+      "annual_cap_one_month_salary": true,
+      "note": "Khong tinh thue neu khong vuot 1 thang luong binh quan thuc te thuc hien trong nam."
+    },
+    {
+      "name": "Phu cap doc hai, nguy hiem",
+      "note": "Khong tinh thue (theo danh muc Nha nuoc quy dinh)."
+    },
+    {
+      "name": "Tien o thue cho NLD nuoc ngoai",
+      "cap_pct_of_taxable_income": 15,
+      "note": "Toi da 15% tong thu nhap chiu thue (chua bao gom tien nha)."
+    },
+    {
+      "name": "Bao hiem suc khoe tu nguyen (phi bao hiem khong tich luy)",
+      "monthly_cap_vnd": 1000000,
+      "note": "Toi da 1tr/thang khong tinh thue."
+    }
+  ],
+  "deductible_for_cit": {
+    "note": "Cac khoan chi phi duoc tru khi xac dinh thu nhap chiu thue TNDN (Dieu 4 TT 96/2015/TT-BTC).",
+    "rules": [
+      "Co hoa don, chung tu hop phap.",
+      "Thanh toan khong dung tien mat voi hoa don >= 20tr.",
+      "Chi phi lien quan truc tiep den hoat dong SXKD.",
+      "Chi phi tien luong phai co hop dong / quy che tra luong."
+    ],
+    "caps": [
+      { "name": "Quang cao, khuyen mai", "cap": "Khong bi khong che tu 2015 (truoc day 15%)." },
+      { "name": "Trang phuc", "cap": "5tr/nguoi/nam neu bang tien" },
+      { "name": "Lai vay vuot 150% lai suat co ban NHNN", "cap": "Khong duoc tru phan vuot" }
+    ]
+  }
+}

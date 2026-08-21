@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    { "key": "company_name", "label": "Ten doanh nghiep", "placeholder": "Cong ty TNHH ABC" },
+    { "key": "region", "label": "Vung luong toi thieu (I|II|III|IV)", "placeholder": "I" }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

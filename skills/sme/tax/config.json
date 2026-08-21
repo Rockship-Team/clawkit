@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "setup_prompts": [
+    { "key": "company_name", "label": "Ten doanh nghiep", "placeholder": "Cong ty TNHH ABC" },
+    { "key": "tax_code", "label": "Ma so thue", "placeholder": "0123456789" },
+    { "key": "vat_frequency", "label": "Tan suat khai VAT (monthly|quarterly)", "placeholder": "quarterly" }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

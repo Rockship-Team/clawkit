@@ -1,0 +1,41 @@
+{
+  "source": "Luat Thue GTGT 2008 (sua doi 2013, 2016), Nghi dinh 209/2013/ND-CP, Nghi quyet giam VAT tung giai doan",
+  "effective_from": "2024-01-01",
+  "standard_rate_pct": 10,
+  "reduced_rates": [
+    {
+      "rate_pct": 5,
+      "applies_to": [
+        "nuoc sach sinh hoat",
+        "phan bon, thuoc tru sau",
+        "thiet bi, dung cu y te",
+        "giao duc, day nghe (mot so dich vu)",
+        "san pham nong nghiep chua qua che bien o khau thuong mai",
+        "dich vu khoa hoc cong nghe"
+      ]
+    },
+    {
+      "rate_pct": 8,
+      "applies_to": ["hang hoa, dich vu duoc giam theo Nghi quyet Quoc hoi tung ky (kiem tra ky hieu luc)"],
+      "note": "Uu dai tam thoi — xac minh theo nghi quyet gan nhat truoc khi ap dung"
+    }
+  ],
+  "exempt": [
+    "san pham nong nghiep chua che bien do nguoi san xuat ban truc tiep",
+    "dich vu tin dung",
+    "kinh doanh chung khoan",
+    "bao hiem nhan tho",
+    "dich vu y te, giao duc cong",
+    "xuat ban sach giao khoa",
+    "xuat khau (thue suat 0%, hoan thue dau vao)"
+  ],
+  "zero_rate": {
+    "rate_pct": 0,
+    "applies_to": ["hang xuat khau", "van tai quoc te", "dich vu xuat khau thoa man dieu kien"]
+  },
+  "declaration_frequency": {
+    "monthly_threshold_revenue_year_prev": 50000000000,
+    "quarterly_if_below": true,
+    "note": "Doanh nghiep doanh thu nam truoc <= 50 ty khai quy; > 50 ty khai thang."
+  }
+}

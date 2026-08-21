@@ -17,7 +17,9 @@ func handleFS(w http.ResponseWriter, r *http.Request, skillDir, action string) {
 			http.Error(w, "POST required", http.StatusMethodNotAllowed)
 			return
 		}
-		var req struct{ Path string `json:"path"` }
+		var req struct {
+			Path string `json:"path"`
+		}
 		if err := readJSON(r, &req); err != nil || req.Path == "" {
 			http.Error(w, "body: {path}", http.StatusBadRequest)
 			return
@@ -38,7 +40,9 @@ func handleFS(w http.ResponseWriter, r *http.Request, skillDir, action string) {
 			http.Error(w, "POST required", http.StatusMethodNotAllowed)
 			return
 		}
-		var req struct{ Path string `json:"path"` }
+		var req struct {
+			Path string `json:"path"`
+		}
 		if err := readJSON(r, &req); err != nil || req.Path == "" {
 			http.Error(w, "body: {path}", http.StatusBadRequest)
 			return

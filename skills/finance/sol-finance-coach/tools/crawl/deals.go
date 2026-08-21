@@ -17,35 +17,6 @@ type Deal struct {
 	URL         string `json:"url,omitempty"`
 }
 
-// Bank promotion page URLs.
-var bankPromoPages = []struct {
-	Bank string
-	URL  string
-}{
-	{"Techcombank", "https://techcombank.com/uu-dai"},
-	{"VPBank", "https://vpbank.com.vn/uu-dai"},
-	{"TPBank", "https://tpbank.vn/uu-dai.html"},
-	{"ACB", "https://acb.com.vn/uu-dai"},
-	{"MB", "https://www.mbbank.com.vn/uu-dai"},
-	{"VIB", "https://vib.com.vn/vn/uu-dai"},
-	{"Sacombank", "https://khuyenmai.sacombank.com.vn"},
-	{"Vietcombank", "https://vietcombank.com.vn/uu-dai"},
-	{"BIDV", "https://bidv.com.vn/uu-dai"},
-	{"HDBank", "https://hdbank.com.vn/vi/ca-nhan/uu-dai"},
-	{"SHB", "https://shb.com.vn/uu-dai"},
-	{"VietinBank", "https://vietinbank.vn/uu-dai"},
-}
-
-// E-wallet promotion sources.
-var walletPromoPages = []struct {
-	Name string
-	URL  string
-}{
-	{"MoMo", "https://momo.vn/tin-tuc/uu-dai-momo"},
-	{"ZaloPay", "https://zalopay.vn/uu-dai"},
-	{"ShopeePay", "https://shopee.vn/m/shopeepay"},
-}
-
 func runDeals(bankFilter string) {
 	cfg := getConfig()
 	var allDeals []Deal

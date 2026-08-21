@@ -22,6 +22,38 @@ func smeDir() string {
 func dbPath() string  { return filepath.Join(smeDir(), "sme.db") }
 func cfgPath() string { return filepath.Join(smeDir(), "connections.json") }
 
+// dataDir resolves the reference-data directory shipped with the engine.
+// Priority: $SME_DATA_DIR → sibling of the executable → ./data (dev).
+func dataDir() string {
+	if d := os.Getenv("SME_DATA_DIR"); d != "" {
+		return d
+	}
+	if exe, err := os.Executable(); err == nil {
+		cand := filepath.Join(filepath.Dir(exe), "data")
+		if _, err := os.Stat(cand); err == nil {
+			return cand
+		}
+	}
+	return "data"
+}
+
+func loadDataJSON(name string, v interface{}) error {
+	path := filepath.Join(dataDir(), name)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, v)
+}
+
+func loadLaborLaw() map[string]interface{} {
+	var m map[string]interface{}
+	if err := loadDataJSON("labor_law_vn.json", &m); err != nil {
+		return nil
+	}
+	return m
+}
+
 func openDB() (*sql.DB, error) {
 	if db != nil {
 		return db, nil

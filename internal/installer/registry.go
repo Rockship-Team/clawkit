@@ -3,36 +3,26 @@
 package installer
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/rockship-co/clawkit/internal/archive"
 	"github.com/rockship-co/clawkit/internal/config"
+	"github.com/rockship-co/clawkit/internal/engine"
 	"github.com/rockship-co/clawkit/internal/ui"
-	"github.com/rockship-co/clawkit/skills"
 )
 
-// embeddedRegistry is the registry.json shipped with the binary. It is the
-// authoritative source when running the globally-installed CLI (no network,
-// no local file). Remote and local sources are treated as optional overrides.
-//
 //go:embed registry.json
 var embeddedRegistry []byte
 
+// Environment variables set by the npm wrapper (bin/clawkit.js) to point the
+// binary at the skill files that ship inside the npm package.
 const (
-	// remoteRegistryURL is the GitHub raw content URL for registry.json.
-	remoteRegistryURL = "https://raw.githubusercontent.com/Rockship-Team/clawkit/main/registry.json"
-	// remoteSkillBaseURL is the GitHub Releases URL for skill packages.
-	remoteSkillBaseURL = "https://github.com/Rockship-Team/clawkit/releases/latest/download"
+	envSkillsDir = "CLAWKIT_SKILLS_DIR"
+	envRegistry  = "CLAWKIT_REGISTRY"
 )
 
 // SetupPrompt defines an interactive prompt shown during clawkit install.
@@ -44,16 +34,19 @@ type SetupPrompt struct {
 
 // SkillInfo describes a skill in the registry.
 type SkillInfo struct {
-	Version      string        `json:"version"`
-	Description  string        `json:"description"`
-	RequiresBins []string      `json:"requires_bins,omitempty"`
-	SetupPrompts []SetupPrompt `json:"setup_prompts,omitempty"`
-	Exclude []string      `json:"exclude,omitempty"`
+	Name           string        `json:"name,omitempty"`
+	Description    string        `json:"description"`
+	OS             []string      `json:"os,omitempty"`
+	RequiresBins   []string      `json:"requires_bins,omitempty"`
+	RequiresConfig []string      `json:"requires_config,omitempty"`
+	Version        string        `json:"version"`
+	SetupPrompts   []SetupPrompt `json:"setup_prompts,omitempty"`
 }
 
 // Registry holds the available skills manifest.
 type Registry struct {
 	Skills map[string]SkillInfo `json:"skills"`
+	Groups map[string][]string  `json:"groups,omitempty"`
 }
 
 // GetSkill returns a skill by name from the registry.
@@ -62,59 +55,50 @@ func (r *Registry) GetSkill(name string) (*SkillInfo, bool) {
 	return &skill, ok
 }
 
-// loadRegistry returns the skills registry. The embedded registry.json is
-// always available and is the authoritative baseline. Remote and local
-// registry files are treated as optional overrides: remote lets us ship
-// registry updates without rebuilding the binary, and local supports dev
-// mode (skills added to ./skills but not yet pushed).
+// GroupMembers returns the member skill names for a group, or nil if name
+// is not a known group.
+func (r *Registry) GroupMembers(name string) []string {
+	return r.Groups[name]
+}
+
+// GroupOf returns the group a skill belongs to, or "" if the skill is flat.
+func (r *Registry) GroupOf(skillName string) string {
+	for group, members := range r.Groups {
+		for _, m := range members {
+			if m == skillName {
+				return group
+			}
+		}
+	}
+	return ""
+}
+
+// loadRegistry resolves the canonical registry. Priority:
+//  1. Local override — ./registry.json (cwd) or ~/.clawkit/registry.json (user override)
+//  2. Packaged registry — CLAWKIT_REGISTRY env (set by the npm wrapper)
+//  3. Embedded fallback — small snapshot baked into the binary
 func loadRegistry() (*Registry, error) {
+	if data, err := loadLocalRegistry(); err == nil {
+		var reg Registry
+		if err := json.Unmarshal(data, &reg); err == nil {
+			return &reg, nil
+		}
+	}
+
+	if path := os.Getenv(envRegistry); path != "" {
+		if data, err := os.ReadFile(path); err == nil {
+			var reg Registry
+			if err := json.Unmarshal(data, &reg); err == nil {
+				return &reg, nil
+			}
+		}
+	}
+
 	var reg Registry
 	if err := json.Unmarshal(embeddedRegistry, &reg); err != nil {
 		return nil, fmt.Errorf("invalid embedded registry.json: %w", err)
 	}
-
-	// Optional remote override — ignored on failure (private repo, offline, etc.).
-	if data, err := fetchRemoteRegistry(); err == nil {
-		var remote Registry
-		if json.Unmarshal(data, &remote) == nil {
-			for name, skill := range remote.Skills {
-				reg.Skills[name] = skill
-			}
-		}
-	}
-
-	// Optional local override (dev mode: ./registry.json or config dir).
-	if data, err := loadLocalRegistry(); err == nil {
-		var local Registry
-		if json.Unmarshal(data, &local) == nil {
-			for name, skill := range local.Skills {
-				reg.Skills[name] = skill
-			}
-		}
-	}
-
 	return &reg, nil
-}
-
-func fetchRemoteRegistry() ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, remoteRegistryURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("registry fetch failed: HTTP %d", resp.StatusCode)
-	}
-	return io.ReadAll(resp.Body)
 }
 
 func loadLocalRegistry() ([]byte, error) {
@@ -125,84 +109,106 @@ func loadLocalRegistry() ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// downloadSkill installs a skill's files into targetDir. Sources in priority
-// order:
-//  1. Local ./skills/<name> (dev mode: developer is in the repo).
-//  2. Embedded skills shipped with the binary (works for npm-installed CLI).
-//  3. Remote GitHub Releases (.tar.gz) — useful when the repo is public and
-//     we want to ship registry/skill updates without rebuilding the binary.
 // alwaysExclude are files that should never be copied to the installed skill
 // directory. config.json is the dev-time metadata (the installer writes its
-// own clawkit.json instead).
-// Note: bootstrap-files/ IS copied (needed by LockdownWorkspace) then
-// deleted by CmdInstall after lockdown applies them to workspace root.
-var alwaysExclude = []string{"config.json"}
+// own clawkit.json instead). _engine/ and engine.json are engine metadata —
+// they live under ~/.clawkit/engines/, not inside the installed skill dir.
+// _bootstrap/ is applied directly to the workspace root at install time,
+// never copied into the skill dir.
+var alwaysExclude = []string{"config.json", engine.SourceDir, engine.SpecFile, bootstrapDir}
 
-func downloadSkill(skillName, targetDir string, excludePatterns ...[]string) error {
-	patterns := append([]string{}, alwaysExclude...)
-	if len(excludePatterns) > 0 {
-		patterns = append(patterns, excludePatterns[0]...)
+// bootstrapDir is the folder within a skill or group that holds persona .md
+// files copied to the workspace root on install.
+const bootstrapDir = "_bootstrap"
+
+// downloadSkill installs a skill's files into targetDir. Sources in priority
+// order: local dev tree → packaged skills dir (CLAWKIT_SKILLS_DIR, set by the
+// npm wrapper). Returns the engine key (group name for grouped skills, skill
+// name for flat skills with an _engine/), the on-disk source directory
+// (used by applyBootstrap), and an error. No network access is involved;
+// skills ship as files inside the npm package.
+func downloadSkill(_ *Registry, skillName, targetDir string) (string, string, func(), error) {
+	noop := func() {}
+
+	sourceDir := resolveSkillSource(skillName)
+	if sourceDir == "" {
+		return "", "", noop, fmt.Errorf("skill %q not found in local skills/ or %s", skillName, envSkillsDir)
 	}
 
-	// 1. Local (dev mode) — search skills/<name> or skills/<vertical>/<name>.
-	if localDir := findLocalSkill(skillName); localDir != "" {
-		ui.Info("Installing from local source")
-		return copyDir(localDir, targetDir, patterns)
+	ui.Info("Installing from %s", sourceDir)
+	if err := copyDir(sourceDir, targetDir, alwaysExclude); err != nil {
+		return "", "", noop, err
 	}
-
-	// 2. Embedded — search the skill across verticals in the embedded FS.
-	if embeddedPath := skills.FindSkill(skillName); embeddedPath != "" {
-		ui.Info("Installing from embedded skills")
-		return copyEmbeddedSkill(embeddedPath, targetDir, patterns)
-	}
-
-	// 3. Remote GitHub Release.
-	dlURL := fmt.Sprintf("%s/%s.tar.gz", remoteSkillBaseURL, skillName)
-	ui.Info("Downloading %s...", skillName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dlURL, nil)
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("download failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("skill package not found at %s (HTTP %d)", dlURL, resp.StatusCode)
-	}
-
-	tmpFile, err := os.CreateTemp("", "clawkit-*.tar.gz")
-	if err != nil {
-		return fmt.Errorf("create temp file: %w", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
-	_, err = io.Copy(tmpFile, resp.Body)
-	tmpFile.Close()
-	if err != nil {
-		return fmt.Errorf("download incomplete: %w", err)
-	}
-
-	return archive.ExtractTarGz(tmpFile.Name(), targetDir)
+	key, err := installEngine(skillName, sourceDir)
+	return key, sourceDir, noop, err
 }
 
-// findLocalSkill searches for a skill in the local skills/ directory.
-// Supports both flat (skills/<name>) and grouped (skills/<vertical>/<name>) layouts.
+// resolveSkillSource finds the on-disk directory that holds SKILL.md for
+// skillName. It checks the dev tree (./skills/...) first, then the packaged
+// skills dir supplied by the npm wrapper.
+func resolveSkillSource(skillName string) string {
+	if local := findLocalSkill(skillName); local != "" {
+		return local
+	}
+	pkg := os.Getenv(envSkillsDir)
+	if pkg == "" {
+		return ""
+	}
+	return findSkillIn(pkg, skillName)
+}
+
+// engineSource locates the directory that holds the _engine/ payload for a
+// skill. For a grouped skill skills/<group>/<skill>, the parent is
+// skills/<group> and the key is <group>. For a flat skill skills/<name>
+// that contains its own _engine/, the parent is skills/<name> and the key
+// is <name>. Returns ("","") if no engine applies.
+func engineSource(skillName, localDir string) (parentDir, key string) {
+	if info, err := os.Stat(filepath.Join(localDir, engine.SourceDir)); err == nil && info.IsDir() {
+		return localDir, skillName
+	}
+	parent := filepath.Dir(localDir)
+	if info, err := os.Stat(filepath.Join(parent, engine.SourceDir)); err == nil && info.IsDir() {
+		return parent, filepath.Base(parent)
+	}
+	return "", ""
+}
+
+// installEngine installs the engine for a skill (from either the dev tree
+// or the packaged skills dir), if one applies, and returns the key.
+func installEngine(skillName, localDir string) (string, error) {
+	parent, key := engineSource(skillName, localDir)
+	if key == "" {
+		return "", nil
+	}
+	spec, err := engine.LoadSpec(parent)
+	if err != nil {
+		return "", err
+	}
+	if err := engine.Install(key, filepath.Join(parent, engine.SourceDir), spec); err != nil {
+		return "", fmt.Errorf("install engine %s: %w", key, err)
+	}
+	if err := engine.LinkBins(key, spec.Bins); err != nil {
+		return "", fmt.Errorf("link bins for engine %s: %w", key, err)
+	}
+	return key, nil
+}
+
+// findLocalSkill searches for a skill in the local skills/ directory (dev
+// tree). Supports both flat (skills/<name>) and grouped
+// (skills/<group>/<name>) layouts.
 func findLocalSkill(skillName string) string {
-	// Try flat first.
-	flat := filepath.Join("skills", skillName)
+	return findSkillIn("skills", skillName)
+}
+
+// findSkillIn searches root for a skill directory by the same flat-or-grouped
+// rules as findLocalSkill. root is either the dev "skills" dir or the path
+// supplied via CLAWKIT_SKILLS_DIR.
+func findSkillIn(root, skillName string) string {
+	flat := filepath.Join(root, skillName)
 	if _, err := os.Stat(filepath.Join(flat, "SKILL.md")); err == nil {
 		return flat
 	}
-	// Search one level of nesting: skills/<vertical>/<name>.
-	entries, err := os.ReadDir("skills")
+	entries, err := os.ReadDir(root)
 	if err != nil {
 		return ""
 	}
@@ -210,7 +216,7 @@ func findLocalSkill(skillName string) string {
 		if !e.IsDir() {
 			continue
 		}
-		nested := filepath.Join("skills", e.Name(), skillName)
+		nested := filepath.Join(root, e.Name(), skillName)
 		if _, err := os.Stat(filepath.Join(nested, "SKILL.md")); err == nil {
 			return nested
 		}
@@ -219,12 +225,6 @@ func findLocalSkill(skillName string) string {
 }
 
 // shouldExclude checks whether relPath matches any of the exclude patterns.
-// Supports tsconfig-style globs:
-//   - "cmd"           — matches the directory (and everything inside it)
-//   - "*.tmp"         — matches *.tmp at any depth
-//   - "**/*.test.go"  — matches *.test.go at any depth
-//   - "**/test"       — matches any path component named "test"
-//   - "tools/crawl"   — matches that exact prefix
 func shouldExclude(relPath string, patterns []string) bool {
 	if len(patterns) == 0 {
 		return false
@@ -238,12 +238,9 @@ func shouldExclude(relPath string, patterns []string) bool {
 	return false
 }
 
-// matchGlob matches a path against a single glob pattern with ** support.
 func matchGlob(path, pattern string) bool {
-	// Handle ** prefix: "**/<rest>" matches <rest> against any suffix.
 	if strings.HasPrefix(pattern, "**/") {
 		suffix := pattern[3:]
-		// Match against the full path and every sub-path.
 		parts := strings.Split(path, "/")
 		for i := range parts {
 			sub := strings.Join(parts[i:], "/")
@@ -254,8 +251,6 @@ func matchGlob(path, pattern string) bool {
 		return false
 	}
 
-	// No slash in pattern → treat as component-level match (like tsconfig).
-	// "cmd" matches "cmd", "cmd/main.go"; "*.tmp" matches "foo.tmp", "a/b/foo.tmp".
 	if !strings.Contains(pattern, "/") {
 		parts := strings.Split(path, "/")
 		for _, part := range parts {
@@ -266,57 +261,15 @@ func matchGlob(path, pattern string) bool {
 		return false
 	}
 
-	// Pattern has slashes → match against full path.
 	if matched, _ := filepath.Match(pattern, path); matched {
 		return true
 	}
-	// Also try as prefix so "tools/crawl" matches "tools/crawl/main.go".
 	if strings.HasPrefix(path, pattern+"/") {
 		return true
 	}
 	return false
 }
 
-// copyEmbeddedSkill walks skills.FS under skillName and writes every file
-// into targetDir, preserving the relative directory structure.
-// Files/dirs matching excludePatterns are skipped.
-func copyEmbeddedSkill(skillName, targetDir string, excludePatterns []string) error {
-	return fs.WalkDir(skills.FS, skillName, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		// path is like "finance-tracker/SKILL.md". Strip the skillName prefix
-		// so files land directly in targetDir.
-		relPath, err := filepath.Rel(skillName, path)
-		if err != nil {
-			return err
-		}
-		if relPath == "." {
-			return os.MkdirAll(targetDir, 0755)
-		}
-		if shouldExclude(relPath, excludePatterns) {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		dest := filepath.Join(targetDir, relPath)
-		if d.IsDir() {
-			return os.MkdirAll(dest, 0755)
-		}
-		data, err := skills.FS.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("read embedded %s: %w", path, err)
-		}
-		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-			return fmt.Errorf("create parent dir: %w", err)
-		}
-		return os.WriteFile(dest, data, 0644)
-	})
-}
-
-// copyDir recursively copies a directory tree.
-// Files/dirs matching excludePatterns are skipped.
 func copyDir(src, dst string, excludePatterns []string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -333,7 +286,7 @@ func copyDir(src, dst string, excludePatterns []string) error {
 		targetPath := filepath.Join(dst, relPath)
 
 		if info.IsDir() {
-			return os.MkdirAll(targetPath, 0755)
+			return os.MkdirAll(targetPath, 0o755)
 		}
 
 		data, err := os.ReadFile(path)

@@ -1,0 +1,5 @@
+{
+  "bins": ["bds-cli"],
+  "exclude": ["cmd"],
+  "data_paths": ["data"]
+}

@@ -8,11 +8,14 @@ import (
 
 // LoyaltyProgram tracks a user's loyalty membership.
 type LoyaltyProgram struct {
-	Program   string `json:"program"`
-	Display   string `json:"display"`
-	Points    int64  `json:"points"`
-	Expiry    string `json:"expiry,omitempty"`
-	UpdatedAt string `json:"updated_at"`
+	UserID     string `json:"user_id,omitempty"`
+	Program    string `json:"program"`
+	Display    string `json:"display"`
+	Points     int64  `json:"points"`
+	Tier       string `json:"tier,omitempty"`
+	Expiry     string `json:"expiry,omitempty"`
+	NotifyDays int    `json:"notify_days,omitempty"`
+	UpdatedAt  string `json:"updated_at"`
 }
 
 // Deal tracks an active deal/promotion.
@@ -21,29 +24,61 @@ type Deal struct {
 	Source      string `json:"source"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
+	DiscountPct int    `json:"discount_pct,omitempty"`
+	MaxDiscount int64  `json:"max_discount,omitempty"`
+	MinOrder    int64  `json:"min_order,omitempty"`
+	Code        string `json:"code,omitempty"`
+	URL         string `json:"url,omitempty"`
 	Expiry      string `json:"expiry,omitempty"`
 	Used        bool   `json:"used"`
 	CreatedAt   string `json:"created_at"`
 }
 
 func loadLoyalty() []LoyaltyProgram {
+	uid := currentUserID()
+	all := loadAllLoyalty()
+	filtered := make([]LoyaltyProgram, 0, len(all))
+	for _, p := range all {
+		if p.UserID == uid {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func loadAllLoyalty() []LoyaltyProgram {
 	var lp []LoyaltyProgram
 	readJSON(userPath("loyalty.json"), &lp)
+	for i := range lp {
+		if lp[i].UserID == "" {
+			lp[i].UserID = "default"
+		}
+	}
 	return lp
 }
 
 func saveLoyalty(lp []LoyaltyProgram) error {
-	return writeJSON(userPath("loyalty.json"), lp)
+	uid := currentUserID()
+	all := loadAllLoyalty()
+	merged := make([]LoyaltyProgram, 0, len(all)+len(lp))
+	for _, p := range all {
+		if p.UserID != uid {
+			merged = append(merged, p)
+		}
+	}
+	for i := range lp {
+		if lp[i].UserID == "" {
+			lp[i].UserID = uid
+		}
+		merged = append(merged, lp[i])
+	}
+	return writeJSON(userPath("loyalty.json"), merged)
 }
 
 func loadDeals() []Deal {
-	var deals []Deal
-	readJSON(userPath("user_deals.json"), &deals)
-	return deals
-}
-
-func saveDeals(deals []Deal) error {
-	return writeJSON(userPath("user_deals.json"), deals)
+	var seeded []Deal
+	readJSON(dataPath("deals.json"), &seeded)
+	return seeded
 }
 
 func cmdLoyalty(args []string) {
@@ -84,6 +119,7 @@ func cmdLoyalty(args []string) {
 		}
 		if !found {
 			lp = append(lp, LoyaltyProgram{
+				UserID:    currentUserID(),
 				Program:   args[1],
 				Display:   args[2],
 				Points:    points,
@@ -135,20 +171,47 @@ func cmdLoyalty(args []string) {
 	case "expiring":
 		lp := loadLoyalty()
 		today := vnToday()
-		// Find programs expiring within 30 days
 		var expiring []LoyaltyProgram
 		for _, p := range lp {
 			if p.Expiry == "" {
 				continue
 			}
+			days := p.NotifyDays
+			if days <= 0 {
+				days = 30
+			}
 			if p.Expiry <= today {
-				// Already expired but still tracked
 				expiring = append(expiring, p)
-			} else if p.Expiry <= addDays(today, 30) {
+			} else if p.Expiry <= addDays(today, days) {
 				expiring = append(expiring, p)
 			}
 		}
 		okOut(map[string]interface{}{"expiring": expiring, "count": len(expiring)})
+
+	case "remove":
+		if len(args) < 2 {
+			errOut("usage: loyalty remove <program>")
+			os.Exit(1)
+		}
+		lp := loadLoyalty()
+		found := false
+		var updated []LoyaltyProgram
+		for _, p := range lp {
+			if p.Program == args[1] {
+				found = true
+				continue
+			}
+			updated = append(updated, p)
+		}
+		if !found {
+			errOut("program not found: " + args[1])
+			os.Exit(1)
+		}
+		if err := saveLoyalty(updated); err != nil {
+			errOut("failed to save: " + err.Error())
+			os.Exit(1)
+		}
+		okOut(map[string]interface{}{"removed": args[1]})
 
 	default:
 		errOut("unknown loyalty command: " + args[0])
@@ -159,44 +222,11 @@ func cmdLoyalty(args []string) {
 func cmdDeals(args []string) {
 	ensureInit()
 	if len(args) == 0 {
-		errOut("usage: deals add|list|match")
+		errOut("usage: deals list|match")
 		os.Exit(1)
 	}
 
 	switch args[0] {
-	case "add":
-		// deals add <source> <description> <category> [expiry]
-		if len(args) < 4 {
-			errOut("usage: deals add <source> <description> <category> [expiry]")
-			os.Exit(1)
-		}
-		expiry := ""
-		if len(args) > 4 {
-			expiry = args[4]
-		}
-		deals := loadDeals()
-		maxID := 0
-		for _, d := range deals {
-			if d.ID > maxID {
-				maxID = d.ID
-			}
-		}
-		deal := Deal{
-			ID:          maxID + 1,
-			Source:      args[1],
-			Description: args[2],
-			Category:    args[3],
-			Expiry:      expiry,
-			Used:        false,
-			CreatedAt:   vnNow().Format("2006-01-02T15:04:05-07:00"),
-		}
-		deals = append(deals, deal)
-		if err := saveDeals(deals); err != nil {
-			errOut("failed to save: " + err.Error())
-			os.Exit(1)
-		}
-		okOut(map[string]interface{}{"deal": deal})
-
 	case "list":
 		category := ""
 		if len(args) > 1 {
@@ -205,7 +235,7 @@ func cmdDeals(args []string) {
 		deals := loadDeals()
 		today := vnToday()
 		// Filter active (not expired, not used)
-		var active []Deal
+		active := make([]Deal, 0, len(deals))
 		for _, d := range deals {
 			if d.Used {
 				continue
@@ -225,23 +255,62 @@ func cmdDeals(args []string) {
 		profile := loadProfile()
 		today := vnToday()
 
-		var matched []Deal
+		// Build preferred categories set from profile
+		prefCats := map[string]bool{}
+		if profile.DealCategories != "" {
+			for _, c := range strings.Split(profile.DealCategories, ",") {
+				prefCats[strings.TrimSpace(c)] = true
+			}
+		}
+
+		// Build credit card set
+		cardSet := map[string]bool{}
+		if profile.CreditCards != "" {
+			for _, c := range strings.Split(profile.CreditCards, ",") {
+				cardSet[strings.TrimSpace(strings.ToLower(c))] = true
+			}
+		}
+
+		type scoredDeal struct {
+			Deal  Deal `json:"deal"`
+			Score int  `json:"score"`
+		}
+		var scored []scoredDeal
 		for _, d := range deals {
 			if d.Used || (d.Expiry != "" && d.Expiry < today) {
 				continue
 			}
-			// Match by credit card source
-			if profile.CreditCards != "" && strings.Contains(strings.ToLower(d.Source), strings.ToLower(profile.CreditCards)) {
-				matched = append(matched, d)
-				continue
+			s := 1 // base score for active deal
+			// Bonus for matching preferred category
+			if len(prefCats) > 0 && prefCats[d.Category] {
+				s += 3
 			}
-			// Include all active deals
-			matched = append(matched, d)
+			// Bonus for matching credit card source
+			src := strings.ToLower(d.Source)
+			for card := range cardSet {
+				if strings.Contains(src, card) {
+					s += 2
+					break
+				}
+			}
+			scored = append(scored, scoredDeal{Deal: d, Score: s})
 		}
-		if len(matched) > 10 {
-			matched = matched[:10]
+		// Sort by score descending
+		for i := 0; i < len(scored); i++ {
+			for j := i + 1; j < len(scored); j++ {
+				if scored[j].Score > scored[i].Score {
+					scored[i], scored[j] = scored[j], scored[i]
+				}
+			}
 		}
-		okOut(map[string]interface{}{"matched": matched, "count": len(matched), "profile_cards": profile.CreditCards})
+		if len(scored) > 10 {
+			scored = scored[:10]
+		}
+		matched := make([]Deal, 0, len(scored))
+		for _, sd := range scored {
+			matched = append(matched, sd.Deal)
+		}
+		okOut(map[string]interface{}{"matched": matched, "count": len(matched), "profile_cards": profile.CreditCards, "deal_categories": profile.DealCategories})
 
 	default:
 		errOut("unknown deals command: " + args[0])

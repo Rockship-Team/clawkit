@@ -1,0 +1,4 @@
+{
+  "vault_path": "~/.openclaw/workspace/skills/knowledge-vault",
+  "db_path": "~/.clawkit/runtimes/self-improving-agent/data/session.db"
+}

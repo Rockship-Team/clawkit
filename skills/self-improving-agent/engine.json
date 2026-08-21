@@ -1,0 +1,5 @@
+{
+  "bins": ["vault-cli"],
+  "exclude": ["cmd", "*.go", "go.mod", "go.sum", "TEST_SCENARIOS.md", "test_integration.sh"],
+  "data_paths": ["data"]
+}

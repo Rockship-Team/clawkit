@@ -1,0 +1,37 @@
+{
+  "source": "Nghi dinh 74/2024/ND-CP (muc luong toi thieu vung tu 01/07/2024)",
+  "effective_from": "2024-07-01",
+  "note": "Luong toi thieu THANG ap dung cho nguoi lao dong lam viec theo hop dong lao dong. Luong toi thieu GIO ap dung cho nguoi lam cong viec tra luong theo gio.",
+  "currency": "VND",
+  "regions": [
+    {
+      "region": "I",
+      "monthly_min": 4960000,
+      "hourly_min": 23800,
+      "areas": ["Noi thanh Ha Noi", "Noi thanh TP HCM", "mot so huyen cua Ha Noi, HCM, Hai Phong, Dong Nai, Binh Duong, BRVT"]
+    },
+    {
+      "region": "II",
+      "monthly_min": 4410000,
+      "hourly_min": 21200,
+      "areas": ["Ngoai thanh Ha Noi, HCM; mot so thanh pho tinh lon (Da Nang, Can Tho, Hai Phong ngoai thanh, Hue, Nha Trang, ...)"]
+    },
+    {
+      "region": "III",
+      "monthly_min": 3860000,
+      "hourly_min": 18600,
+      "areas": ["Thanh pho, thi xa con lai thuoc cac tinh"]
+    },
+    {
+      "region": "IV",
+      "monthly_min": 3450000,
+      "hourly_min": 16600,
+      "areas": ["Cac dia ban con lai"]
+    }
+  ],
+  "rules": [
+    "Luong thoa thuan khong duoc thap hon muc toi thieu vung noi nguoi lao dong lam viec.",
+    "Lao dong qua dao tao nghe duoc cong them it nhat 7% so voi muc toi thieu (theo HDLD truoc 2022 — kiem tra dieu khoan cu the).",
+    "Muc luong dong BHXH bat buoc khong duoc thap hon muc toi thieu vung."
+  ]
+}

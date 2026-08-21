@@ -1,0 +1,89 @@
+{
+  "source": "Bo luat Lao dong 2019 (Luat 45/2019/QH14), hieu luc 01/01/2021. Nghi dinh 145/2020/ND-CP huong dan.",
+  "effective_from": "2021-01-01",
+  "notice_period": {
+    "topic": "Thoi han bao truoc khi cham dut HDLD (Dieu 35, 36)",
+    "employee_terminates": {
+      "indefinite_term": "45 ngay",
+      "definite_term_12_36_months": "30 ngay",
+      "definite_term_under_12_months": "3 ngay lam viec",
+      "seasonal_under_12_months": "3 ngay lam viec"
+    },
+    "employer_terminates": {
+      "indefinite_term": "45 ngay",
+      "definite_term_12_36_months": "30 ngay",
+      "definite_term_under_12_months": "3 ngay lam viec"
+    },
+    "no_notice_required_if": ["khong duoc tra du luong / tra khong dung han", "bi quay roi tinh duc", "bi nguoc dai", "nguoi lao dong nu mang thai theo chi dinh bac si"]
+  },
+  "probation": {
+    "topic": "Thu viec (Dieu 25)",
+    "management_or_professional_degree": "toi da 180 ngay (CEO, GD)",
+    "college_or_higher_required": "toi da 60 ngay",
+    "intermediate_technical": "toi da 30 ngay",
+    "other": "toi da 6 ngay lam viec",
+    "probation_salary_min_pct_of_full": 85,
+    "note": "Khong thu viec voi HDLD duoi 1 thang."
+  },
+  "working_hours": {
+    "topic": "Thoi gian lam viec (Dieu 105-107)",
+    "normal_hours_per_day": 8,
+    "normal_hours_per_week": 48,
+    "max_overtime_hours_per_day": 4,
+    "max_overtime_hours_per_month": 40,
+    "max_overtime_hours_per_year_standard": 200,
+    "max_overtime_hours_per_year_special": 300,
+    "rest_break_min_minutes_per_shift": 30
+  },
+  "overtime": {
+    "topic": "Tien lam them gio (Dieu 98)",
+    "weekday_pct_of_normal_hour": 150,
+    "weekend_pct": 200,
+    "holiday_paid_leave_pct": 300,
+    "night_shift_additional_pct": 30,
+    "night_shift_overtime_additional_pct": 20,
+    "night_hours": "22:00 - 06:00"
+  },
+  "annual_leave": {
+    "topic": "Nghi phep nam (Dieu 113)",
+    "standard_days": 12,
+    "heavy_or_hazardous_days": 14,
+    "especially_heavy_or_hazardous_days": 16,
+    "additional_day_per_5_years_seniority": 1,
+    "pro_rated_if_under_12_months": true,
+    "unused_payout": "Duoc thanh toan tien khi cham dut HDLD chua nghi het."
+  },
+  "maternity": {
+    "topic": "Che do thai san (Luat BHXH 2014 Dieu 34-41)",
+    "pre_post_natal_leave_months": 6,
+    "pre_natal_max_months": 2,
+    "additional_children_extra_month": 1,
+    "miscarriage_leave_days": { "under_5_weeks": 10, "5_to_13_weeks": 20, "13_to_25_weeks": 40, "over_25_weeks": 50 },
+    "benefit_pct": 100,
+    "benefit_base": "Trung binh tien luong 6 thang lien ke"
+  },
+  "termination": {
+    "topic": "Cham dut HDLD & tro cap (Dieu 46, 47)",
+    "severance_pay_years_service_required": 1,
+    "severance_pay_formula": "1/2 thang luong cho moi nam lam viec (khong tinh thoi gian da dong BHTN)",
+    "redundancy_pay_formula": "1 thang luong cho moi nam (toi thieu 2 thang)",
+    "no_severance_if": ["bi ky luat sa thai", "tu y nghi khong bao truoc"]
+  },
+  "minimum_wage": {
+    "topic": "Luong toi thieu vung",
+    "see_also": "minimum_wage_vn.json",
+    "effective_from": "2024-07-01",
+    "quick_reference": {
+      "region_1_monthly_vnd": 4960000,
+      "region_2_monthly_vnd": 4410000,
+      "region_3_monthly_vnd": 3860000,
+      "region_4_monthly_vnd": 3450000
+    }
+  },
+  "license_fee": {
+    "topic": "Le phi mon bai",
+    "see_also": "license_fees_vn.json",
+    "annual_deadline": "30-01",
+    "new_enterprise_first_year": "Mien le phi mon bai nam dau."
+  }
+}

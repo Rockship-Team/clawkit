@@ -1,0 +1,28 @@
+{
+  "source": "Luat BHXH 2014, Luat Viec lam 2013, Nghi dinh 58/2020/ND-CP",
+  "effective_from": "2024-07-01",
+  "base_wage_vnd": 2340000,
+  "base_wage_note": "Muc luong co so — 2.34tr/thang tu 01/07/2024 (Nghi dinh 73/2024/ND-CP).",
+  "caps": {
+    "bhxh_bhyt_cap_multiple_of_base_wage": 20,
+    "bhxh_bhyt_monthly_cap_vnd": 46800000,
+    "bhtn_cap_multiple_of_min_wage_region1": 20,
+    "bhtn_monthly_cap_region1_vnd": 99200000,
+    "note": "BHXH/BHYT cap = 20 x luong co so. BHTN cap = 20 x luong toi thieu vung I (thay doi theo dia ban lam viec)."
+  },
+  "employee_rates_pct": {
+    "bhxh": 8.0,
+    "bhyt": 1.5,
+    "bhtn": 1.0,
+    "total": 10.5
+  },
+  "employer_rates_pct": {
+    "bhxh": 17.5,
+    "bhyt": 3.0,
+    "bhtn": 1.0,
+    "total": 21.5,
+    "includes": "17.5% BHXH gom 14% huu tri, 3% om dau/thai san, 0.5% tai nan lao dong."
+  },
+  "union_fee_pct_employer": 2.0,
+  "union_fee_note": "Kinh phi cong doan 2% tren quy luong dong BHXH, nop cho lien doan lao dong dia phuong."
+}

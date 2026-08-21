@@ -1,0 +1,96 @@
+{
+  "source": "Thong tu 200/2014/TT-BTC — He thong tai khoan ke toan doanh nghiep",
+  "effective_from": "2015-01-01",
+  "note": "Trich chon — chi bao gom tai khoan pho bien cho SME. Xem TT200 de co day du. SME nho co the dung TT133/2016/TT-BTC (don gian hon).",
+  "classes": [
+    {
+      "class": 1,
+      "name": "Tai san ngan han",
+      "accounts": [
+        { "code": "111", "name": "Tien mat" },
+        { "code": "112", "name": "Tien gui ngan hang" },
+        { "code": "121", "name": "Chung khoan kinh doanh" },
+        { "code": "131", "name": "Phai thu khach hang" },
+        { "code": "133", "name": "Thue GTGT duoc khau tru" },
+        { "code": "138", "name": "Phai thu khac" },
+        { "code": "141", "name": "Tam ung" },
+        { "code": "151", "name": "Hang mua dang di duong" },
+        { "code": "152", "name": "Nguyen lieu, vat lieu" },
+        { "code": "153", "name": "Cong cu, dung cu" },
+        { "code": "154", "name": "Chi phi SXKD dang do dang" },
+        { "code": "155", "name": "Thanh pham" },
+        { "code": "156", "name": "Hang hoa" }
+      ]
+    },
+    {
+      "class": 2,
+      "name": "Tai san dai han",
+      "accounts": [
+        { "code": "211", "name": "Tai san co dinh huu hinh" },
+        { "code": "213", "name": "Tai san co dinh vo hinh" },
+        { "code": "214", "name": "Hao mon TSCD (ghi am)" },
+        { "code": "242", "name": "Chi phi tra truoc" }
+      ]
+    },
+    {
+      "class": 3,
+      "name": "No phai tra",
+      "accounts": [
+        { "code": "331", "name": "Phai tra nguoi ban" },
+        { "code": "333", "name": "Thue va cac khoan phai nop NSNN" },
+        { "code": "334", "name": "Phai tra nguoi lao dong" },
+        { "code": "335", "name": "Chi phi phai tra" },
+        { "code": "338", "name": "Phai tra, phai nop khac (BHXH, BHYT, BHTN, KPCD)" },
+        { "code": "341", "name": "Vay va no thue tai chinh" }
+      ]
+    },
+    {
+      "class": 4,
+      "name": "Von chu so huu",
+      "accounts": [
+        { "code": "411", "name": "Von dau tu cua chu so huu" },
+        { "code": "421", "name": "Loi nhuan sau thue chua phan phoi" }
+      ]
+    },
+    {
+      "class": 5,
+      "name": "Doanh thu",
+      "accounts": [
+        { "code": "511", "name": "Doanh thu ban hang va cung cap dich vu" },
+        { "code": "515", "name": "Doanh thu hoat dong tai chinh" },
+        { "code": "521", "name": "Cac khoan giam tru doanh thu" }
+      ]
+    },
+    {
+      "class": 6,
+      "name": "Chi phi san xuat, kinh doanh",
+      "accounts": [
+        { "code": "621", "name": "Chi phi nguyen lieu, vat lieu truc tiep" },
+        { "code": "622", "name": "Chi phi nhan cong truc tiep" },
+        { "code": "627", "name": "Chi phi san xuat chung" },
+        { "code": "632", "name": "Gia von hang ban" },
+        { "code": "635", "name": "Chi phi tai chinh" },
+        { "code": "641", "name": "Chi phi ban hang" },
+        { "code": "642", "name": "Chi phi quan ly doanh nghiep" }
+      ]
+    },
+    {
+      "class": 7,
+      "name": "Thu nhap khac",
+      "accounts": [{ "code": "711", "name": "Thu nhap khac" }]
+    },
+    {
+      "class": 8,
+      "name": "Chi phi khac",
+      "accounts": [
+        { "code": "811", "name": "Chi phi khac" },
+        { "code": "821", "name": "Chi phi thue TNDN" }
+      ]
+    },
+    {
+      "class": 9,
+      "name": "Xac dinh ket qua",
+      "accounts": [{ "code": "911", "name": "Xac dinh ket qua kinh doanh" }]
+    }
+  ]
+}

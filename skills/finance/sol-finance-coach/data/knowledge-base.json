@@ -1,0 +1,542 @@
+[
+  {
+    "id": "inv-001",
+    "topic": "Co phieu la gi va cach dau tu",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "Co phieu la chung chi so huu mot phan cua cong ty. Khi ban mua co phieu, ban tro thanh co dong va co quyen huong loi nhuan tu cong ty do. O Viet Nam, ban co the mua co phieu qua san HOSE (TP.HCM) hoac HNX (Ha Noi). De bat dau, ban can mo tai khoan chung khoan tai cac cong ty nhu SSI, VNDirect, TCBS, hoac Mirae Asset. Phi mo tai khoan thuong mien phi. So tien toi thieu de bat dau khoang 1-5 trieu dong. Vi du: mua 100 co phieu VNM (Vinamilk) voi gia 80.000 dong/co phieu thi can 8 trieu dong. Loi nhuan den tu 2 nguon: co tuc (loi nhuan cong ty chia cho co dong) va chenh lech gia (mua re ban dat). Rui ro la gia co phieu co the giam, tham chi mat toan bo von neu cong ty pha san. Nguoi moi nen bat dau voi so tien nho, hoc cach doc bao cao tai chinh va theo doi tin tuc kinh te truoc khi dau tu lon.",
+    "tags": "co phieu, chung khoan, HOSE, HNX, co dong, co tuc, dau tu",
+    "source": "SSI Research"
+  },
+  {
+    "id": "inv-002",
+    "topic": "Trai phieu — kenh dau tu an toan",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "Trai phieu la giay no do chinh phu hoac doanh nghiep phat hanh. Khi mua trai phieu, ban cho ho vay tien va nhan lai suat dinh ky. Trai phieu chinh phu Viet Nam duoc coi la an toan nhat vi co Nha nuoc bao lanh. Lai suat thuong tu 5-8%/nam tuy ky han. Trai phieu doanh nghiep co lai suat cao hon (8-12%/nam) nhung rui ro cung lon hon. Menh gia trai phieu thuong la 100.000 dong/trai phieu, nhung de mua tren san can toi thieu 1 lo (10 trai phieu = 1 trieu dong). Ban cung co the mua qua cac quy dau tu trai phieu voi so tien tu 100.000 dong. Vi du: mua 100 trieu dong trai phieu chinh phu ky han 5 nam, lai suat 6%/nam, moi nam ban nhan 6 trieu dong tien lai. So voi gui tiet kiem, trai phieu thuong co lai suat cao hon va co the ban lai tren thi truong thu cap truoc khi dao han.",
+    "tags": "trai phieu, bond, lai suat, chinh phu, doanh nghiep, an toan",
+    "source": "VBMA"
+  },
+  {
+    "id": "inv-003",
+    "topic": "Chung chi quy — dau tu chuyen nghiep cho nguoi moi",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "Chung chi quy (CCQ) la hinh thuc gop tien cung nhieu nguoi khac, giao cho cong ty quan ly quy chuyen nghiep dau tu ho. Day la cach tot nhat cho nguoi moi bat dau vi khong can kien thuc sau ve chung khoan. O Viet Nam co nhieu quy uy tin nhu TCBF (Techcom), VFMVN30 (VinaCapital), SSISCA (SSI). Ban co the mua CCQ tu 100.000 dong tren cac app nhu Finhay, Infina, hoac truc tiep qua cong ty quan ly quy. Phi quan ly thuong tu 1-2%/nam. Co 2 loai chinh: quy co phieu (rui ro cao, loi nhuan cao — trung binh 10-15%/nam) va quy trai phieu (rui ro thap, loi nhuan on — trung binh 6-8%/nam). Vi du: dau tu 2 trieu/thang vao quy chi so VFMVN30 trong 10 nam voi loi nhuan trung binh 12%/nam, ban se co khoang 460 trieu dong (gop 240 trieu, lai 220 trieu). Nho kiem tra danh muc va hieu suat quy truoc khi mua.",
+    "tags": "chung chi quy, CCQ, quy mo, quy dau tu, TCBF, VFMVN30, Finhay",
+    "source": "VinaCapital"
+  },
+  {
+    "id": "inv-004",
+    "topic": "Vang — kenh tru an truyen thong",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "Vang la kenh dau tu truyen thong cua nguoi Viet. Co 2 loai chinh: vang vat ly (vang mieng SJC, vang nhan, vang trang suc) va vang tai khoan (mua ban truc tuyen qua san). Vang SJC duoc Nha nuoc quan ly va thuong co gia cao hon vang the gioi 10-20 trieu/luong. Gia vang Viet Nam dao dong manh — nam 2024 tang tu 70 trieu len hon 85 trieu/luong. Uu diem cua vang: bao toan gia tri khi lam phat tang, de mua ban, khong can kien thuc phuc tap. Nhuoc diem: khong sinh lai (khong co co tuc hay lai suat), phi chenh lech mua-ban lon (500K-2 trieu/luong), va rui ro mat cap neu giu vang vat ly. Vi du: ban mua 1 luong vang SJC gia 80 trieu, phi chenh lech mua-ban khoang 1.5 trieu, tuc la gia phai tang it nhat 2% ban moi bat dau co lai. Nen chi dau tu 5-10% tong danh muc vao vang de da dang hoa.",
+    "tags": "vang, SJC, vang mieng, dau tu vang, bao toan gia tri, lam phat",
+    "source": "SJC"
+  },
+  {
+    "id": "inv-005",
+    "topic": "Tiet kiem ngan hang — nen tang tai chinh",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "Gui tiet kiem ngan hang la buoc dau tien trong hanh trinh tai chinh ca nhan. Hien nay lai suat tiet kiem tai Viet Nam dao dong tu 3-6%/nam tuy ky han va ngan hang. Ky han ngan (1-3 thang) lai suat thap hon nhung linh hoat; ky han dai (12-36 thang) lai suat cao hon. Cac ngan hang lon nhu Vietcombank, BIDV, VietinBank thuong co lai suat thap hon ngan hang tu nhan nhu Techcombank, TPBank, MB Bank. Vi du: gui 100 trieu dong ky han 12 thang voi lai suat 5%/nam, sau 1 nam ban nhan duoc 5 trieu dong tien lai. Gui online thuong duoc lai suat cao hon quay 0.1-0.5%/nam. Tiet kiem phu hop cho: quy du phong khan cap (ky han ngan), muc tieu ngan han 1-2 nam, va nguoi khong muon chap nhan rui ro. Han che chinh la lai suat thuong thap hon lam phat, nen tien mat gia tri theo thoi gian. Vi vay, chi nen giu tiet kiem cho quy du phong va muc tieu ngan han.",
+    "tags": "tiet kiem, ngan hang, lai suat, ky han, gui tiet kiem, du phong",
+    "source": ""
+  },
+  {
+    "id": "inv-006",
+    "topic": "ETF — quy chi so chi phi thap",
+    "category": "dau_tu",
+    "level": "intermediate",
+    "content": "ETF (Exchange Traded Fund) la quy dau tu chi so, duoc mua ban nhu co phieu tren san chung khoan. ETF theo doi mot chi so cu the, vi du VFMVN30 ETF theo doi 30 co phieu lon nhat tren HOSE. Uu diem lon nhat cua ETF la phi quan ly cuc thap (0.5-0.8%/nam so voi 1.5-2% cua quy thuong) va da dang hoa tu dong. Tai Viet Nam co cac ETF pho bien: VFMVN30 (VinaCapital), SSIAM VNX50 (SSI), DCVFMVN DIAMOND (Dragon Capital). Ban mua ETF qua tai khoan chung khoan, giong nhu mua co phieu. 1 lo = 100 chung chi, gia khoang 15.000-20.000 dong/chung chi, tuc la chi can 1.5-2 trieu dong de bat dau. ETF phu hop cho chien luoc DCA — mua dinh ky moi thang bat ke gia len hay xuong. Vi du: mua 2 trieu/thang VFMVN30 ETF trong 15 nam voi loi nhuan trung binh 10%/nam, ban se tich luy duoc khoang 830 trieu dong. ETF la lua chon tuyet voi cho nguoi muon dau tu don gian, chi phi thap va hieu qua.",
+    "tags": "ETF, quy chi so, VFMVN30, chi phi thap, da dang hoa, DCA",
+    "source": "VinaCapital"
+  },
+  {
+    "id": "inv-007",
+    "topic": "IPO — co hoi mua co phieu lan dau",
+    "category": "dau_tu",
+    "level": "intermediate",
+    "content": "IPO (Initial Public Offering) la lan dau tien cong ty ban co phieu ra cong chung. Day co the la co hoi tot de mua co phieu gia re truoc khi len san giao dich. O Viet Nam, IPO thuong dien ra qua dau gia tai So Giao dich Chung khoan. De tham gia, ban can co tai khoan chung khoan va dang ky dau gia. Gia khoi diem do to chuc dau gia cong bo, ban dat gia mua va so luong muon mua. Vi du: IPO cua VINHOMES (VHM) nam 2018 voi gia khoi diem 114.700 dong/co phieu, sau do tang len hon 120.000 dong/co phieu trong ngay giao dich dau tien. Tuy nhien, khong phai IPO nao cung lai — nhieu co phieu giam gia sau IPO. Rui ro bao gom: thong tin cong ty chua duoc kiem chung day du, thanh khoan thap trong giai doan dau, va gia co the bi thoi phong. Loi khuyen: chi dau tu 5-10% danh muc vao IPO, nghien cuu ky bao cao tai chinh va trien vong nganh truoc khi tham gia dau gia.",
+    "tags": "IPO, phat hanh lan dau, dau gia, co phieu moi, chung khoan",
+    "source": "HOSE"
+  },
+  {
+    "id": "inv-008",
+    "topic": "DCA — chien luoc dau tu dinh ky",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "DCA (Dollar Cost Averaging) la chien luoc dau tu mot so tien co dinh vao mot tai san dinh ky (thuong hang thang), bat ke gia len hay xuong. Day la phuong phap don gian va hieu qua nhat cho nguoi moi. Nguyen ly: khi gia thap ban mua duoc nhieu hon, khi gia cao ban mua it hon — gia trung binh se duoc san bang theo thoi gian. Vi du thuc te: ban dau tu 3 trieu/thang vao quy VFMVN30. Thang 1 gia 20.000 dong — mua 150 chung chi. Thang 2 gia 18.000 dong — mua 166 chung chi. Thang 3 gia 22.000 dong — mua 136 chung chi. Gia trung binh cua ban la 19.867 dong/chung chi thay vi mua 1 lan tai gia 20.000. DCA giup: giam rui ro mua dinh, khong can du doan thi truong, tao thoi quen tiet kiem, va tan dung lai suat kep. Cach thuc hien: dat lenh tu dong mua hang thang tren app chung khoan hoac quy dau tu. Dieu quan trong la kien nhan — DCA hieu qua nhat khi dau tu dai han tu 5 nam tro len.",
+    "tags": "DCA, dinh ky, trung binh gia, dau tu tu dong, dai han",
+    "source": ""
+  },
+  {
+    "id": "inv-009",
+    "topic": "Chi so P/E va cach su dung",
+    "category": "dau_tu",
+    "level": "intermediate",
+    "content": "P/E (Price to Earnings) la chi so do luong gia co phieu so voi loi nhuan tren moi co phieu (EPS). Cong thuc: P/E = Gia co phieu / EPS. Vi du: co phieu VNM gia 80.000 dong, EPS la 4.000 dong/co phieu, thi P/E = 20. Dieu nay co nghia ban tra 20 dong cho moi 1 dong loi nhuan. P/E thap (duoi 10-12) co the la co phieu re hoac cong ty dang gap kho khan. P/E cao (tren 20-25) co the la co phieu dat hoac thi truong ky vong tang truong manh. So sanh P/E: nen so voi cac cong ty cung nganh. Vi du nganh ngan hang VN thuong co P/E 8-15, nganh cong nghe 15-30, nganh bat dong san 8-12. P/E trung binh cua VN-Index khoang 12-15. Luu y: P/E chi la 1 chi so, khong nen dua vao P/E duy nhat de quyet dinh mua ban. Can ket hop voi cac chi so khac nhu P/B, ROE, tang truong doanh thu. P/E am co nghia cong ty dang lo — can than voi nhung co phieu nay.",
+    "tags": "P/E, dinh gia, EPS, chi so, co phieu, phan tich co ban",
+    "source": ""
+  },
+  {
+    "id": "inv-010",
+    "topic": "ROI — do luong hieu qua dau tu",
+    "category": "dau_tu",
+    "level": "beginner",
+    "content": "ROI (Return on Investment) la chi so do luong loi nhuan so voi so tien da dau tu. Cong thuc: ROI = (Loi nhuan rong / Chi phi dau tu) x 100%. Vi du: ban mua co phieu VCB gia 80.000 dong, ban gia 96.000 dong. Loi nhuan = 16.000 dong. ROI = 16.000/80.000 x 100% = 20%. De so sanh chinh xac, can tinh ROI theo nam (annualized). Neu loi nhuan 20% trong 2 nam, ROI hang nam khoang 9.5%. So sanh ROI cac kenh dau tu tai VN (trung binh): tiet kiem ngan hang 4-6%/nam, trai phieu 6-8%/nam, co phieu 10-15%/nam (dai han), bat dong san 8-12%/nam, vang 5-10%/nam. Luu y: ROI cao thuong di kem rui ro cao. Dung quen tru phi giao dich va thue khi tinh ROI thuc te. Vi du: ban co phieu lai 20% nhung phi giao dich 0.35%, thue 0.1%, ROI thuc te con khoang 19.55%. Luon tinh ROI truoc khi dau tu bat ky thu gi de so sanh voi cac lua chon khac.",
+    "tags": "ROI, loi nhuan, hieu qua dau tu, ti le, so sanh",
+    "source": ""
+  },
+  {
+    "id": "inv-011",
+    "topic": "Quyen chon — cong cu phai sinh",
+    "category": "dau_tu",
+    "level": "advanced",
+    "content": "Quyen chon (Options) la hop dong cho phep ban quyen (khong phai nghia vu) mua hoac ban tai san tai mot gia xac dinh truoc trong tuong lai. Co 2 loai: Call Option (quyen mua) va Put Option (quyen ban). O Viet Nam, thi truong phai sinh chu yeu co hop dong tuong lai VN30 va trai phieu chinh phu. Quyen chon chua phat trien nhieu nhu cac thi truong phat trien. Vi du don gian: ban mua Call Option voi gia thuc hien 1.300 diem cho VN30, phi quyen chon 20 diem. Neu VN30 tang len 1.350, ban lai 50 - 20 = 30 diem. Neu VN30 giam duoi 1.300, ban chi mat phi quyen chon 20 diem. Quyen chon duoc dung de: phong ve rui ro (hedging), dau co, va tao thu nhap tu danh muc co phieu hien co. Rui ro: co the mat toan bo so tien mua quyen chon neu khong dung huong. Day la cong cu phuc tap, chi phu hop cho nha dau tu co kinh nghiem va hieu ro co che hoat dong. Khong khuyen khich nguoi moi su dung.",
+    "tags": "quyen chon, options, phai sinh, call, put, hedging, VN30",
+    "source": ""
+  },
+  {
+    "id": "inv-012",
+    "topic": "Bat dong san — dau tu tai san thuc",
+    "category": "dau_tu",
+    "level": "intermediate",
+    "content": "Bat dong san (BDS) la kenh dau tu truyen thong va pho bien nhat tai Viet Nam. Co nhieu hinh thuc: mua dat nen, can ho, nha pho, hoac dau tu qua quy BDS. Uu diem: tai san huu hinh, co the tao dong thu nhap tu cho thue, va thuong tang gia theo thoi gian. Vi du: can ho 2 phong ngu tai Thu Duc (TP.HCM) gia 2.5 ty dong, cho thue 10-12 trieu/thang, loi suat cho thue khoang 5-6%/nam. Nhuoc diem: can von lon, thanh khoan thap (ban mat thoi gian), chi phi bao tri, va rui ro phap ly. Von toi thieu de dau tu BDS o thanh pho lon khoang 1-3 ty dong (co the vay them 50-70% gia tri). Meo quan trong: kiem tra so do/so hong ky, quy hoach khu vuc, ha tang giao thong, va uy tin chu dau tu. Khong nen dung qua 50% thu nhap de tra gop BDS. Nguoi khong du von co the dau tu gian tiep qua co phieu BDS (VHM, NVL, KDH) hoac chung chi quy BDS voi so tien nho hon nhieu.",
+    "tags": "bat dong san, BDS, can ho, dat nen, cho thue, dau tu",
+    "source": ""
+  },
+  {
+    "id": "inv-013",
+    "topic": "Crypto — tong quan va rui ro",
+    "category": "dau_tu",
+    "level": "intermediate",
+    "content": "Tien ma hoa (cryptocurrency) la tai san ky thuat so su dung cong nghe blockchain. Bitcoin (BTC) va Ethereum (ETH) la 2 dong pho bien nhat. Tai Viet Nam, crypto chua duoc cong nhan la phuong tien thanh toan hop phap nhung khong bi cam giao dich. Cac san giao dich pho bien: Binance, OKX, Remitano, VNDC. Gia crypto dao dong cuc ky manh — BTC co the tang/giam 20-30% trong vai ngay. Vi du: BTC tu 16.000 USD (cuoi 2022) tang len hon 70.000 USD (2024). Rui ro bao gom: mat toan bo von, lua dao (scam), hack san giao dich, va thieu bao ve phap ly. Neu quyet dinh dau tu crypto, hay: chi dung tien co the chap nhan mat hoan toan (toi da 5% danh muc), su dung vi lanh (cold wallet) de bao mat, chi mua cac dong co von hoa lon (BTC, ETH), va khong FOMO theo tin tuc. Khong bao gio vay tien de mua crypto. Day la kenh dau tu co rui ro cao nhat trong cac kenh pho bien.",
+    "tags": "crypto, bitcoin, ethereum, blockchain, rui ro, tien ma hoa",
+    "source": ""
+  },
+  {
+    "id": "inv-014",
+    "topic": "REITs — dau tu bat dong san voi von nho",
+    "category": "dau_tu",
+    "level": "advanced",
+    "content": "REITs (Real Estate Investment Trusts) la quy tin thac dau tu bat dong san, cho phep ban dau tu vao BDS voi so von nho ma khong can truc tiep mua nha dat. REITs hoat dong bang cach gom von tu nhieu nha dau tu de mua va quan ly cac BDS thuong mai (van phong, trung tam thuong mai, khu cong nghiep). Tai Viet Nam, thi truong REITs con rat moi nhung dang phat trien. Techcom Capital va VinaCapital da co cac san pham tuong tu REITs. Tren the gioi, REITs phai chia it nhat 90% loi nhuan cho nha dau tu duoi dang co tuc. Uu diem: thanh khoan cao hon BDS truc tiep, da dang hoa danh muc BDS, co tuc deu dan, va quan ly chuyen nghiep. Vi du: dau tu 50 trieu dong vao quy BDS, nhan co tuc 6-8%/nam (3-4 trieu/nam) cong voi tang gia tri tai san. Nhuoc diem: phu thuoc vao thi truong BDS, phi quan ly, va chua co khung phap ly hoan chinh tai VN. Phu hop cho nguoi muon tiep can thi truong BDS nhung khong du von mua truc tiep.",
+    "tags": "REITs, quy bat dong san, co tuc, von nho, da dang hoa",
+    "source": ""
+  },
+  {
+    "id": "inv-015",
+    "topic": "Margin trading — vay de dau tu chung khoan",
+    "category": "dau_tu",
+    "level": "advanced",
+    "content": "Margin trading (giao dich ky quy) la vay tien tu cong ty chung khoan de mua them co phieu. Ty le margin thuong 50:50, tuc ban co 100 trieu co the mua 200 trieu co phieu. Lai suat margin tai VN khoang 9-14%/nam tuy cong ty. Vi du: ban co 100 trieu, vay them 100 trieu margin (lai suat 12%/nam). Mua co phieu tang 30% — danh muc 200 trieu thanh 260 trieu. Tra no 100 trieu + lai 12 trieu, con lai 148 trieu. Loi nhuan 48% (thay vi 30% neu khong dung margin). NHUNG neu co phieu giam 30% — danh muc con 140 trieu, tra no 112 trieu, ban con 28 trieu — mat 72% von! Khi danh muc giam den nguong nhat dinh (thuong 130-140% ty le bao dam), cong ty chung khoan se yeu cau nap them tien (margin call). Neu khong nap kip, ho se ban cuong che co phieu cua ban — thuong vao luc gia thap nhat. Loi khuyen: chi dung margin khi ban rat tu tin va co kinh nghiem. Khong bao gio dung margin qua 30% tong danh muc. Nguoi moi tuyet doi khong nen dung margin.",
+    "tags": "margin, ky quy, don bay, margin call, rui ro, vay",
+    "source": ""
+  },
+  {
+    "id": "term-001",
+    "topic": "Lai suat kep — suc manh cua thoi gian",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "Lai suat kep (compound interest) la lai tinh tren ca von goc lan lai da tich luy. Day la khai niem quan trong nhat trong tai chinh ca nhan, duoc Albert Einstein goi la 'ky quan thu 8 cua the gioi'. Cong thuc: So tien cuoi = Von goc x (1 + lai suat)^so ky. Vi du thuc te: gui 100 trieu dong lai suat 7%/nam. Sau 10 nam voi lai don: 100 + (100 x 7% x 10) = 170 trieu. Voi lai kep: 100 x (1.07)^10 = 196.7 trieu — nhieu hon 26.7 trieu! Sau 20 nam: lai don = 240 trieu, lai kep = 386.9 trieu — gap hon 1.6 lan. Sau 30 nam: lai don = 310 trieu, lai kep = 761.2 trieu — chenh lech hon 450 trieu! Bai hoc: bat dau dau tu cang som cang tot de tan dung toi da lai suat kep. Neu ban bat dau tu nam 25 tuoi, dau tu 3 trieu/thang voi lai kep 10%/nam, den 55 tuoi ban co hon 6.8 ty dong. Bat dau tu 35 tuoi voi cung dieu kien, den 55 tuoi chi co khoang 2.3 ty.",
+    "tags": "lai suat kep, compound interest, Einstein, thoi gian, tang truong",
+    "source": ""
+  },
+  {
+    "id": "term-002",
+    "topic": "Lam phat — ke thu cua tien mat",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "Lam phat la su tang gia chung cua hang hoa va dich vu theo thoi gian, lam giam suc mua cua dong tien. Tai Viet Nam, lam phat trung binh khoang 3-4%/nam trong nhung nam gan day. Dieu nay co nghia 100 trieu dong hom nay chi co suc mua tuong duong khoang 96-97 trieu dong sau 1 nam. Vi du thuc te: to pho nam 2020 gia 40.000 dong, nam 2024 tang len 55.000-65.000 dong — tang khoang 50% trong 4 nam. Anh huong den tai chinh ca nhan: neu ban gui tiet kiem 4%/nam nhung lam phat 3.5%, loi nhuan thuc chi la 0.5%/nam. Neu giu tien mat tai nha, ban mat 3-4% gia tri moi nam. Cach doi pho: dau tu vao tai san tang gia nhanh hon lam phat (co phieu, BDS, vang), tang thu nhap theo thoi gian, va khong giu qua nhieu tien mat. Chi so CPI (Consumer Price Index) do luong lam phat hang thang. Ngan hang Nha nuoc dieu chinh chinh sach tien te de kiem soat lam phat o muc muc tieu 4%/nam.",
+    "tags": "lam phat, inflation, CPI, suc mua, tien mat, gia ca",
+    "source": "GSO"
+  },
+  {
+    "id": "term-003",
+    "topic": "Diversification — da dang hoa danh muc",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "Da dang hoa (diversification) la chien luoc phan bo von vao nhieu loai tai san khac nhau de giam rui ro. Nguyen tac co ban: 'khong bo tat ca trung vao mot gio'. Cac cap do da dang hoa: (1) da dang hoa loai tai san — ket hop co phieu, trai phieu, tiet kiem, vang, BDS; (2) da dang hoa nganh — khong chi mua co phieu ngan hang, them cong nghe, tieu dung, nang luong; (3) da dang hoa dia ly — dau tu ca trong nuoc va quoc te; (4) da dang hoa thoi gian — mua o nhieu thoi diem khac nhau (DCA). Vi du danh muc da dang hoa cho nguoi 30 tuoi voi 500 trieu dong: 40% co phieu/ETF (200 trieu), 25% trai phieu/quy trai phieu (125 trieu), 15% tiet kiem (75 trieu — quy du phong), 10% vang (50 trieu), 10% crypto/BDS (50 trieu). Khi mot tai san giam, cac tai san khac co the bu dap. Nghien cuu cho thay danh muc da dang hoa co the giam rui ro 30-40% ma khong giam nhieu loi nhuan ky vong.",
+    "tags": "da dang hoa, diversification, phan bo tai san, rui ro, danh muc",
+    "source": ""
+  },
+  {
+    "id": "term-004",
+    "topic": "NAV — gia tri tai san rong",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "NAV (Net Asset Value) la gia tri tai san rong cua mot quy dau tu, tinh bang tong gia tri tai san tru di cac khoan no va chi phi, chia cho tong so chung chi quy dang luu hanh. Cong thuc: NAV/CCQ = (Tong tai san - Tong no) / So CCQ. Vi du: quy co tong tai san 1.000 ty dong, no 50 ty dong, va 95 trieu chung chi quy. NAV/CCQ = (1.000 - 50) ty / 95 trieu = 10.000 dong/CCQ. NAV duoc cap nhat hang ngay (doi voi quy mo) hoac hang tuan (doi voi quy dong). Khi NAV tang, gia tri dau tu cua ban tang va nguoc lai. Ban mua CCQ tai gia NAV + phi mua (thuong 0-2%), va ban tai gia NAV - phi ban (thuong 0-2%). Vi du thuc te: mua 1.000 CCQ cua quy TCBF tai NAV 15.000 dong (tong 15 trieu). Sau 1 nam NAV tang len 16.200 dong — gia tri danh muc la 16.2 trieu, lai 1.2 trieu (8%). Kiem tra NAV hang ngay tren website cong ty quan ly quy hoac cac app nhu Finhay, Infina.",
+    "tags": "NAV, gia tri tai san rong, quy dau tu, CCQ, dinh gia",
+    "source": ""
+  },
+  {
+    "id": "term-005",
+    "topic": "Yield — loi suat dau tu",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "Yield (loi suat) la ty le loi nhuan hang nam tu mot khoan dau tu, tinh theo phan tram. Co nhieu loai yield khac nhau. Dividend yield (loi suat co tuc): co tuc hang nam / gia co phieu x 100%. Vi du: VNM tra co tuc 3.500 dong/co phieu/nam, gia co phieu 80.000 dong. Dividend yield = 3.500/80.000 = 4.375%. Bond yield (loi suat trai phieu): tien lai hang nam / gia trai phieu x 100%. Rental yield (loi suat cho thue): tien thue nam / gia bat dong san x 100%. Vi du: can ho 3 ty, cho thue 12 trieu/thang = 144 trieu/nam. Rental yield = 144/3.000 = 4.8%. Savings yield (lai suat tiet kiem): don gian la lai suat ngan hang cong bo. Current yield va yield to maturity (YTM) la 2 cach tinh khac nhau cho trai phieu. YTM tinh ca loi nhuan tu chenh lech gia khi giu den dao han. Nha dau tu dung yield de so sanh cac kenh dau tu khac nhau va lua chon kenh phu hop voi muc tieu tai chinh.",
+    "tags": "yield, loi suat, co tuc, trai phieu, cho thue, so sanh",
+    "source": ""
+  },
+  {
+    "id": "term-006",
+    "topic": "Market cap — von hoa thi truong",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "Von hoa thi truong (market capitalization) la tong gia tri cua tat ca co phieu dang luu hanh cua mot cong ty. Cong thuc: Von hoa = Gia co phieu x So luong co phieu. Vi du: VCB (Vietcombank) co gia 85.000 dong/co phieu va 4.7 ty co phieu luu hanh. Von hoa = 85.000 x 4.7 ty = khoang 400.000 ty dong (khoang 16 ty USD). Phan loai theo von hoa tai VN: Large-cap (von hoa lon, tren 10.000 ty dong) — VCB, VHM, VNM, FPT. Thuong on dinh, thanh khoan cao. Mid-cap (von hoa trung, 1.000-10.000 ty) — DGC, KDH, PNJ. Co tiem nang tang truong tot. Small-cap (von hoa nho, duoi 1.000 ty) — bien dong manh, rui ro cao nhung co the lai lon. Top 10 cong ty von hoa lon nhat VN chiem khoang 50% tong von hoa thi truong. Nha dau tu moi nen bat dau voi co phieu large-cap vi tinh on dinh va thong tin minh bach. Von hoa cung la co so de xay dung cac chi so nhu VN30 (30 co phieu von hoa lon nhat HOSE).",
+    "tags": "von hoa, market cap, large cap, mid cap, small cap, co phieu",
+    "source": ""
+  },
+  {
+    "id": "term-007",
+    "topic": "Blue chip — co phieu hang dau",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "Blue chip la thuat ngu chi cac co phieu cua nhung cong ty lon, uy tin, co lich su kinh doanh lau dai va tai chinh vung manh. Ten goi bat nguon tu poker — chip xanh co gia tri cao nhat. Tai Viet Nam, cac co phieu blue chip tieu bieu: VCB (Vietcombank — ngan hang lon nhat), VHM (Vinhomes — bat dong san), VNM (Vinamilk — tieu dung), FPT (cong nghe), HPG (Hoa Phat — thep), MWG (The Gioi Di Dong — ban le). Dac diem cua blue chip: von hoa lon (tren 50.000 ty dong), loi nhuan on dinh qua nhieu nam, tra co tuc deu dan, thanh khoan cao (de mua ban), va thong tin minh bach. Blue chip thuong it bien dong hon co phieu nho nhung van co the giam 20-30% trong khung hoang (nhu Covid-19 2020). Chien luoc pho bien: mua blue chip va giu dai han (5-10 nam), tai dau tu co tuc. Lich su cho thay VN-Index (chu yeu blue chip) tang trung binh 12-15%/nam trong dai han. Blue chip la nen tang cua bat ky danh muc dau tu nao.",
+    "tags": "blue chip, co phieu hang dau, VCB, VNM, FPT, on dinh",
+    "source": ""
+  },
+  {
+    "id": "term-008",
+    "topic": "Bear market va bull market",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "Bear market (thi truong gau) la khi thi truong giam tu 20% tro len tu dinh. Bull market (thi truong bo) la khi thi truong tang tu 20% tro len tu day. Ten goi den tu cach tan cong: gau tat tu tren xuong, bo huc tu duoi len. Lich su thi truong VN: Bear market 2008 — VN-Index giam tu 1.170 xuong 235 diem (-80%). Bear market 2022 — VN-Index giam tu 1.528 xuong 873 diem (-43%). Bull market 2020-2021 — VN-Index tang tu 660 len 1.528 diem (+131%). Trung binh, bear market keo dai 12-18 thang, bull market keo dai 3-5 nam. Cach ung xu: trong bear market — khong hoang loat ban thao, tiep tuc DCA, mua them tai san tot gia re. Trong bull market — khong qua tham lam, chot lai mot phan, tang ti trong tien mat. Cau noi noi tieng: 'Be fearful when others are greedy, and greedy when others are fearful' (Warren Buffett). Bear market la co hoi tuyet voi de mua tai san chat luong gia re neu ban co tam nhin dai han.",
+    "tags": "bear market, bull market, thi truong gau, thi truong bo, VN-Index, chu ky",
+    "source": ""
+  },
+  {
+    "id": "term-009",
+    "topic": "Thanh khoan — kha nang mua ban",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "Thanh khoan (liquidity) la kha nang chuyen doi tai san thanh tien mat nhanh chong ma khong mat nhieu gia tri. Tai san co thanh khoan cao nhat la tien mat. Xep hang thanh khoan: tien mat > tiet kiem khong ky han > co phieu blue chip > trai phieu > vang > bat dong san. Tai sao thanh khoan quan trong? Khi ban can tien gap (benh vien, mat viec), tai san co thanh khoan thap se rat kho ban nhanh hoac phai ban lo. Vi du: ban co 1 ty dong — 500 trieu trong tiet kiem (rut ngay duoc), 500 trieu trong dat nen (co the mat 3-6 thang de ban). Neu can 300 trieu gap, tiet kiem giai quyet duoc, nhung dat nen thi khong. Tren thi truong chung khoan, thanh khoan the hien qua khoi luong giao dich. Co phieu co khoi luong > 1 trieu co phieu/ngay duoc coi la thanh khoan tot (VCB, VNM, FPT). Co phieu duoi 100.000 co phieu/ngay la thanh khoan kem — kho mua ban tai gia mong muon. Loi khuyen: luon giu it nhat 20-30% danh muc o tai san thanh khoan cao de ung pho tinh huong khan cap.",
+    "tags": "thanh khoan, liquidity, mua ban, tien mat, co phieu, tai san",
+    "source": ""
+  },
+  {
+    "id": "term-010",
+    "topic": "GDP — tong san pham quoc noi",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "GDP (Gross Domestic Product) la tong gia tri hang hoa va dich vu duoc san xuat trong mot quoc gia trong mot khoang thoi gian (thuong la 1 nam hoac 1 quy). GDP la chi so quan trong nhat de do luong suc khoe kinh te. GDP Viet Nam nam 2024 khoang 430 ty USD, dung thu 35 the gioi. Tang truong GDP VN trung binh 6-7%/nam, thuoc nhom cao nhat the gioi. GDP binh quan dau nguoi khoang 4.300 USD/nguoi/nam (khoang 107 trieu dong). GDP anh huong den dau tu: khi GDP tang manh, doanh nghiep lam an tot, co phieu tang. Khi GDP cham lai, thi truong co the giam. So sanh khu vuc: GDP binh quan Viet Nam van thap hon Thailand (7.000 USD), Malaysia (12.000 USD), nhung cao hon Campuchia (1.800 USD), Lao (2.000 USD). Muc tieu cua VN la dat nuoc thu nhap trung binh cao vao 2030 (GDP binh quan tren 7.000 USD). Theo doi GDP giup ban hieu xu huong kinh te vi mo va dua ra quyet dinh dau tu phu hop.",
+    "tags": "GDP, kinh te, tang truong, Viet Nam, vi mo, thu nhap",
+    "source": "GSO"
+  },
+  {
+    "id": "term-011",
+    "topic": "CPI — chi so gia tieu dung",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "CPI (Consumer Price Index) la chi so do luong su thay doi gia cua mot gio hang hoa va dich vu tieu dung theo thoi gian. CPI la thuo do chinh cua lam phat. Tong cuc Thong ke (GSO) cong bo CPI hang thang. Gio hang CPI Viet Nam gom 11 nhom: luong thuc thuc pham (33.56%), nha o va vat lieu xay dung (15.73%), giao thong (9.37%), giao duc (6.17%), thiet bi do dung gia dinh (6.76%), va cac nhom khac. Vi du: CPI thang 12/2024 tang 3.8% so voi cung ky nam truoc, co nghia gio hang hoa tang gia trung binh 3.8%. CPI anh huong den: lai suat ngan hang (lam phat cao -> tang lai suat), gia co phieu (chi phi dau vao tang -> loi nhuan giam), va suc mua cua nguoi dan. De theo doi: GSO cong bo CPI ngay 29 hang thang. Khi CPI tang nhanh, Ngan hang Nha nuoc co the tang lai suat de kiem soat lam phat — dieu nay thuong lam thi truong chung khoan giam ngan han. Hieu CPI giup ban du doan xu huong lai suat va dieu chinh chien luoc dau tu.",
+    "tags": "CPI, gia tieu dung, lam phat, GSO, chi so, thong ke",
+    "source": "GSO"
+  },
+  {
+    "id": "term-012",
+    "topic": "FDI — von dau tu truc tiep nuoc ngoai",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "FDI (Foreign Direct Investment) la von dau tu truc tiep tu nuoc ngoai vao Viet Nam. FDI dong vai tro quan trong trong phat trien kinh te VN, chiem khoang 20% GDP va 70% kim ngach xuat khau. Nam 2024, FDI dang ky vao VN dat khoang 38 ty USD, von thuc hien khoang 23 ty USD. Cac nha dau tu FDI lon nhat: Han Quoc (Samsung, LG, Hyundai), Nhat Ban (Toyota, Honda, Canon), Singapore, Dai Loan, va Trung Quoc. Nganh thu hut FDI nhieu nhat: san xuat dien tu (Samsung chiem 20% xuat khau VN), o to, det may, va gan day la nang luong tai tao. FDI anh huong den dau tu ca nhan: FDI tang -> tao viec lam, tang thu nhap -> tang tieu dung -> doanh nghiep noi dia huong loi -> co phieu tang. Cac co phieu huong loi tu FDI: KBC, SZC (khu cong nghiep), GAS (nang luong), REE (ha tang). Theo doi FDI hang thang qua so lieu cua Bo Ke hoach va Dau tu. FDI la tin hieu tot cho trien vong kinh te dai han cua Viet Nam.",
+    "tags": "FDI, dau tu nuoc ngoai, Samsung, khu cong nghiep, xuat khau",
+    "source": "MPI"
+  },
+  {
+    "id": "term-013",
+    "topic": "VN-Index — chi so chung khoan VN",
+    "category": "thuat_ngu",
+    "level": "beginner",
+    "content": "VN-Index la chi so chinh cua thi truong chung khoan Viet Nam, do luong hieu suat cua tat ca co phieu niem yet tren san HOSE (TP.HCM). VN-Index bat dau tu 100 diem vao ngay 28/7/2000 va dao dong quanh 1.200-1.300 diem (2024). Dinh lich su: 1.528 diem (thang 1/2022). Day: 235 diem (thang 2/2009). Co khoang 400 co phieu tren HOSE, nhung 10 co phieu lon nhat (VCB, VHM, VIC, FPT, BID, GAS, CTG, HPG, MSN, VNM) chiem khoang 50-60% trong so VN-Index. Ngoai VN-Index con co: HNX-Index (san Ha Noi), VN30-Index (30 co phieu lon nhat), VNMID-Index (co phieu von hoa trung). Tang truong trung binh cua VN-Index khoang 12-15%/nam ke tu khi thanh lap (tinh ca co tuc). Theo doi VN-Index hang ngay qua cac app: SSI iBoard, VNDirect, TCBS, hoac website cafef.vn, vietstock.vn. VN-Index la nhiet ke cua nen kinh te VN — khi Index tang, nhin chung kinh te dang tot va nguoc lai.",
+    "tags": "VN-Index, HOSE, chi so, chung khoan, thi truong, VN30",
+    "source": "HOSE"
+  },
+  {
+    "id": "term-014",
+    "topic": "Cap tin dung — han muc vay",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "Cap tin dung (credit limit) la tong so tien ma ngan hang cho phep ban vay hoac su dung qua the tin dung. Ngan hang Nha nuoc Viet Nam giao chi tieu tang truong tin dung cho tung ngan hang hang nam (thuong 12-16%/nam). Cap tin dung anh huong den: kha nang vay mua nha/xe, han muc the tin dung, va lai suat. Khi tin dung bi that chat, lai suat tang va kho vay hon. Vi du ca nhan: ban co thu nhap 25 trieu/thang, ngan hang thuong cap the tin dung han muc 50-75 trieu (2-3 lan thu nhap). Voi vay mua nha, ban co the vay toi da 70% gia tri tai san, tra gop khong qua 50% thu nhap. Vi du: thu nhap 30 trieu/thang, tra gop toi da 15 trieu/thang, co the vay khoang 1.5-2 ty dong (ky han 20 nam, lai suat 10%/nam). Diem tin dung (credit score) cua ban duoc CIC (Trung tam Thong tin Tin dung) theo doi. Tra no dung han, khong vay qua nhieu noi giup duy tri diem tin dung tot. Kiem tra diem tin dung mien phi tai website CIC.",
+    "tags": "tin dung, credit, the tin dung, vay, lai suat, CIC, han muc",
+    "source": "SBV"
+  },
+  {
+    "id": "term-015",
+    "topic": "Ty gia hoi doai — gia tri dong tien",
+    "category": "thuat_ngu",
+    "level": "intermediate",
+    "content": "Ty gia hoi doai la ti le trao doi giua 2 dong tien. Ty gia USD/VND la quan trong nhat tai VN. Hien nay 1 USD khoang 25.000-25.500 VND. Ngan hang Nha nuoc quan ly ty gia theo co che 'tha noi co quan ly' — cho phep dao dong trong bien do +/- 5% quanh ty gia trung tam. Ty gia anh huong den: gia nhap khau (USD tang -> hang nhap dat hon), xuat khau (USD tang -> hang xuat re hon, loi cho doanh nghiep xuat khau), va gia tri tai san bang ngoai te. Vi du: ban gui 10.000 USD khi ty gia 23.000 VND/USD (230 trieu VND). Ty gia tang len 25.000 VND/USD, tai san cua ban tang thanh 250 trieu VND — lai 20 trieu chi tu chenh lech ty gia. Co phieu huong loi khi VND yeu: doanh nghiep xuat khau nhu thuy san (VHC), det may (TCM), go (PTB). Co phieu bi anh huong: doanh nghiep nhap khau nguyen lieu. Nguoi di lam o nuoc ngoai gui tien ve cung huong loi khi VND yeu. Theo doi ty gia hang ngay tai website Ngan hang Nha nuoc hoac cac ngan hang thuong mai.",
+    "tags": "ty gia, hoi doai, USD, VND, ngoai te, xuat khau, nhap khau",
+    "source": "SBV"
+  },
+  {
+    "id": "rule-001",
+    "topic": "Quy tac 50/30/20 — phan bo thu nhap",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Quy tac 50/30/20 la phuong phap phan bo thu nhap don gian va hieu qua nhat cho nguoi moi quan ly tai chinh. 50% thu nhap cho nhu cau thiet yeu (nha o, an uong, di lai, dien nuoc, bao hiem). 30% cho mong muon (giai tri, du lich, mua sam, an ngoai). 20% cho tiet kiem va dau tu. Vi du thuc te voi thu nhap 20 trieu/thang: 10 trieu cho thiet yeu (thue nha 4 trieu, an uong 3.5 trieu, di lai 1 trieu, dien nuoc internet 1.5 trieu). 6 trieu cho mong muon (giai tri 2 trieu, mua sam 2 trieu, an ngoai cafe 2 trieu). 4 trieu cho tiet kiem va dau tu (2 trieu gui tiet kiem, 2 trieu DCA quy dau tu). Neu ban o thanh pho lon nhu Sai Gon hay Ha Noi, co the dieu chinh thanh 60/20/20 vi chi phi sinh hoat cao hon. Dieu quan trong nhat la phan 20% tiet kiem/dau tu — hay coi no nhu mot 'hoa don bat buoc' phai tra cho chinh minh moi thang. Su dung app quan ly chi tieu nhu Money Lover, MISA de theo doi.",
+    "tags": "50/30/20, phan bo, thu nhap, tiet kiem, ngan sach, chi tieu",
+    "source": ""
+  },
+  {
+    "id": "rule-002",
+    "topic": "Quy du phong 6 thang — tam dem an toan",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Quy du phong khan cap la so tien ban de danh de trang trai chi phi sinh hoat trong 3-6 thang khi mat nguon thu nhap. Day la nen tang quan trong nhat truoc khi bat dau dau tu. Cach tinh: liet ke tat ca chi phi thiet yeu hang thang (thue nha, an uong, dien nuoc, bao hiem, tra no) — KHONG tinh chi phi giai tri. Vi du: chi phi thiet yeu 12 trieu/thang x 6 thang = 72 trieu dong. Day la so tien toi thieu ban can co trong quy du phong. De quy du phong o dau? Tai khoan tiet kiem khong ky han hoac ky han 1-3 thang de co the rut bat ky luc nao. KHONG dau tu quy du phong vao co phieu, crypto hay bat ky tai san rui ro nao. Cach xay dung: neu chua co quy du phong, danh 50% phan tiet kiem hang thang vao day cho den khi du. Vi du: tiet kiem 4 trieu/thang, danh 2 trieu cho quy du phong. Sau 36 thang se co 72 trieu. Khi nao can dung: mat viec, benh nang, sua chua nha/xe khan cap, hoac bat ky tinh huong bat ngo nao. Sau khi dung, uu tien bo sung lai ngay.",
+    "tags": "quy du phong, khan cap, an toan, tiet kiem, 6 thang, rui ro",
+    "source": ""
+  },
+  {
+    "id": "rule-003",
+    "topic": "Tra no lai cao truoc — chien luoc giam no",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Khi co nhieu khoan no, uu tien tra khoan co lai suat cao nhat truoc (goi la phuong phap 'Debt Avalanche'). Ly do: lai suat kep cung ap dung cho no — no lai suat cao se tang nhanh nhat. Vi du: ban co 3 khoan no — the tin dung 30 trieu (lai 36%/nam), vay tieu dung 50 trieu (lai 18%/nam), vay mua nha 500 trieu (lai 10%/nam). Moi thang ban du 8 trieu tra no. Buoc 1: tra toi thieu tat ca cac khoan (the tin dung 1.5 trieu, vay tieu dung 2 trieu, vay nha 3 trieu = 6.5 trieu). Buoc 2: 1.5 trieu con lai tra them vao the tin dung (lai cao nhat). Buoc 3: khi het no the tin dung, chuyen toan bo sang vay tieu dung. Mot phuong phap khac la 'Debt Snowball' — tra khoan nho nhat truoc de co dong luc. Ve mat toan hoc, Avalanche tiet kiem nhieu tien lai hon. Vi du: voi cach Avalanche, ban tiet kiem khoang 15-20 trieu dong tien lai so voi tra deu. Quy tac vang: KHONG BAO GIO de no the tin dung qua thang — lai suat 30-40%/nam la ke thu tai chinh so 1.",
+    "tags": "tra no, lai suat, the tin dung, avalanche, snowball, no",
+    "source": ""
+  },
+  {
+    "id": "rule-004",
+    "topic": "Pay yourself first — tra cho minh truoc",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Pay Yourself First la nguyen tac: ngay khi nhan luong, chuyen mot phan co dinh vao tiet kiem/dau tu TRUOC KHI chi tieu bat ky thu gi. Thay vi tiet kiem = thu nhap - chi tieu, hay lam nguoc lai: chi tieu = thu nhap - tiet kiem. Vi du: luong 25 trieu dong. Ngay nhan luong, tu dong chuyen 5 trieu (20%) vao tai khoan tiet kiem/dau tu. Chi tieu bang 20 trieu con lai. Cach thuc hien: dat lenh chuyen tien tu dong (standing order) tai ngan hang vao ngay nhan luong. Nhieu ngan hang VN ho tro: Techcombank, TPBank, MB Bank deu co tinh nang tu dong chuyen tien. Hoac dat mua tu dong quy dau tu tren Finhay, Infina. Tai sao hieu qua? Vi con nguoi co xu huong chi tieu het so tien co san (Parkinson's Law of Money). Khi tien da duoc chuyen di, ban tu dieu chinh chi tieu trong pham vi con lai. Bat dau nho: neu 20% qua nhieu, bat dau voi 10% va tang dan 1-2% moi thang. Sau 6-12 thang ban se quen voi muc tiet kiem moi. Nguoi thanh cong tai chinh luon tra cho minh truoc.",
+    "tags": "pay yourself first, tu dong, tiet kiem, luong, thoi quen, ngan sach",
+    "source": ""
+  },
+  {
+    "id": "rule-005",
+    "topic": "Quy tac 4% nghi huu — tu do tai chinh",
+    "category": "quy_tac",
+    "level": "intermediate",
+    "content": "Quy tac 4% (4% Rule) la nguyen tac: khi nghi huu, ban co the rut 4% tong tai san dau tu moi nam ma khong lo het tien trong 30 nam. Cong thuc nguoc lai: so tien can cho nghi huu = chi phi hang nam x 25. Vi du: ban can 20 trieu/thang (240 trieu/nam) khi nghi huu. So tien can tich luy: 240 trieu x 25 = 6 ty dong. Nghe nhieu nhung hoan toan kha thi voi lai kep. Neu ban 30 tuoi, dau tu 8 trieu/thang voi loi nhuan 10%/nam, den 55 tuoi ban co khoang 6.4 ty dong. Luu y: quy tac 4% dua tren nghien cuu tai My voi lam phat thap. Tai VN voi lam phat 3-4%, co the can dieu chinh xuong 3-3.5%. Tuc la can tich luy 240 trieu x 29-33 = khoang 7-8 ty dong. Cac buoc thuc hien: (1) tinh chi phi nghi huu (tinh ca lam phat), (2) tinh so tien can tich luy, (3) tinh so tien dau tu hang thang, (4) bat dau DCA ngay hom nay. Cang bat dau som, so tien hang thang can dau tu cang nho nho lai kep. Tu do tai chinh khong phai giau — ma la du de song ma khong can di lam.",
+    "tags": "4% rule, nghi huu, tu do tai chinh, FIRE, tich luy, dai han",
+    "source": ""
+  },
+  {
+    "id": "rule-006",
+    "topic": "Khong dau tu tien khong the mat",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Nguyen tac vang: chi dau tu so tien ma neu mat toan bo, cuoc song cua ban van khong bi anh huong nghiem trong. KHONG BAO GIO: vay tien de dau tu co phieu hay crypto, dung tien hoc phi con de dau tu, dung quy du phong khan cap de dau tu, hoac dung tien tra gop nha de 'luot song'. Vi du tham hoa: anh Minh vay 200 trieu de mua co phieu 'tip noi bo'. Co phieu giam 60%, anh con no 200 trieu + lai suat 15%/nam = no 230 trieu ma tai san chi con 80 trieu. Mat 150 trieu va van phai tra no. Cach xac dinh 'tien co the mat': (1) da co quy du phong 6 thang — OK. (2) khong co no lai cao (the tin dung, vay tieu dung) — OK. (3) cac chi phi thiet yeu da duoc dam bao — OK. (4) so tien dau tu la tien du sau tat ca cac muc tren — OK. Bat dau nho: 1-2 trieu/thang vao quy chi so, tang dan khi thu nhap tang. Dau tu la marathon, khong phai sprint. Nhung nguoi giau nhat the gioi deu xay dung tai san tu tu trong hang chuc nam, khong phai qua 1 vu dat cuoc.",
+    "tags": "rui ro, von, vay tien, an toan, nguyen tac, mat tien",
+    "source": ""
+  },
+  {
+    "id": "rule-007",
+    "topic": "Da dang hoa danh muc — quy tac thuc hanh",
+    "category": "quy_tac",
+    "level": "intermediate",
+    "content": "Da dang hoa khong chi la ly thuyet — day la cach thuc hanh cu the. Quy tac theo do tuoi: ti le trai phieu/tiet kiem = do tuoi cua ban. Neu ban 30 tuoi: 30% trai phieu/tiet kiem, 70% co phieu/tai san rui ro. Neu 50 tuoi: 50% trai phieu, 50% co phieu. Danh muc mau theo muc tieu: (1) An toan (nguoi bao thu): 60% tiet kiem/trai phieu, 30% co phieu blue chip, 10% vang. Loi nhuan ky vong 6-8%/nam. (2) Can bang (nguoi trung binh): 40% tiet kiem/trai phieu, 40% co phieu/ETF, 10% vang, 10% khac. Loi nhuan ky vong 8-12%/nam. (3) Tang truong (nguoi tich cuc): 20% tiet kiem/trai phieu, 60% co phieu/ETF, 10% vang, 10% crypto/khac. Loi nhuan ky vong 10-15%/nam. Tai can bang (rebalancing): moi 6-12 thang, xem lai danh muc. Neu co phieu tang manh, ban bot va chuyen sang trai phieu de giu dung ti le. Quy tac '5%': khong de bat ky 1 co phieu nao chiem qua 5% danh muc. Khong de 1 nganh chiem qua 20%. Da dang hoa la bao hiem mien phi cho danh muc cua ban.",
+    "tags": "da dang hoa, danh muc, phan bo, do tuoi, rebalancing, quy tac",
+    "source": ""
+  },
+  {
+    "id": "rule-008",
+    "topic": "DCA dinh ky — ky luat dau tu",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Quy tac DCA dinh ky la cam ket dau tu mot so tien co dinh vao cung mot thoi diem moi thang, bat ke thi truong dang tang hay giam. Day la quy tac don gian nhat nhung hieu qua nhat cho nguoi khong co thoi gian theo doi thi truong. Cach thuc hien: (1) Chon tai san — ETF VFMVN30, quy TCBF, hoac co phieu blue chip. (2) Chon so tien — vi du 3 trieu/thang. (3) Chon ngay — vi du ngay 5 hang thang (sau khi nhan luong). (4) Dat lenh tu dong — tren app Finhay, Infina, hoac cong ty chung khoan. (5) KHONG THAY DOI — bat ke thi truong len hay xuong. Sai lam pho bien: ngung DCA khi thi truong giam (day chinh la luc nen mua nhieu nhat!), tang DCA khi thi truong tang (mua tai gia cao), hoac doi 'thoi diem tot' de bat dau (thoi diem tot nhat la NGAY BAY GIO). Ket qua thuc te: DCA 3 trieu/thang vao VFMVN30 tu 2014-2024 (10 nam), tong gop 360 trieu, gia tri cuoi ky khoang 620 trieu — loi nhuan trung binh 11%/nam. Ky luat la yeu to quan trong nhat, khong phai thoi diem.",
+    "tags": "DCA, dinh ky, ky luat, tu dong, ETF, dai han, bat dau",
+    "source": ""
+  },
+  {
+    "id": "rule-009",
+    "topic": "Quy du phong vs dau tu — phan biet ro",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Nhieu nguoi nham lan giua quy du phong khan cap va tien dau tu. Day la 2 thu hoan toan khac nhau. Quy du phong: muc dich — bao ve khi gap su co (mat viec, benh tat). So tien — 3-6 thang chi phi sinh hoat. Noi giu — tiet kiem khong ky han hoac ky han ngan (1-3 thang). Yeu cau — KHONG duoc mat von, rut bat ky luc nao. Loi nhuan — khong quan trong (3-4%/nam la du). Tien dau tu: muc dich — tang truong tai san dai han. So tien — phan du sau quy du phong va chi phi. Noi giu — co phieu, ETF, quy, BDS. Yeu cau — chap nhan bien dong ngan han. Loi nhuan — muc tieu 8-15%/nam dai han. Vi du: thu nhap 25 trieu, chi phi 15 trieu. Tiet kiem 10 trieu/thang. Buoc 1: xay quy du phong 90 trieu (6 thang x 15 trieu). Mat 9 thang de hoan thanh. Buoc 2: SAU KHI co du quy du phong, chuyen sang dau tu. Giu 5 trieu/thang DCA vao ETF, 5 trieu vao tiet kiem cho muc tieu ngan han. Sai lam lon nhat: dau tu khi chua co quy du phong -> gap su co -> phai ban dau tu o gia thap -> mat tien kep.",
+    "tags": "quy du phong, dau tu, phan biet, an toan, uu tien, ke hoach",
+    "source": ""
+  },
+  {
+    "id": "rule-010",
+    "topic": "Auto-saving — tu dong hoa tiet kiem",
+    "category": "quy_tac",
+    "level": "beginner",
+    "content": "Tu dong hoa tiet kiem (auto-saving) la cach hieu qua nhat de dam bao ban luon tiet kiem du moi thang ma khong can y chi. Nguyen ly: loai bo yeu to con nguoi — khong can nho, khong can quyet dinh, khong co co hoi tieu mat. Cach thiet lap: (1) Mo 2 tai khoan ngan hang — 1 tai khoan chi tieu (nhan luong), 1 tai khoan tiet kiem (khong the dung). (2) Dat lenh chuyen tu dong (standing order) tu tai khoan chi tieu sang tiet kiem vao ngay nhan luong. (3) Dat mua tu dong quy dau tu hang thang. Cac app ho tro: Finhay (tu dong mua CCQ tu 100.000 dong), Infina (DCA tu dong), TCBS (tiet kiem tu dong), Techcombank/TPBank/MB Bank (standing order). Vi du cu the: luong 20 trieu ngay 5 hang thang. Ngay 6: tu dong chuyen 2 trieu vao tiet kiem (quy du phong), 2 trieu vao Finhay (dau tu), 1 trieu vao tai khoan du lich. Ban chi con 15 trieu de chi tieu — va 5 trieu da duoc 'cat giau' tu dong. Nghien cuu cho thay nguoi tu dong hoa tiet kiem duoc nhieu hon 30-50% so voi nguoi tu lam thu cong. Bat dau tu hom nay — chi mat 10 phut thiet lap!",
+    "tags": "auto-saving, tu dong, tiet kiem, standing order, Finhay, thoi quen",
+    "source": ""
+  },
+  {
+    "id": "cmp-001",
+    "topic": "Tiet kiem vs trai phieu",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Tiet kiem ngan hang va trai phieu deu la kenh an toan, nhung co nhieu khac biet quan trong. LAI SUAT: Tiet kiem 4-6%/nam (tuy ky han). Trai phieu chinh phu 5-7%/nam, trai phieu doanh nghiep 8-12%/nam. KY HAN: Tiet kiem linh hoat tu 1 thang den 36 thang, rut truoc han mat lai. Trai phieu thuong 1-10 nam, co the ban tren thi truong thu cap. RUI RO: Tiet kiem duoc BHTG bao hiem den 125 trieu/nguoi/ngan hang. Trai phieu chinh phu an toan tuyet doi, trai phieu doanh nghiep co rui ro pha san. THUE: Lai tiet kiem khong chiu thue TNCN. Trai phieu bi thue 5% tren lai coupon. VON TOI THIEU: Tiet kiem tu 1 trieu dong. Trai phieu tu 1 trieu (qua quy) hoac 100 trieu (mua truc tiep). THANH KHOAN: Tiet kiem rut ngay (mat lai). Trai phieu ban tren san hoac doi dao han. KET LUAN: Tiet kiem phu hop cho quy du phong va muc tieu ngan han (duoi 2 nam). Trai phieu phu hop cho dau tu trung han (2-5 nam) va muon lai suat cao hon. Tot nhat la ket hop ca hai trong danh muc.",
+    "tags": "tiet kiem, trai phieu, so sanh, lai suat, rui ro, ky han",
+    "source": ""
+  },
+  {
+    "id": "cmp-002",
+    "topic": "Co phieu vs chung chi quy",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Co phieu va chung chi quy (CCQ) deu la kenh dau tu vao thi truong chung khoan nhung phu hop voi doi tuong khac nhau. KIEN THUC CAN: Co phieu can hieu phan tich co ban, ky thuat, doc bao cao tai chinh. CCQ chi can chon quy uy tin — chuyen gia quan ly ho. THOI GIAN: Co phieu can theo doi hang ngay/tuan. CCQ chi can kiem tra hang thang/quy. VON TOI THIEU: Co phieu tu 1-2 trieu (1 lo = 100 co phieu). CCQ tu 100.000 dong. RUI RO: Co phieu — rui ro tap trung (1 cong ty co the mat 50-100%). CCQ — rui ro phan tan (quy giu 30-50 co phieu). PHI: Co phieu phi giao dich 0.15-0.35%. CCQ phi mua 0-2%, phi quan ly 1-2%/nam. LOI NHUAN: Co phieu — khong gioi han (co the tang 50-100%/nam nhung cung co the mat 50-100%). CCQ — on hon (trung binh 8-15%/nam cho quy co phieu). THUE: Ca hai deu chiu thue ban 0.1% tren gia tri giao dich. KET LUAN: Nguoi moi, ban ron, khong co kien thuc -> chon CCQ. Nguoi co kinh nghiem, thich nghien cuu, co thoi gian -> co phieu. Ly tuong nhat: ket hop ca hai.",
+    "tags": "co phieu, chung chi quy, so sanh, CCQ, rui ro, phi, nguoi moi",
+    "source": ""
+  },
+  {
+    "id": "cmp-003",
+    "topic": "Vang vs tiet kiem ngan hang",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Vang va tiet kiem la 2 kenh pho bien nhat cua nguoi Viet. LOI NHUAN: Vang trung binh 8-12%/nam (dao dong manh, co nam tang 30%, co nam giam 10%). Tiet kiem 4-6%/nam (on dinh). BAO VE LAM PHAT: Vang tot hon — gia vang thuong tang khi lam phat tang. Tiet kiem co the am sau lam phat. THANH KHOAN: Tiet kiem rut ngay. Vang SJC ban trong ngay nhung chenh lech mua-ban lon (500K-2 trieu/luong). THU NHAP THU DONG: Tiet kiem co lai hang thang/quy. Vang KHONG sinh lai — chi loi khi gia tang. RUI RO: Tiet kiem duoc bao hiem 125 trieu dong. Vang co the giam gia 10-20% ngan han, rui ro mat cap neu giu tai nha. CHI PHI: Tiet kiem mien phi. Vang co phi chenh lech mua-ban va phi giu/bao quan. THUE: Lai tiet kiem mien thue. Ban vang co the chiu thue TNCN neu co lai. Vi du: 100 trieu gui tiet kiem 5%/nam = 5 trieu lai chac chan. 100 trieu mua vang co the lai 10-15 trieu hoac lo 5-10 trieu. KET LUAN: Tiet kiem cho an toan va thanh khoan. Vang cho bao ve lam phat dai han. Nen co ca hai: 70-80% tiet kiem, 20-30% vang.",
+    "tags": "vang, tiet kiem, so sanh, lam phat, rui ro, lai suat, SJC",
+    "source": ""
+  },
+  {
+    "id": "cmp-004",
+    "topic": "Quy mo vs quy dong",
+    "category": "so_sanh",
+    "level": "intermediate",
+    "content": "Quy mo (open-end fund) va quy dong (closed-end fund) la 2 loai quy dau tu co cau truc khac nhau. QUY MO: phat hanh va mua lai CCQ lien tuc. Ban mua/ban truc tiep voi cong ty quan ly quy tai gia NAV. Quy mo lon tai VN: TCBF, VFMVN30, SSISCA. QUY DONG: phat hanh so luong CCQ co dinh. Sau IPO, giao dich tren san chung khoan nhu co phieu. Gia co the cao hon hoac thap hon NAV. QUY MO PHONG PHU: Thanh khoan — quy mo tot hon (mua/ban bat ky luc nao). Gia — quy mo luon = NAV, quy dong co the lech. Phi — quy mo phi mua 0-2%, phi ban 0-2%. Quy dong phi giao dich nhu co phieu. Von toi thieu — quy mo tu 100.000 dong, quy dong tu 1 lo (100 CCQ). Da dang — VN co hang chuc quy mo nhung rat it quy dong (VFMVF4, PRUBF1). DCA — quy mo de lam DCA hon vi mua so le duoc. KET LUAN: Nguoi moi nen chon quy mo vi don gian, thanh khoan tot, va de DCA. Quy dong phu hop cho nguoi co kinh nghiem muon tim co hoi mua duoi NAV (discount to NAV).",
+    "tags": "quy mo, quy dong, CCQ, NAV, so sanh, open-end, closed-end",
+    "source": ""
+  },
+  {
+    "id": "cmp-005",
+    "topic": "Dau tu ngan han vs dai han",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Ngan han (duoi 1 nam) va dai han (tren 5 nam) la 2 cach tiep can dau tu rat khac nhau. NGAN HAN: Muc tieu — kiem loi nhanh tu bien dong gia. Kenh phu hop — tiet kiem, trai phieu ngan han, trading co phieu. Rui ro — cao neu trading, thap neu tiet kiem. Thoi gian — can theo doi thuong xuyen. Vi du: mua co phieu HPG gia 28.000, ban gia 32.000 sau 2 thang — lai 14%. Nhung cung co the giam xuong 24.000 — lo 14%. DAI HAN: Muc tieu — tang truong tai san qua nhieu nam. Kenh phu hop — ETF, quy co phieu, BDS, co phieu blue chip. Rui ro — thap hon nho thoi gian san bang bien dong. Thoi gian — chi can kiem tra hang thang/quy. Vi du: DCA 5 trieu/thang vao VFMVN30 trong 20 nam voi 10%/nam = 3.8 ty dong (gop 1.2 ty, lai 2.6 ty). Thong ke cho thay: 90% trader ngan han thua lo. Trong khi 80% nha dau tu dai han (10 nam+) co lai. KET LUAN: Nguoi di lam nen tap trung dau tu dai han va DCA. Ngan han chi phu hop cho nguoi co kien thuc chuyen sau va thoi gian ranh.",
+    "tags": "ngan han, dai han, trading, DCA, rui ro, loi nhuan, thoi gian",
+    "source": ""
+  },
+  {
+    "id": "cmp-006",
+    "topic": "Tiet kiem online vs gui quay",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Gui tiet kiem online va gui tai quay ngan hang co su khac biet dang ke ve lai suat va tien loi. LAI SUAT: Online thuong cao hon quay 0.1-0.5%/nam. Vi du: Techcombank online 5.2%/nam, quay 4.8%/nam (ky han 12 thang). Vi ngan hang tiet kiem chi phi van hanh khi ban gui online. TIEN LOI: Online — gui 24/7, bat ky dau, chi can dien thoai. Quay — can den ngan hang gio hanh chinh, xep hang, lam giay to. MENH GIA: Online thuong tu 1 trieu dong. Quay co the tu 1 trieu hoac 10 trieu tuy ngan hang. RUT TRUOC HAN: Online va quay deu duoc rut truoc han nhung mat lai (nhan lai suat khong ky han 0.1-0.5%/nam). BAO MAT: Online can bao mat dien thoai, mat khau, OTP. Quay can CMND/CCCD va chu ky. Rui ro lua dao online cao hon. CHUNG TU: Online co e-sao ke. Quay co so tiet kiem giay. KHUYEN NGHI: Gui online cho so tien nho va trung binh (duoi 500 trieu) de huong lai suat cao hon va tien loi. Gui quay cho so tien lon neu ban muon an tam hon voi chung tu giay. Tot nhat: dung ca hai — phan lon gui online, mot phan gui quay.",
+    "tags": "tiet kiem online, gui quay, lai suat, so sanh, ngan hang, tien loi",
+    "source": ""
+  },
+  {
+    "id": "cmp-007",
+    "topic": "Lai suat co dinh vs tha noi",
+    "category": "so_sanh",
+    "level": "intermediate",
+    "content": "Khi vay tien (dac biet vay mua nha), ban can chon giua lai suat co dinh va lai suat tha noi. CO DINH: Lai suat khong doi trong mot khoang thoi gian (thuong 1-5 nam dau). Vi du: vay 2 ty, co dinh 9%/nam trong 3 nam — tra 15 trieu/thang. Uu diem: biet truoc so tien tra, de ke hoach. Nhuoc diem: thuong cao hon tha noi 1-2% trong giai doan co dinh. THA NOI: Lai suat thay doi theo thi truong (thuong = lai suat tham chieu + bien do). Vi du: lai suat tham chieu 7% + bien do 3% = 10%/nam. Neu lai suat tham chieu tang len 9%, ban tra 12%/nam. Uu diem: co the thap hon co dinh khi thi truong on. Nhuoc diem: khong biet truoc, co the tang manh. TAI VIET NAM: Da so ngan hang cho vay nha co dinh 1-3 nam dau, sau do tha noi. Lai suat tha noi thuong = lai suat tiet kiem 12 thang + 3-4%/nam. KHUYEN NGHI: Chon co dinh dai nhat co the (3-5 nam) de on dinh chi phi. Khi het thoi gian co dinh, dam phan lai hoac tai cap von (refinance) sang ngan hang khac co lai suat tot hon.",
+    "tags": "lai suat, co dinh, tha noi, vay mua nha, so sanh, ngan hang",
+    "source": ""
+  },
+  {
+    "id": "cmp-008",
+    "topic": "Dau tu chu dong vs bi dong",
+    "category": "so_sanh",
+    "level": "intermediate",
+    "content": "Dau tu chu dong (active) va bi dong (passive) la 2 triet ly dau tu doi lap. CHU DONG: Tu chon co phieu, thoi diem mua ban, phan tich thi truong. Muc tieu — danh bai thi truong (loi nhuan > VN-Index). Vi du: ban nghien cuu va mua 5 co phieu tu chon, ky vong lai 20%/nam. Chi phi: phi giao dich + thoi gian nghien cuu. BI DONG: Mua ETF hoac quy chi so, theo doi thi truong. Muc tieu — dat loi nhuan bang thi truong. Vi du: mua VFMVN30 ETF — tu dong so huu 30 co phieu lon nhat, lai theo VN30-Index. Chi phi: phi quan ly 0.5-0.8%/nam, rat thap. SO SANH KET QUA: Nghien cuu toan cau cho thay 80-90% quy chu dong KHONG danh bai duoc chi so tham chieu sau phi trong 10 nam. Tai VN, so lieu tuong tu: da so trader va quy chu dong thua VN-Index dai han. THOI GIAN: Chu dong can 1-2 gio/ngay. Bi dong can 30 phut/thang. KET LUAN: Nguoi di lam ban ron nen chon bi dong (ETF + DCA). Nguoi dam me tai chinh, co thoi gian va kien thuc co the ket hop: 70% bi dong + 30% chu dong (core-satellite strategy).",
+    "tags": "chu dong, bi dong, active, passive, ETF, quy chi so, so sanh",
+    "source": ""
+  },
+  {
+    "id": "cmp-009",
+    "topic": "ETF vs quy thuong (quy chu dong)",
+    "category": "so_sanh",
+    "level": "intermediate",
+    "content": "ETF va quy chu dong (actively managed fund) deu la quy dau tu nhung co nhieu khac biet. PHI QUAN LY: ETF 0.5-0.8%/nam. Quy chu dong 1.5-2.5%/nam. Chenh lech 1-2%/nam nghe nho nhung sau 20 nam, 1% phi co the giam loi nhuan tong 20-25%. CACH GIAO DICH: ETF mua ban tren san chung khoan nhu co phieu (bat ky luc nao trong phien). Quy chu dong mua ban qua cong ty quan ly tai gia NAV cuoi ngay. CHIEN LUOC: ETF theo doi chi so (VN30, VNMidcap). Quy chu dong co doi ngu phan tich tu chon co phieu, co gang danh bai thi truong. HIEU SUAT: VN — VFMVN30 ETF dat trung binh 10-12%/nam. Quy chu dong nhu SSISCA dat 12-15%/nam (nhung phi cao hon). Sau phi, chenh lech khong nhieu. MINH BACH: ETF cong bo danh muc hang ngay. Quy chu dong cong bo hang quy. DCA: Ca hai deu phu hop, nhung ETF can tai khoan chung khoan va mua theo lo (100 CCQ). Quy chu dong mua le tu 100.000 dong. KET LUAN: ETF cho nguoi muon chi phi thap, don gian. Quy chu dong cho nguoi tin tuong quan ly chuyen nghiep va chap nhan phi cao hon.",
+    "tags": "ETF, quy chu dong, phi quan ly, so sanh, VFMVN30, SSISCA",
+    "source": ""
+  },
+  {
+    "id": "cmp-010",
+    "topic": "So sanh gui ngan hang — khung danh gia",
+    "category": "so_sanh",
+    "level": "beginner",
+    "content": "Khi chon ngan hang gui tiet kiem, can so sanh theo nhieu tieu chi. KHUNG DANH GIA: (1) Lai suat — so sanh cung ky han. Websites huu ich: thebank.vn, timo.vn. (2) Do an toan — ngan hang nha nuoc (Vietcombank, BIDV, VietinBank, Agribank) an toan nhat vi co Nha nuoc lam chu. Ngan hang tu nhan lon (Techcombank, MB Bank, ACB, TPBank) cung rat an toan. Luu y: BHTG chi bao hiem 125 trieu dong/nguoi/ngan hang. (3) Tien loi — app mobile, internet banking, so luong chi nhanh/ATM. (4) Phi — phi chuyen tien, phi rut tien, phi duy tri tai khoan. (5) Dich vu them — the tin dung, vay, dau tu, bao hiem. Vi du so sanh ky han 12 thang (tham khao): Techcombank 5.2%, TPBank 5.1%, MB Bank 5.0%, ACB 4.9%, Vietcombank 4.6%, BIDV 4.6%. Chenh lech 0.6%/nam — voi 500 trieu dong la 3 trieu dong/nam. CHIEN LUOC: chia tien gui nhieu ngan hang (moi ngan hang duoi 125 trieu de duoc BHTG toan bo), uu tien gui online de huong lai suat cao hon, va so sanh lai moi 6-12 thang khi tai tuc.",
+    "tags": "ngan hang, so sanh, lai suat, BHTG, gui tiet kiem, khung danh gia",
+    "source": ""
+  },
+  {
+    "id": "ins-001",
+    "topic": "Bao hiem nhan tho — bao ve gia dinh",
+    "category": "bao_hiem",
+    "level": "beginner",
+    "content": "Bao hiem nhan tho (BHNT) la hop dong giua ban va cong ty bao hiem: ban dong phi dinh ky, khi ban qua doi hoac gap su co nghiem trong, gia dinh nhan duoc so tien bao hiem. Cac loai BHNT pho bien tai VN: (1) Bao hiem tu ky — dong phi 15-20 nam, bao ve tron doi. Phi khoang 10-30 trieu/nam tuy so tien bao hiem. (2) Bao hiem lien ket dau tu (Unit-linked) — ket hop bao ve va dau tu. Phi cao hon nhung co co hoi sinh loi. (3) Bao hiem ky han — bao ve trong thoi gian nhat dinh (10-20 nam), phi re nhat. Cong ty BHNT lon tai VN: Prudential, Manulife, Dai-ichi, Bao Viet, AIA. So tien bao hiem khuyen nghi: 5-10 lan thu nhap hang nam. Vi du: thu nhap 300 trieu/nam, nen mua bao hiem 1.5-3 ty dong. Phi dong khoang 20-40 trieu/nam (tuong duong 7-13% thu nhap). AI NEN MUA: nguoi la tru cot tai chinh gia dinh, nguoi co nguoi phu thuoc (con nho, bo me gia), nguoi co no lon (no nha). LUU Y: doc ky hop dong, hieu ro dieu khoan loai tru, va KHONG coi BHNT la kenh dau tu — day la bao ve.",
+    "tags": "bao hiem nhan tho, BHNT, bao ve, gia dinh, Prudential, Manulife",
+    "source": ""
+  },
+  {
+    "id": "ins-002",
+    "topic": "Bao hiem suc khoe — dau tu cho suc khoe",
+    "category": "bao_hiem",
+    "level": "beginner",
+    "content": "Bao hiem suc khoe (BHSK) chi tra chi phi kham chua benh khi ban bi om hoac tai nan. Day la loai bao hiem QUAN TRONG NHAT vi chi phi y te tai VN ngay cang tang. Cac loai BHSK: (1) BHYT bat buoc — dong 4.5% luong (cong ty dong 3%, ban dong 1.5%). Chi tra 80% chi phi tai benh vien cong, han muc thap. (2) BHSK tu nguyen — mua them de duoc bao ve tot hon. Phi 3-15 trieu/nam tuy goi. Goi co ban: han muc 100-200 trieu/nam, phu hop nguoi tre khoe manh. Goi cao cap: han muc 500 trieu-2 ty/nam, bao gom kham va dieu tri tai benh vien quoc te (Vinmec, FV, Hoan My). Cong ty BHSK pho bien: Bao Viet, PVI, Liberty, Pacific Cross, Bupa. KHUYEN NGHI: Nguoi 25-35 tuoi: goi co ban 3-5 trieu/nam la du. Nguoi 35-50 tuoi: goi trung cap 5-10 trieu/nam. Nguoi tren 50: goi cao cap 10-15 trieu/nam. Luu y: mua som khi con tre va khoe — phi re hon va khong bi tu choi vi benh co san. Thoi gian cho (waiting period) thuong 30-90 ngay. Doc ky dieu khoan loai tru truoc khi ky.",
+    "tags": "bao hiem suc khoe, BHSK, BHYT, kham benh, benh vien, phi",
+    "source": ""
+  },
+  {
+    "id": "ins-003",
+    "topic": "Bao hiem xe — bat buoc va tu nguyen",
+    "category": "bao_hiem",
+    "level": "beginner",
+    "content": "Bao hiem xe co 2 loai: bat buoc (TNDS) va tu nguyen (vat chat xe). BAO HIEM BAT BUOC (TNDS — Trach nhiem Dan su): bat buoc theo luat voi moi xe co gioi. Phi: xe may 66.000 dong/nam, o to 4 cho 480.000 dong/nam. Boi thuong: tai nan gay thuong tich/tu vong cho nguoi khac, toi da 150 trieu/nguoi (thuong tich) va 150 trieu/nguoi (tu vong). KHONG boi thuong thiet hai cho xe cua ban. BAO HIEM TU NGUYEN (vat chat xe): boi thuong thiet hai cho chinh xe cua ban. Phi: 1-2% gia tri xe/nam. Vi du: o to 800 trieu, phi khoang 8-16 trieu/nam. Bao gom: va cham, lat xe, chay, ngap nuoc, mat cap. Muc mien thuong (deductible) thuong 500K-2 trieu — ban tu tra phan nay. Cong ty bao hiem xe pho bien: Bao Viet, PVI, Bao Minh, Liberty, PJICO. KHUYEN NGHI: Xe may — chi can TNDS bat buoc (66K/nam). O to — TNDS bat buoc + tu nguyen vat chat (dac biet xe moi duoi 3 nam). O to cu tren 10 nam — can nhac vi phi tu nguyen co the cao so voi gia tri xe. Luon chup anh hien truong khi xay ra tai nan de lam ho so boi thuong.",
+    "tags": "bao hiem xe, TNDS, vat chat, o to, xe may, bat buoc, tu nguyen",
+    "source": ""
+  },
+  {
+    "id": "ins-004",
+    "topic": "Bao hiem nha — bao ve tai san",
+    "category": "bao_hiem",
+    "level": "intermediate",
+    "content": "Bao hiem nha o (home insurance) bao ve ngoi nha va tai san ben trong truoc cac rui ro nhu chay no, thien tai, ngap lut, mat cap. Tai VN, bao hiem nha chua pho bien nhung rat can thiet, dac biet o vung hay bi lu lut (mien Trung) hoac khu vuc dong dan cu (rui ro chay). Cac loai bao hiem nha: (1) Bao hiem ket cau nha — boi thuong thiet hai cho tuong, mai, nen, cot. Phi khoang 0.1-0.3% gia tri nha/nam. Nha 3 ty, phi 3-9 trieu/nam. (2) Bao hiem tai san trong nha — do dac, thiet bi dien tu, quan ao. Phi khoang 0.5-1% gia tri tai san/nam. (3) Bao hiem trach nhiem — boi thuong neu nha ban gay thiet hai cho hang xom (vi du: nuoc tu nha ban chay sang). RUI RO DUOC BAO HIEM: chay, no, set danh, bao, lu, dong dat, mat cap co dau vet dot nhap. RUI RO KHONG DUOC BAO HIEM: hao mon tu nhien, chien tranh, hat nhan. Cong ty: Bao Viet, PVI, Bao Minh. KHUYEN NGHI: neu ban so huu nha (khong thue), nen mua bao hiem ket cau + tai san. Chi phi 5-15 trieu/nam cho nha 3-5 ty la dau tu xung dang de bao ve tai san lon nhat cua ban.",
+    "tags": "bao hiem nha, tai san, chay, lu, thien tai, bao ve, nha o",
+    "source": ""
+  },
+  {
+    "id": "ins-005",
+    "topic": "Cach chon bao hiem phu hop",
+    "category": "bao_hiem",
+    "level": "beginner",
+    "content": "Chon bao hiem la quyet dinh tai chinh quan trong. Day la khung 5 buoc de chon dung. BUOC 1 — Xac dinh nhu cau: Ban can bao ve gi? Suc khoe (BHSK), thu nhap gia dinh (BHNT), xe (BH xe), nha (BH nha). Uu tien: BHSK > BHNT (neu co gia dinh) > BH xe > BH nha. BUOC 2 — Xac dinh ngan sach: quy tac 5-10% thu nhap cho bao hiem. Thu nhap 20 trieu/thang -> ngan sach BH 1-2 trieu/thang (12-24 trieu/nam). BUOC 3 — So sanh san pham: it nhat 3 cong ty. So sanh: phi dong, quyen loi boi thuong, dieu khoan loai tru, thoi gian cho, uy tin cong ty. Websites: thebank.vn, baohiem.com. BUOC 4 — Doc ky hop dong: dac biet cac dieu khoan loai tru (nhung gi KHONG duoc boi thuong). Hoi ro: benh co san co duoc bao hiem khong? Thoi gian cho bao lau? Quy trinh boi thuong the nao? BUOC 5 — Review hang nam: nhu cau thay doi theo thoi gian. Ket hon, co con, mua nha — can cap nhat bao hiem. SAI LAM THUONG GAP: mua bao hiem vi nguoi ban dep/ngot ngao, khong doc hop dong, mua qua nhieu loai khong can thiet, nham BHNT la dau tu.",
+    "tags": "chon bao hiem, huong dan, so sanh, nhu cau, ngan sach, hop dong",
+    "source": ""
+  },
+  {
+    "id": "tax-001",
+    "topic": "Thue thu nhap ca nhan (TNCN) co ban",
+    "category": "thue",
+    "level": "beginner",
+    "content": "Thue TNCN la thue danh tren thu nhap cua ca nhan. Tai VN, thue TNCN tu tien luong ap dung bieu thue luy tien tu 5% den 35% (7 bac). Cach tinh: Thu nhap chiu thue = Tong thu nhap - Bao hiem bat buoc - Giam tru gia canh. Bieu thue 2024: den 5 trieu: 5%. 5-10 trieu: 10%. 10-18 trieu: 15%. 18-32 trieu: 20%. 32-52 trieu: 25%. 52-80 trieu: 30%. Tren 80 trieu: 35%. Vi du: luong gross 30 trieu/thang. Bao hiem bat buoc: 3.15 trieu (10.5%). Giam tru ban than: 11 trieu. Thu nhap chiu thue: 30 - 3.15 - 11 = 15.85 trieu. Thue TNCN: 5 trieu x 5% + 5 trieu x 10% + 5.85 trieu x 15% = 250K + 500K + 877.5K = 1.627.500 dong/thang. Luong net: 30 - 3.15 - 1.6275 = 25.2225 trieu. Nguoi lao dong thuong duoc cong ty tinh va khau tru thue tu dong. Neu co thu nhap tu 2 nguon tro len, phai tu ke khai va quyet toan thue hang nam (truoc 30/4 nam sau).",
+    "tags": "thue TNCN, thu nhap, bieu thue, luong, khau tru, tinh thue",
+    "source": "TCT"
+  },
+  {
+    "id": "tax-002",
+    "topic": "Giam tru gia canh — giam thue hop phap",
+    "category": "thue",
+    "level": "beginner",
+    "content": "Giam tru gia canh la so tien duoc tru khoi thu nhap truoc khi tinh thue TNCN. Day la cach giam thue hop phap ma nhieu nguoi bo quen. Muc giam tru 2024: Ban than nguoi nop thue: 11 trieu dong/thang (132 trieu/nam). Moi nguoi phu thuoc: 4.4 trieu dong/thang (52.8 trieu/nam). Nguoi phu thuoc gom: con duoi 18 tuoi, con tren 18 dang hoc dai hoc, bo me tren 60 tuoi (cha) / tren 55 tuoi (me) khong co thu nhap hoac thu nhap duoi 1 trieu/thang, vo/chong khong co thu nhap. Vi du: anh Tuan luong 40 trieu/thang, co 1 con nho va me gia. Giam tru: ban than 11 trieu + con 4.4 trieu + me 4.4 trieu = 19.8 trieu. Thu nhap chiu thue: 40 - 4.2 (BH) - 19.8 = 16 trieu. Thue TNCN: khoang 1.85 trieu/thang. Neu khong dang ky nguoi phu thuoc: thu nhap chiu thue: 40 - 4.2 - 11 = 24.8 trieu. Thue: khoang 3.21 trieu. Tiet kiem 1.36 trieu/thang = 16.32 trieu/nam! CACH DANG KY: nop mau 09/DK-NPT-TNCN cho cong ty hoac co quan thue. Can giay to: giay khai sinh con, CMND bo me, giay xac nhan khong co thu nhap.",
+    "tags": "giam tru, gia canh, nguoi phu thuoc, thue TNCN, tiet kiem thue",
+    "source": "TCT"
+  },
+  {
+    "id": "tax-003",
+    "topic": "Ke khai va quyet toan thue TNCN",
+    "category": "thue",
+    "level": "intermediate",
+    "content": "Ke khai thue la nghia vu cua moi nguoi co thu nhap chiu thue. TRUONG HOP PHAI TU QUYET TOAN: (1) Co thu nhap tu 2 noi tro len trong nam. (2) Co thu nhap ngoai luong tren 10 trieu/nam (cho thue nha, lam them). (3) Muon nhan lai tien thue nop thua. THOI HAN: Nop to khai quyet toan truoc 30/4 nam sau (vi du: thu nhap 2024 quyet toan truoc 30/4/2025). CACH THUC HIEN: (1) Dang ky tai khoan tren thuedientu.gdt.gov.vn. (2) Tai phan mem HTKK hoac khai truc tuyen. (3) Dien mau 02/QTT-TNCN. (4) Nop to khai dien tu. (5) Nop thue (neu thieu) hoac nhan hoan thue (neu thua). Vi du: anh Binh lam 2 noi — cong ty A luong 25 trieu (da khau tru thue 1.2 trieu/thang), cong ty B luong 10 trieu (da khau tru 500K/thang). Tong thue da nop: (1.2 + 0.5) x 12 = 20.4 trieu. Thue phai nop thuc te (tinh tren tong thu nhap 35 trieu): khoang 22 trieu/nam. Anh Binh phai nop them 1.6 trieu khi quyet toan. PHAT: nop cham bi phat 0.03%/ngay tren so thue cham nop + phat hanh chinh 2-5 trieu dong.",
+    "tags": "ke khai, quyet toan, thue TNCN, HTKK, to khai, thoi han",
+    "source": "TCT"
+  },
+  {
+    "id": "tax-004",
+    "topic": "Thue tu hoat dong dau tu",
+    "category": "thue",
+    "level": "intermediate",
+    "content": "Khi dau tu sinh loi, ban co the phai nop thue. Cac loai thue dau tu tai VN: (1) CO PHIEU: Thue 0.1% tren gia tri ban (khong phai tren loi nhuan). Ban 100 trieu co phieu -> thue 100.000 dong. Ap dung ca khi lo! Cong ty chung khoan tu dong khau tru. (2) TRAI PHIEU: Thue 5% tren lai coupon. Vi du: nhan lai 10 trieu -> thue 500.000 dong. (3) CO TUC: Thue 5% tren co tuc nhan duoc. Vi du: nhan co tuc 5 trieu -> thue 250.000 dong. Cong ty tu khau tru truoc khi chi tra. (4) TIEN GUI TIET KIEM: Mien thue TNCN tren lai suat tiet kiem. (5) BAT DONG SAN: Thue 2% tren gia chuyen nhuong. Ban nha 3 ty -> thue 60 trieu dong. (6) CRYPTO: Chua co quy dinh cu the tai VN. Tren ly thuyet co the chiu thue TNCN tu chuyen nhuong tai san (thuong la 2%). TONG KET: tiet kiem va co phieu co thue thap nhat. BDS co thue cao nhat. Khi tinh ROI thuc te, luon tru thue. Vi du: lai co phieu 20%, tru thue 0.1% va phi 0.35%, ROI thuc te khoang 19.55%. Nho ke khai day du de tranh bi truy thu va phat.",
+    "tags": "thue dau tu, co phieu, trai phieu, co tuc, BDS, thue suat",
+    "source": "TCT"
+  },
+  {
+    "id": "tax-005",
+    "topic": "Thue cho nguoi lam freelance",
+    "category": "thue",
+    "level": "intermediate",
+    "content": "Nguoi lam tu do (freelancer) co nghia vu thue khac voi nguoi lam cong an luong. HAI CACH TINH THUE: (1) Khau tru tai nguon — khi lam viec cho to chuc, ho khau tru 10% TNCN truoc khi tra tien (neu thu nhap tu 2 trieu/lan tro len). Ban nhan 90% va quyet toan cuoi nam. (2) Tu ke khai — neu lam viec cho ca nhan hoac khach hang nuoc ngoai, ban tu tinh va nop thue hang quy. DOANH THU DUOI 100 TRIEU/NAM: mien thue GTGT va thue TNCN (doi voi ca nhan kinh doanh). DOANH THU TREN 100 TRIEU/NAM: thue GTGT 1-5% (tuy nganh) + thue TNCN 0.5-2% (tuy nganh). Vi du: freelancer IT thu nhap 150 trieu/nam. Thue GTGT 5% + thue TNCN 2% = 7% tren doanh thu = 10.5 trieu/nam. HOAC dang ky nop thue theo bieu luy tien (nhu nguoi lam cong) neu co loi hon. MEO TIET KIEM THUE: giu hoa don chi phi (thiet bi, phan mem, internet — neu dang ky kinh doanh), dang ky nguoi phu thuoc, va quyet toan de nhan hoan thue. QUAN TRONG: phat khong ke khai thue 2-5 trieu + truy thu thue + phat cham nop 0.03%/ngay. Nen thu thue hang quy de tranh no thue lon cuoi nam.",
+    "tags": "freelancer, tu do, thue, ke khai, khau tru, GTGT, TNCN",
+    "source": "TCT"
+  }
+]

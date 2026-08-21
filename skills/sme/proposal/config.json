@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "requires_bins": ["sme-cli", "chromium"],
+  "setup_prompts": [
+    {
+      "key": "company_name",
+      "label": "Ten doanh nghiep cua ban (hien len proposal)",
+      "placeholder": "Rockship"
+    }
+  ],
+  "exclude": ["cmd", "*.go"]
+}

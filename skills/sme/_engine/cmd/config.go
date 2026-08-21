@@ -45,10 +45,23 @@ type Connections struct {
 
 	// Organization defaults
 	Org struct {
-		ID      string `json:"id"`
-		Name    string `json:"name"`
-		TaxCode string `json:"tax_code"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		TaxCode     string `json:"tax_code"`
+		PaymentInfo string `json:"payment_info"` // Bank info for paid events (STK/NH/ND/...)
 	} `json:"org"`
+
+	// COSMO CRM (Rockship)
+	COSMO struct {
+		APIKey    string `json:"api_key"`
+		BaseURL   string `json:"base_url"`
+		AuthEmail string `json:"auth_email"`
+	} `json:"cosmo"`
+
+	// Apollo.io
+	Apollo struct {
+		APIKey string `json:"api_key"`
+	} `json:"apollo"`
 }
 
 func loadConnections() Connections {
@@ -98,6 +111,12 @@ func cmdConfig(args []string) {
 		if c.Email.Password != "" {
 			c.Email.Password = "***"
 		}
+		if c.COSMO.APIKey != "" {
+			c.COSMO.APIKey = "***"
+		}
+		if c.Apollo.APIKey != "" {
+			c.Apollo.APIKey = "***"
+		}
 		okOut(map[string]interface{}{"connections": c, "path": cfgPath()})
 
 	case "set":
@@ -141,6 +160,14 @@ func cmdConfig(args []string) {
 			c.Email.Password = val
 		case "email.from_name":
 			c.Email.FromName = val
+		case "cosmo.api_key":
+			c.COSMO.APIKey = val
+		case "cosmo.base_url":
+			c.COSMO.BaseURL = val
+		case "cosmo.auth_email":
+			c.COSMO.AuthEmail = val
+		case "apollo.api_key":
+			c.Apollo.APIKey = val
 		default:
 			errOut("unknown config key: " + key)
 		}
@@ -167,6 +194,14 @@ func cmdConfig(args []string) {
 			val = c.LLM.Provider
 		case "llm.model":
 			val = c.LLM.Model
+		case "cosmo.api_key":
+			val = c.COSMO.APIKey
+		case "cosmo.base_url":
+			val = c.COSMO.BaseURL
+		case "cosmo.auth_email":
+			val = c.COSMO.AuthEmail
+		case "apollo.api_key":
+			val = c.Apollo.APIKey
 		default:
 			errOut("unknown config key: " + key)
 		}

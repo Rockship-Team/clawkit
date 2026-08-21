@@ -30,3 +30,6 @@ npm/*.tgz
 npm/binaries/clawkit-*
 npm/skills/
 npm/registry.json
+
+# sme-cli build artifact
+skills/sme/_cli/cmd/sme-cli

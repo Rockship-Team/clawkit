@@ -316,3 +316,110 @@ func cosmoLogInteraction(args []string) {
 	}
 	rawJSONPassthrough(raw, code)
 }
+
+// cosmoUpsertContactForEvent creates or updates a contact in COSMO with
+// `source` and `source_id` set to the event, plus custom_fields carrying
+// event title/type/role. This is the gateway sme-events uses to push
+// registrants into CRM without bypassing crm's role as the sole COSMO
+// caller.
+//
+// Idempotency: first search by email; if a matching contact exists, patch
+// it with the new source + custom_fields instead of creating a duplicate.
+//
+// role = "registered" | "paid" | "checked_in" (shows up in source string
+// so you can segment by querying `source = event_<type>_<role>`).
+//
+// COSMO's contact model accepts `source` (string), `source_id` (UUID) and
+// `custom_fields` (map). `tags` is a server-managed map and silently
+// drops array values, so we don't rely on it. Attendee lookups should go
+// through local event_registrations (source of truth) rather than CRM
+// search.
+func cosmoUpsertContactForEvent(name, email, eventID, eventTitle, eventTypeID, role string) (string, error) {
+	if email == "" {
+		return "", fmt.Errorf("email required")
+	}
+	if role == "" {
+		role = "registered"
+	}
+	if eventTypeID == "" {
+		eventTypeID = "event"
+	}
+	sourceStr := fmt.Sprintf("event_%s_%s", eventTypeID, role)
+	custom := map[string]string{
+		"event_id":    eventID,
+		"event_title": eventTitle,
+		"event_type":  eventTypeID,
+		"event_role":  role,
+	}
+
+	existingID := cosmoFindContactByEmail(email)
+	if existingID != "" {
+		patchBody, _ := json.Marshal(map[string]interface{}{
+			"source":        sourceStr,
+			"source_id":     eventID,
+			"custom_fields": custom,
+		})
+		cosmoRequest("PATCH", "/v1/contacts/"+existingID, patchBody)
+		return existingID, nil
+	}
+
+	payload := map[string]interface{}{
+		"name":          name,
+		"email":         email,
+		"source":        sourceStr,
+		"source_id":     eventID,
+		"custom_fields": custom,
+	}
+	body, _ := json.Marshal(payload)
+	raw, code, err := cosmoRequest("POST", "/v1/contacts", body)
+	if err != nil {
+		return "", err
+	}
+	if code >= 400 {
+		return "", fmt.Errorf("create contact HTTP %d: %s", code, string(raw))
+	}
+	var resp struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return "", err
+	}
+	if resp.Data.ID != "" {
+		return resp.Data.ID, nil
+	}
+	return resp.ID, nil
+}
+
+// cosmoFindContactByEmail searches COSMO for a contact matching the given
+// email. Returns contact id or empty string. Silent on errors — caller
+// will fall through to create.
+func cosmoFindContactByEmail(email string) string {
+	body, _ := json.Marshal(map[string]interface{}{"query": email, "pageSize": 5})
+	raw, code, err := cosmoRequest("POST", "/v2/contacts/search", body)
+	if err != nil || code >= 400 {
+		return ""
+	}
+	var resp struct {
+		Data struct {
+			List []struct {
+				Entity struct {
+					ID    string `json:"id"`
+					Email string `json:"email"`
+				} `json:"entity"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return ""
+	}
+	emailLower := strings.ToLower(strings.TrimSpace(email))
+	for _, it := range resp.Data.List {
+		if strings.ToLower(it.Entity.Email) == emailLower {
+			return it.Entity.ID
+		}
+	}
+	return ""
+}

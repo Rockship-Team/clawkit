@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,22 +31,10 @@ func eventGenContent(args []string) {
 		}
 	}
 
-	// Fetch event from COSMO
-	raw, code, err := cosmoRequest("GET", "/v1/events/"+eventID, nil)
-	if err != nil {
-		errOut("fetch event: " + err.Error())
-	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("event fetch failed HTTP %d: %s", code, string(raw)))
-	}
-	var resp struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		errOut("parse event: " + err.Error())
-	}
-
-	md, _ := resp.Data["metadata"].(map[string]interface{})
+	// Fetch event from local SQLite.
+	row := eventLoad(eventID)
+	eventMap := eventRowToMap(row)
+	md, _ := eventMap["metadata"].(map[string]interface{})
 	typeID, _ := md["event_type_id"].(string)
 	if typeID == "" {
 		typeID = "workshop"
@@ -58,7 +45,7 @@ func eventGenContent(args []string) {
 		errOut(fmt.Sprintf("load template for type %q: %v — make sure references/templates/%s-default.md exists", typeID, err, typeID))
 	}
 
-	vars := buildEventVars(resp.Data, md, overrides)
+	vars := buildEventVars(eventMap, md, overrides)
 	rendered, missing := fillEventTemplate(tpl, vars)
 
 	out := map[string]interface{}{
@@ -267,55 +254,15 @@ func eventSaveLinks(args []string) {
 		errOut("usage: event save-links <event_id> [--zoom URL] [--luma URL] — provide at least one of --zoom or --luma")
 	}
 
-	raw, code, err := cosmoRequest("GET", "/v1/events/"+eventID, nil)
-	if err != nil {
-		errOut("fetch event: " + err.Error())
-	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("event fetch failed HTTP %d: %s", code, string(raw)))
-	}
-	var resp struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		errOut("parse event: " + err.Error())
-	}
-	md, _ := resp.Data["metadata"].(map[string]interface{})
-	if md == nil {
-		md = map[string]interface{}{}
-	}
+	fields := map[string]interface{}{}
 	if zoomURL != "" {
-		md["zoom_url"] = zoomURL
+		fields["zoom_url"] = zoomURL
 	}
 	if lumaURL != "" {
-		md["luma_url"] = lumaURL
+		fields["luma_url"] = lumaURL
 	}
-	urls, _ := resp.Data["external_urls"].(map[string]interface{})
-	if urls == nil {
-		urls = map[string]interface{}{}
-	}
-	if zoomURL != "" {
-		urls["zoom_url"] = zoomURL
-	}
-	if lumaURL != "" {
-		urls["luma_url"] = lumaURL
-	}
+	eventUpdate(eventID, fields)
 
-	patch := map[string]interface{}{
-		"metadata":      md,
-		"external_urls": urls,
-	}
-	body, err := json.Marshal(patch)
-	if err != nil {
-		errOut("encode patch: " + err.Error())
-	}
-	patchRaw, patchCode, err := cosmoRequest("PATCH", "/v1/events/"+eventID, body)
-	if err != nil {
-		errOut("patch event: " + err.Error())
-	}
-	if patchCode >= 400 {
-		errOut(fmt.Sprintf("event patch failed HTTP %d: %s", patchCode, string(patchRaw)))
-	}
 	okOut(map[string]interface{}{
 		"event_id": eventID,
 		"zoom_url": zoomURL,

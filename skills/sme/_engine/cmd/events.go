@@ -1,13 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 )
 
-// cmdEvent dispatches event subcommands.
+// cmdEvent dispatches event subcommands. Events are stored in the local
+// SQLite database (events + event_registrations tables). Only attendee
+// contacts are synced to COSMO CRM via the sme-crm gateway.
 //
 //	sme-cli event list [--filter upcoming|recent|all]
 //	sme-cli event create --type <type> --title <t> --date <ISO> [--venue <v>] [--capacity <n>]
@@ -40,8 +43,14 @@ func cmdEvent(args []string) {
 		eventSetPaymentInfo(args[1:])
 	case "process-registrations":
 		eventProcessRegistrations(args[1:])
+	case "register":
+		eventRegister(args[1:])
+	case "list-attendees":
+		eventListAttendees(args[1:])
 	case "confirm-payment":
 		eventConfirmPayment(args[1:])
+	case "check-in":
+		eventCheckIn(args[1:])
 	case "report":
 		eventReport(args[1:])
 	case "sync-luma":
@@ -174,7 +183,7 @@ var eventTypes_ = []eventType{
 			"Categorize lead theo interest (hot / warm / cold) sau moi conversation",
 		},
 		PostTasks: []string{
-			"Bulk import leads vao CRM qua sme-cli cosmo import-csv",
+			"Bulk import leads vao CRM qua sme-crm (delegate tu sme-cli event process-registrations)",
 			"Batch follow-up campaign qua sme-campaign: playbook event_invite",
 			"Phan loai theo interest level → uu tien outreach cho hot leads",
 			"Debrief team: what worked, conversion expected",
@@ -219,7 +228,72 @@ func findEventType(id string) (eventType, bool) {
 	return eventType{}, false
 }
 
-// eventList fetches /v1/events and returns upcoming/recent/all events.
+// slugify makes a URL-friendly slug from an event title.
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	var b strings.Builder
+	lastDash := false
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastDash = false
+		case r == ' ', r == '-', r == '_':
+			if !lastDash && b.Len() > 0 {
+				b.WriteRune('-')
+				lastDash = true
+			}
+		}
+	}
+	return strings.TrimRight(b.String(), "-")
+}
+
+// eventRowToMap converts a DB row from queryRows() into the JSON shape the
+// campaign skill expects (mirroring the old COSMO /v1/events payload).
+func eventRowToMap(row map[string]interface{}) map[string]interface{} {
+	out := map[string]interface{}{}
+	for k, v := range row {
+		out[k] = v
+	}
+	// Rebuild metadata from flat columns for compatibility with older code.
+	md := map[string]interface{}{}
+	if mdStr, ok := row["metadata"].(string); ok && mdStr != "" && mdStr != "{}" {
+		_ = json.Unmarshal([]byte(mdStr), &md)
+	}
+	if v, ok := row["event_type_id"].(string); ok && v != "" {
+		md["event_type_id"] = v
+	}
+	if v, ok := row["pricing_model"].(string); ok && v != "" {
+		md["pricing_model"] = v
+	}
+	if v, ok := row["luma_event_title"].(string); ok && v != "" {
+		md["luma_event_title"] = v
+	}
+	if v, ok := row["price_vnd"].(int64); ok && v > 0 {
+		md["price_vnd"] = v
+	}
+	out["metadata"] = md
+	// Expose luma_url / zoom_url under external_urls.
+	urls := map[string]interface{}{}
+	if v, ok := row["luma_url"].(string); ok && v != "" {
+		urls["luma_url"] = v
+	}
+	if v, ok := row["zoom_url"].(string); ok && v != "" {
+		urls["zoom_url"] = v
+	}
+	if len(urls) > 0 {
+		out["external_urls"] = urls
+	}
+	// Registration count from event_registrations.
+	if id, ok := row["id"].(string); ok && id != "" {
+		count := 0
+		mustDB().QueryRow(`SELECT COUNT(*) FROM event_registrations WHERE event_id=?`, id).Scan(&count)
+		out["registration_count"] = count
+	}
+	return out
+}
+
+// eventList returns events split into upcoming/recent/all.
 func eventList(args []string) {
 	filter := "all"
 	for i := 0; i < len(args); i++ {
@@ -228,22 +302,15 @@ func eventList(args []string) {
 			i++
 		}
 	}
-	raw, code, err := cosmoRequest("GET", "/v1/events", nil)
+	orgID := defaultOrgID()
+	rows, err := queryRows(`SELECT * FROM events WHERE org_id=? ORDER BY date DESC`, orgID)
 	if err != nil {
 		errOut("fetch events: " + err.Error())
 	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("events endpoint HTTP %d: %s", code, string(raw)))
-	}
-	var resp struct {
-		Data []map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		errOut("parse events response: " + err.Error())
-	}
 	now := vnNow()
 	var upcoming, recent, other []map[string]interface{}
-	for _, e := range resp.Data {
+	for _, row := range rows {
+		e := eventRowToMap(row)
 		dateStr, _ := e["date"].(string)
 		t, err := time.Parse(time.RFC3339, dateStr)
 		if err != nil {
@@ -263,7 +330,7 @@ func eventList(args []string) {
 		}
 	}
 	out := map[string]interface{}{
-		"total":    len(resp.Data),
+		"total":    len(rows),
 		"upcoming": upcoming,
 		"recent":   recent,
 	}
@@ -279,8 +346,7 @@ func eventList(args []string) {
 	okOut(out)
 }
 
-// eventCreate POSTs a new event to /v1/events. Supports --type --title
-// --date --venue --capacity --luma-url --pricing --price flags.
+// eventCreate inserts a new event into the local events table.
 func eventCreate(args []string) {
 	var typeID, title, date, venue, lumaURL, lumaTitle, pricing string
 	capacity, priceVND := 0, 0
@@ -340,7 +406,6 @@ func eventCreate(args []string) {
 		errOut(fmt.Sprintf("invalid --type %q — run `sme-cli event types` to see supported values", typeID))
 	}
 
-	// Default pricing based on type if not explicit
 	if pricing == "" {
 		switch strings.ToLower(typeID) {
 		case "webinar":
@@ -351,78 +416,54 @@ func eventCreate(args []string) {
 			pricing = "free"
 		}
 	}
-	// luma_event_title is the key used by event process-registrations to
-	// match Luma notification email subjects, so multi-event setups don't
-	// cross-attach registrants. Default to the event title when the user
-	// hasn't given an explicit Luma title.
 	if lumaTitle == "" {
 		lumaTitle = title
 	}
-	metadata := map[string]interface{}{
-		"event_type_id":    strings.ToLower(typeID),
-		"pricing_model":    pricing,
-		"luma_event_title": lumaTitle,
-	}
-	if priceVND > 0 {
-		metadata["price_vnd"] = priceVND
-	}
-	payload := map[string]interface{}{
-		"title":    title,
-		"date":     date,
-		"status":   "published",
-		"metadata": metadata,
-	}
-	if venue != "" {
-		payload["venue"] = venue
-	}
-	if capacity > 0 {
-		payload["capacity"] = capacity
-	}
-	if lumaURL != "" {
-		payload["external_urls"] = map[string]interface{}{"luma_url": lumaURL}
-	}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		errOut("encode payload: " + err.Error())
-	}
-	raw, code, err := cosmoRequest("POST", "/v1/events", body)
+
+	id := newID()
+	orgID := defaultOrgID()
+	slug := slugify(title)
+	now := vnNowISO()
+
+	_, err := exec(`INSERT INTO events (
+		id, org_id, title, slug, event_type_id, date, venue, capacity, status,
+		pricing_model, price_vnd, luma_url, luma_event_title, metadata, created_at, updated_at
+	) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		id, orgID, title, slug, strings.ToLower(typeID), date, venue, capacity, "published",
+		pricing, priceVND, lumaURL, lumaTitle, "{}", now, now)
 	if err != nil {
 		errOut("create event: " + err.Error())
 	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("event create failed HTTP %d: %s", code, string(raw)))
-	}
-	var resp map[string]interface{}
-	_ = json.Unmarshal(raw, &resp)
+
+	created, _ := queryOne(`SELECT * FROM events WHERE id=?`, id)
 	okOut(map[string]interface{}{
-		"created":   resp,
-		"next_step": fmt.Sprintf("Run `sme-cli event prep-checklist <event_id>` to see prep tasks for type %q.", typeID),
+		"created":   eventRowToMap(created),
+		"next_step": fmt.Sprintf("Run `sme-cli event prep-checklist %s` to see prep tasks for type %q.", id, typeID),
 	})
 }
 
+// eventLoad reads an event by id from local SQLite. Returns (row, ok).
+// Exits with error JSON if not found.
+func eventLoad(eventID string) map[string]interface{} {
+	orgID := defaultOrgID()
+	row, err := queryOne(`SELECT * FROM events WHERE id=? AND org_id=?`, eventID, orgID)
+	if err != nil {
+		errOut("fetch event: " + err.Error())
+	}
+	if row == nil {
+		errOut(fmt.Sprintf("event not found: %s", eventID))
+	}
+	return row
+}
+
 // eventPrepChecklist returns the prep + day-of tasks for a given event.
-// Reads the event's metadata.event_type_id, falls back to "workshop" if
-// absent.
 func eventPrepChecklist(args []string) {
 	if len(args) == 0 {
 		errOut("usage: event prep-checklist <event_id>")
 	}
 	eventID := args[0]
-	raw, code, err := cosmoRequest("GET", "/v1/events/"+eventID, nil)
-	if err != nil {
-		errOut("fetch event: " + err.Error())
-	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("event fetch failed HTTP %d: %s", code, string(raw)))
-	}
-	var resp struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		errOut("parse event: " + err.Error())
-	}
-	md, _ := resp.Data["metadata"].(map[string]interface{})
-	typeID, _ := md["event_type_id"].(string)
+	row := eventLoad(eventID)
+	typeID, _ := row["event_type_id"].(string)
 	if typeID == "" {
 		typeID = "workshop"
 	}
@@ -432,36 +473,22 @@ func eventPrepChecklist(args []string) {
 	}
 	okOut(map[string]interface{}{
 		"event_id":     eventID,
-		"event_title":  resp.Data["title"],
-		"event_date":   resp.Data["date"],
+		"event_title":  row["title"],
+		"event_date":   row["date"],
 		"event_type":   et,
 		"prep_tasks":   et.PrepTasks,
 		"day_of_tasks": et.DayOfTasks,
 	})
 }
 
-// eventPostActions returns post-event action suggestions + specific
-// campaign handoff instructions.
+// eventPostActions returns post-event action suggestions + campaign handoff.
 func eventPostActions(args []string) {
 	if len(args) == 0 {
 		errOut("usage: event post-actions <event_id>")
 	}
 	eventID := args[0]
-	raw, code, err := cosmoRequest("GET", "/v1/events/"+eventID, nil)
-	if err != nil {
-		errOut("fetch event: " + err.Error())
-	}
-	if code >= 400 {
-		errOut(fmt.Sprintf("event fetch failed HTTP %d: %s", code, string(raw)))
-	}
-	var resp struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &resp); err != nil {
-		errOut("parse event: " + err.Error())
-	}
-	md, _ := resp.Data["metadata"].(map[string]interface{})
-	typeID, _ := md["event_type_id"].(string)
+	row := eventLoad(eventID)
+	typeID, _ := row["event_type_id"].(string)
 	if typeID == "" {
 		typeID = "workshop"
 	}
@@ -469,7 +496,6 @@ func eventPostActions(args []string) {
 	if !ok {
 		errOut(fmt.Sprintf("unknown event_type_id %q on event", typeID))
 	}
-	// Which playbook to use for post-event email campaign.
 	playbook := "event_invite"
 	switch typeID {
 	case "webinar":
@@ -479,16 +505,16 @@ func eventPostActions(args []string) {
 	}
 	okOut(map[string]interface{}{
 		"event_id":      eventID,
-		"event_title":   resp.Data["title"],
+		"event_title":   row["title"],
 		"post_tasks":    et.PostTasks,
 		"survey_prompt": et.SurveyPrompt,
 		"campaign_handoff": map[string]interface{}{
 			"skill":    "sme-campaign",
 			"playbook": playbook,
-			"audience": fmt.Sprintf("All attendees of event %q", resp.Data["title"]),
+			"audience": fmt.Sprintf("All attendees of event %q", row["title"]),
 			"command_hint": fmt.Sprintf(
-				"Hand off to sme-campaign skill: create campaign for attendees with playbook %q.",
-				playbook),
+				"Hand off to sme-campaign skill: create campaign for attendees with playbook %q. Audience fetched via sme-crm by tag event_%s_%s.",
+				playbook, typeID, eventID),
 		},
 		"survey_handoff": map[string]interface{}{
 			"command":         fmt.Sprintf("sme-cli event create-survey %s   (Phase 3, coming soon — uses Google Forms API)", eventID),
@@ -496,3 +522,249 @@ func eventPostActions(args []string) {
 		},
 	})
 }
+
+// eventUpdate applies a partial UPDATE on the events table for the given
+// whitelist of columns, filling updated_at. Returns the refreshed row.
+func eventUpdate(eventID string, fields map[string]interface{}) map[string]interface{} {
+	orgID := defaultOrgID()
+	allowed := map[string]bool{
+		"title":            true,
+		"date":             true,
+		"venue":            true,
+		"capacity":         true,
+		"status":           true,
+		"pricing_model":    true,
+		"price_vnd":        true,
+		"luma_url":         true,
+		"luma_event_title": true,
+		"zoom_url":         true,
+		"payment_info":     true,
+		"thank_you_sent":   true,
+		"metadata":         true,
+	}
+	var sets []string
+	var args []interface{}
+	for k, v := range fields {
+		if !allowed[k] {
+			continue
+		}
+		sets = append(sets, k+"=?")
+		args = append(args, v)
+	}
+	if len(sets) == 0 {
+		row := eventLoad(eventID)
+		return row
+	}
+	sets = append(sets, "updated_at=?")
+	args = append(args, vnNowISO())
+	args = append(args, eventID, orgID)
+	q := fmt.Sprintf("UPDATE events SET %s WHERE id=? AND org_id=?", strings.Join(sets, ","))
+	res, err := exec(q, args...)
+	if err != nil {
+		errOut("update event: " + err.Error())
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		errOut(fmt.Sprintf("event not found: %s", eventID))
+	}
+	row, _ := queryOne(`SELECT * FROM events WHERE id=?`, eventID)
+	return row
+}
+
+// eventRegister inserts an attendee registration for an event and pushes
+// the contact to CRM via the crm-gateway helper so it's tagged with
+// source=event_<type>_<role> and source_id=<event_id>. Use for manual
+// attendee adds outside the Luma sync path (e.g. walk-ins, direct signups).
+//
+//	sme-cli event register <event_id> --email <e> [--name <n>] [--paid]
+//	                                  [--source manual|luma|walkin]
+func eventRegister(args []string) {
+	if len(args) == 0 {
+		errOut("usage: event register <event_id> --email <e> [--name <n>] [--paid] [--source manual|luma|walkin]")
+	}
+	eventID := args[0]
+	var email, name, sourceTag string
+	paid := false
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--email":
+			if i+1 < len(args) {
+				email = strings.ToLower(strings.TrimSpace(args[i+1]))
+				i++
+			}
+		case "--name":
+			if i+1 < len(args) {
+				name = args[i+1]
+				i++
+			}
+		case "--paid":
+			paid = true
+		case "--source":
+			if i+1 < len(args) {
+				sourceTag = args[i+1]
+				i++
+			}
+		}
+	}
+	if email == "" {
+		errOut("--email required")
+	}
+	if sourceTag == "" {
+		sourceTag = "manual"
+	}
+
+	event := eventLoad(eventID)
+	evTitle, _ := event["title"].(string)
+	typeID, _ := event["event_type_id"].(string)
+	pricing, _ := event["pricing_model"].(string)
+
+	// Determine status: paid flag wins; else pricing model decides.
+	// free event → "free", paid event → "pending" until confirm-payment.
+	status := "pending"
+	role := "registered"
+	if paid {
+		status = "confirmed"
+		role = "paid"
+	} else if pricing == "free" {
+		status = "free"
+		role = "registered"
+	}
+
+	orgID := defaultOrgID()
+	now := vnNowISO()
+
+	// Idempotency: if (event_id, email) already exists, update instead of insert.
+	existing, _ := queryOne(`SELECT id, status, cosmo_contact_id FROM event_registrations WHERE event_id=? AND email=?`, eventID, email)
+	var regID string
+	if existing != nil {
+		regID, _ = existing["id"].(string)
+		sets := []string{"status=?", "updated_at=?"}
+		vals := []interface{}{status, now}
+		if paid {
+			sets = append(sets, "payment_confirmed_at=?")
+			vals = append(vals, now)
+		}
+		if name != "" {
+			sets = append(sets, "name=?")
+			vals = append(vals, name)
+		}
+		vals = append(vals, regID)
+		exec(fmt.Sprintf(`UPDATE event_registrations SET %s WHERE id=?`, strings.Join(sets, ",")), vals...)
+	} else {
+		regID = newID()
+		paidAt := interface{}(nil)
+		if paid {
+			paidAt = now
+		}
+		_, err := exec(`INSERT INTO event_registrations (
+			id, org_id, event_id, email, name, status, source, registered_at, payment_confirmed_at, created_at, updated_at
+		) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			regID, orgID, eventID, email, name, status, sourceTag, now, paidAt, now, now)
+		if err != nil {
+			errOut("insert registration: " + err.Error())
+		}
+	}
+
+	// Push to CRM.
+	cosmoID, cerr := cosmoUpsertContactForEvent(name, email, eventID, evTitle, typeID, role)
+	if cerr == nil && cosmoID != "" {
+		exec(`UPDATE event_registrations SET cosmo_contact_id=?, updated_at=? WHERE id=?`, cosmoID, vnNowISO(), regID)
+	}
+
+	okOut(map[string]interface{}{
+		"event_id":         eventID,
+		"registration_id":  regID,
+		"email":            email,
+		"name":             name,
+		"status":           status,
+		"cosmo_contact_id": cosmoID,
+		"crm_push_error":   errString(cerr),
+	})
+}
+
+// eventListAttendees returns all registrations for an event from the
+// local event_registrations table (source of truth).
+//
+//	sme-cli event list-attendees <event_id> [--status pending|confirmed|free|checked_in|no_show]
+func eventListAttendees(args []string) {
+	if len(args) == 0 {
+		errOut("usage: event list-attendees <event_id> [--status <status>]")
+	}
+	eventID := args[0]
+	statusFilter := ""
+	for i := 1; i < len(args); i++ {
+		if args[i] == "--status" && i+1 < len(args) {
+			statusFilter = args[i+1]
+			i++
+		}
+	}
+	event := eventLoad(eventID)
+	q := `SELECT id, email, name, phone, status, source, cosmo_contact_id, registered_at, payment_confirmed_at, checked_in_at FROM event_registrations WHERE event_id=?`
+	qargs := []interface{}{eventID}
+	if statusFilter != "" {
+		q += ` AND status=?`
+		qargs = append(qargs, statusFilter)
+	}
+	q += ` ORDER BY registered_at DESC`
+	rows, err := queryRows(q, qargs...)
+	if err != nil {
+		errOut("fetch attendees: " + err.Error())
+	}
+	byStatus := map[string]int{}
+	for _, r := range rows {
+		if s, ok := r["status"].(string); ok {
+			byStatus[s]++
+		}
+	}
+	okOut(map[string]interface{}{
+		"event_id":    eventID,
+		"event_title": event["title"],
+		"total":       len(rows),
+		"by_status":   byStatus,
+		"attendees":   rows,
+	})
+}
+
+// eventCheckIn marks an attendee as checked in on event day.
+//
+//	sme-cli event check-in <event_id> --email <e>
+func eventCheckIn(args []string) {
+	if len(args) == 0 {
+		errOut("usage: event check-in <event_id> --email <e>")
+	}
+	eventID := args[0]
+	var email string
+	for i := 1; i < len(args); i++ {
+		if args[i] == "--email" && i+1 < len(args) {
+			email = strings.ToLower(strings.TrimSpace(args[i+1]))
+			i++
+		}
+	}
+	if email == "" {
+		errOut("--email required")
+	}
+	now := vnNowISO()
+	res, err := exec(`UPDATE event_registrations SET status='checked_in', checked_in_at=?, updated_at=? WHERE event_id=? AND email=?`, now, now, eventID, email)
+	if err != nil {
+		errOut("check-in: " + err.Error())
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		errOut(fmt.Sprintf("no registration found for %s at event %s", email, eventID))
+	}
+	okOut(map[string]interface{}{
+		"event_id":      eventID,
+		"email":         email,
+		"checked_in_at": now,
+	})
+}
+
+func errString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
+// avoid sql.ErrNoRows unused import when compiling if helpers are trimmed.
+var _ = sql.ErrNoRows

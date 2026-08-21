@@ -397,6 +397,54 @@ func cmdInit() {
 			created_at TEXT NOT NULL
 		)`,
 
+		// ====== EVENTS ======
+		`CREATE TABLE IF NOT EXISTS events (
+			id TEXT PRIMARY KEY,
+			org_id TEXT NOT NULL REFERENCES organizations(id),
+			title TEXT NOT NULL,
+			slug TEXT,
+			event_type_id TEXT NOT NULL,
+			date TEXT NOT NULL,
+			venue TEXT,
+			capacity INTEGER DEFAULT 0,
+			status TEXT NOT NULL DEFAULT 'published',
+			pricing_model TEXT DEFAULT 'free',
+			price_vnd INTEGER DEFAULT 0,
+			luma_url TEXT,
+			luma_event_title TEXT,
+			zoom_url TEXT,
+			payment_info TEXT,
+			thank_you_sent INTEGER DEFAULT 0,
+			metadata TEXT DEFAULT '{}',
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_org ON events(org_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_date ON events(org_id, date)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_status ON events(org_id, status)`,
+
+		`CREATE TABLE IF NOT EXISTS event_registrations (
+			id TEXT PRIMARY KEY,
+			org_id TEXT NOT NULL REFERENCES organizations(id),
+			event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+			contact_id TEXT REFERENCES contacts(id),
+			cosmo_contact_id TEXT,
+			email TEXT NOT NULL,
+			name TEXT,
+			phone TEXT,
+			status TEXT NOT NULL DEFAULT 'pending',
+			source TEXT DEFAULT 'luma',
+			raw_email_id TEXT,
+			registered_at TEXT NOT NULL,
+			checked_in_at TEXT,
+			payment_confirmed_at TEXT,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_event_regs_event ON event_registrations(event_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_event_regs_email ON event_registrations(event_id, email)`,
+		`CREATE INDEX IF NOT EXISTS idx_event_regs_status ON event_registrations(event_id, status)`,
+
 		// ====== OPS ======
 		`CREATE TABLE IF NOT EXISTS tasks (
 			id TEXT PRIMARY KEY,
@@ -537,7 +585,7 @@ func cmdInit() {
 
 	okOut(map[string]interface{}{
 		"database":    dbPath(),
-		"tables":      31,
+		"tables":      33,
 		"initialized": true,
 	})
 }

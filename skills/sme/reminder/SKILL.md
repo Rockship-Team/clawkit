@@ -28,6 +28,7 @@ Kich hoat NGAY khi message khop bat ky pattern:
 - Chua `hom nay outreach` / `hom nay nen lien he` / `hom nay lam gi`
 - Chua `con contact nao chua lam` / `stale leads`
 - Chua `outreach ai` / `lien he ai`
+- Chua `low priority` / `deprioritize` / `ai im lang lau` / `ai khong reply` (→ render cell `LOW_PRIORITY`, xem QUY TAC LOW_PRIORITY ben duoi)
 
 ### Event triggers
 
@@ -82,21 +83,20 @@ Step 3 — Phan tich noi dung reply (LLM call ngan):
 Step 4 — Alert + draft reply (KHONG auto-update DB without OK):
 
 ```
-📨 Vinasun (anh Pham Van Tam) vua reply!
+📨 @Hans_Dang — Vinasun (anh Pham Van Tam) vừa reply!
 
-Sentiment: positive
-Intent: hoi pricing
-Suggested: chuyen QUALIFIED → PROPOSAL
+Sentiment: positive — hỏi pricing
+→ Suggested: chuyển QUALIFIED → PROPOSAL
 
-📧 Em da draft reply (preview):
+📧 Em đã draft reply:
 ---
-Chao anh Tam,
-Cam on anh quan tam. De em gui anh proposal chi tiet voi 3 muc gia...
+Chào anh Tâm, cảm ơn anh quan tâm. Để em gửi 
+anh proposal chi tiết với 3 mức giá...
 ---
 
-→ Go "1" de em gui reply + update stage QUALIFIED → PROPOSAL
-→ Go "2" de em gui draft email khac (sua noi dung)
-→ Go "3" de em chi update stage, KHONG gui email tu dong
+→ "1" — em gửi reply + update stage
+→ "2" — em viết draft khác
+→ "3" — chỉ update stage, không gửi email
 
 https://cosmoagents-bd.logicx.vn/contacts/{contact_id}
 ```
@@ -117,22 +117,22 @@ Step 2 — Dedupe: skip neu contact da duoc alert trong 24h qua (check memory fi
 Step 3 — Alert tap trung 1 message (nhom theo group):
 
 ```
-⚠️ 3 deal stuck > 5 ngay chua phan hoi:
+⚠️ @Hans_Dang — 3 deal stuck >5 ngày chưa phản hồi:
 
-1. Vinasun — anh Pham Van Tam (CTO)
+1. Vinasun — anh Phạm Văn Tâm (CTO)
    https://cosmoagents-bd.logicx.vn/contacts/abc-111
-   PROPOSAL gui 7 ngay truoc.
+   Proposal gửi 7 ngày trước.
 
-2. Lazada — chi B (CMO)
+2. Lazada — chị B (CMO)
    https://cosmoagents-bd.logicx.vn/contacts/def-222
-   PROPOSAL gui 6 ngay truoc.
+   Proposal gửi 6 ngày trước.
 
 3. Pharmacity — anh C (Director)
    https://cosmoagents-bd.logicx.vn/contacts/ghi-333
-   PROPOSAL gui 5 ngay truoc.
+   Proposal gửi 5 ngày trước.
 
-→ Go "1" de em soan nudge cho ca 3
-→ Hoac "1a" / "1b" / "1c" de chon tung deal
+→ "1" — em soạn nudge cho cả 3
+→ "1a/1b/1c" — chọn từng deal
 ```
 
 ### Quy tac PIPELINE_WATCH
@@ -154,6 +154,35 @@ Step 3 — Alert tap trung 1 message (nhom theo group):
   ```
 
 ## QUY TAC BAT BUOC
+
+00. **GỌI TOOL TRƯỚC, TRẢ LỜI SAU — KHÔNG announce trước khi có data**
+
+KHÔNG bao giờ gửi tin "Em sẽ query..." hay "Em đang kiểm tra..." trước khi có kết quả.
+Luồng đúng: gọi tool → nhận data → viết reply 1 lần duy nhất.
+Luồng sai: gửi "Em sẽ query pipeline" → gọi tool → gửi kết quả (2 lần = session conflict risk + UX kém)
+
+0. **TAG @Hans_Dang khi cần quyết định hoặc xử lý vấn đề BD team**
+
+@Hans_Dang là admin của group — phải tag khi:
+- Morning briefing gửi vào group (luôn luôn tag đầu tin hoặc ở action chính)
+- Có vấn đề cần quyết định: deal stuck, event chưa import attendee, pipeline có rủi ro
+- Cần người phụ trách xử lý: assign next_step, approve follow-up, chốt action
+- Alert từ pipeline-watch: Gmail reply cần phản hồi, deal stuck >5 ngày
+
+Format tag: đặt `@Hans_Dang` ở đầu hoặc ngay trước câu hỏi quyết định.
+
+Ví dụ đúng:
+```
+Sáng anh, em đây 👋
+⚠️ @Hans_Dang — 4 event đã qua chưa có attendee data...
+```
+hoặc:
+```
+...7 khách đang chờ follow-up proposal.
+@Hans_Dang anh muốn em gửi follow-up cho nhóm này không?
+```
+
+KHÔNG tag @Hans_Dang khi: chỉ báo cáo thông tin thuần túy, không cần quyết định.
 
 1. **KHONG DOC MEMORY** khi trigger. User noi "nhac toi" = fetch live, khong grep memory/*.md.
 
@@ -228,6 +257,43 @@ Output JSON (daily-plan) co field quan trong:
 | `EVENT_POSTMORTEM` | "Event vua xong — can gui thank-you" | event |
 | `CONTENT_SLOT_OPEN` | "Slot content con trong tuan nay" | marketing |
 | `CONTENT_OVERDUE` | "Bai dang draft lau chua schedule" | marketing |
+| `LOW_PRIORITY` | "Da follow-up 3 lan im lang — deprioritize" | engagement (hidden — xem rule duoi) |
+
+### 🔑 QUY TAC LOW_PRIORITY — auto-deprioritize sau 3 follow-up im lang
+
+**Rule (tinh tai render time, KHONG can API change):**
+
+Sau khi fetch `daily-plan`, voi moi contact:
+- Dem outbound interactions (email/LinkedIn/Zalo/call) tu lan reply gan nhat (hoac tu khi tao contact neu chua bao gio reply).
+- Neu `outbound_count >= 3` VA `last_reply_at` rong/cu hon outbound dau tien → reclassify contact vao cell `LOW_PRIORITY`, BO khoi cell goc (vd: kheo `PROPOSAL_HOT` → kheo `LOW_PRIORITY`).
+
+**Hide rule (mac dinh ANT):**
+
+- **KHONG render** cell `LOW_PRIORITY` trong morning/evening briefing tu dong (cron `DAILY_MORNING_BRIEFING` / `DAILY_EVENING_REVIEW`).
+- **KHONG dem** cell nay vao gioi han "toi da 7 cells".
+- Chi hien khi user trigger explicit:
+  - "low priority co ai" / "ai dang deprioritize" / "ai im lang lau" / "stale leads"
+  - User hoi specific 1 contact → moi noi "contact nay LOW_PRIORITY, da follow-up 3 lan im lang"
+
+**Khi user hoi explicit, render:**
+
+```
+🔕 **Low priority — da follow-up 3 lan im lang ({N} nguoi)**
+- **Cinex (Tran Minh, CTO)** — 3 outreach, im lang 18 ngay
+  https://cosmoagents-bd.logicx.vn/contacts/abc-123
+- **Acme (John Doe)** — 3 outreach, im lang 22 ngay
+  https://cosmoagents-bd.logicx.vn/contacts/def-456
+
+Em da bo qua nhung lien he nay khoi briefing hang ngay. Anh muon:
+→ Go "1" de em revive (gui email scope nho voi pitch khac)
+→ Go "2" de em chuyen LOST trong CRM
+→ Go "3" giu nguyen, chi xem
+```
+
+**Phan biet voi DROPPED/LOST:**
+- `LOW_PRIORITY` la **render-layer label** — KHONG ghi DB, KHONG goi PATCH stage.
+- Neu user chot "chuyen LOST" → hand-off `sme-crm: patch stage contact UUID → LOST`.
+- State machine engagement (FOLLOW_UP_2 → DROPPED) van nguyen — skill nay chi them 1 lop UI ben tren.
 
 ### 🔑 QUY TAC VANG #1: PLAIN LANGUAGE — KHONG tech jargon
 
@@ -277,10 +343,49 @@ Good:
 
 **partial:** dung gi co, noi ro gi thieu.
 
-### Format chat overall
+### Format chat overall — HUMAN TONE, KHÔNG EMOJI
+
+**TUYỆT ĐỐI không dùng emoji** — không 📊 📌 ✅ 🔥 💬 ⚠️ hay bất kỳ emoji nào khác.
+
+**Viết như người nói chuyện, không như report:**
+- Không dùng section header kiểu "## Pipeline" hay "📌 Tổng quan"
+- Không bullet list cứng cho mọi thứ — dùng văn xuôi tự nhiên
+- Câu ngắn, thẳng vào vấn đề
+- Hỏi clarify khi cần thay vì tự đoán rồi hỏi ngược lại
 
 ```
-{Greeting theo mode — "Chao buoi sang" morning, "4h chieu roi" evening, "Oke" manual}
+Greeting:
+Morning:  "Sáng anh, em đây."  (KHÔNG có emoji)
+Evening:  "3h chiều rồi anh —"
+Manual:   dùng luôn tiếng Việt tự nhiên
+```
+
+Ví dụ đúng (human):
+```
+Sáng anh, em đây. Vừa check pipeline — 8 khách đang chờ follow-up
+proposal, trong đó Anh Thiện và ĐứcNV lâu nhất. 12 khách đang
+In Discussion cần chốt meeting. Anh muốn em ưu tiên nhóm nào trước?
+```
+
+Ví dụ sai (report style):
+```
+📊 Tổng quan pipeline:
+🔵 Proposal Sent — 8 khách
+💬 In Discussion — 12 khách
+```
+
+**THỨ TỰ PRIORITY BẮT BUỘC cho morning briefing:**
+
+1. **Event đã qua mà chưa có attendee data** — urgent nhất, mất lead vĩnh viễn nếu không import hôm nay
+2. **🔥 Proposal stuck** — deal đang nguội, tiền đang bị treo
+3. **💬 In Discussion chưa có next_step** — pipeline bị tắc
+4. **📊 KPI tuần (nếu đã đặt)** — tiến độ so target
+5. **📢 Content slot trống / event sắp tới** — operational
+
+**Quy tắc CTA:**
+- 1 action chính (urgent nhất) → đề xuất luôn, hỏi confirm
+- Các mục khác → liệt kê ngắn, không cần chọn ngay
+- KHÔNG đưa ra 3 option ngang nhau — user không biết chọn gì
 
 {emoji} **{Name} ({count})** {optional: "— N/count chua enrich"}
 
@@ -289,7 +394,7 @@ Good:
 
 {warning section neu co — "⚠️ {warning.message}"}
 
-Anh muon em action cai nao?
+Anh muốn em làm [action urgent nhất] trước không?
 ```
 
 ### Rang buoc format
@@ -297,6 +402,7 @@ Anh muon em action cai nao?
 - **Toi da 7 cells hien thi**. Neu >7, show top priority + "Con {X} cells khac ({list}) — anh muon chi tiet?"
 - **KHONG render mechanical** — lap "send email 50-125 words + 1 CTA" cho moi contact = SAI.
 - **KHONG dump JSON** ra chat.
+- **KHONG liệt kê event đã qua như tin tức bình thường** — event cũ + không có attendee = emergency, phải escalate rõ ràng.
 
 ### URL DRILL-DOWN BAT BUOC
 
@@ -334,6 +440,46 @@ Reply 1/2/3 hoac mo ta cu the.
 
 User gan nhu KHONG bao gio go cau dai. PHAI cho 1-key shortcut.
 
+### AUTO-LOG SUGGESTIONS (DAILY_MORNING_BRIEFING)
+
+Sau khi gửi tin briefing, NGAY LẬP TỨC log từng contact + action bằng `sme-cli action-log suggest`. Đây là bước bắt buộc để đo Action Rate.
+
+**Quy tắc:**
+- Mỗi contact được mention kèm action → 1 log entry
+- Dùng đúng contact_id từ COSMO nếu có (lấy từ daily-plan output)
+- Source = "morning"
+- KHÔNG thông báo cho user — log ngầm, không comment
+
+**Ví dụ sau khi gửi briefing:**
+```bash
+sme-cli action-log suggest \
+  --contact-id "ff31bec3-..." \
+  --contact-name "Anh Thiện" \
+  --action "Follow-up proposal — không có email, cần check kênh gửi" \
+  --source morning
+
+sme-cli action-log suggest \
+  --contact-id "a7fbb742-..." \
+  --contact-name "Alex Lim" \
+  --action "Follow-up proposal" \
+  --source morning
+```
+
+Log tối đa 5 contact ưu tiên nhất. Nếu không có contact_id → dùng `--contact-id ""`.
+
+**Khi user nhắn "Done: [tên contact]":**
+```bash
+sme-cli action-log done --contact-name "Anh Thiện" --note "đã gọi, hẹn demo thứ 4"
+```
+Confirm ngắn: "Noted, đã log Anh Thiện done."
+
+**Xem Action Rate:**
+Khi user hỏi "action rate tuần này" hoặc "bot hiệu quả không":
+```bash
+sme-cli action-log rate
+```
+Report kết quả tự nhiên, không dump JSON.
+
 ### ROI METRIC (chi morning briefing — Monday weekly recap)
 
 **Chi morning briefing thu Hai** (start of week), them block "Tuan qua":
@@ -359,10 +505,10 @@ Lay so tu logs gateway. Neu khong fetch duoc, surface "chua track duoc — em se
 ### Empty-state — cells rong
 
 Morning:
-> Chao buoi sang {user}! Hom nay khong co viec follow-up gap — chill di anh. Em moi xem {loaded}/{total} contact — neu muon em scan sau (co the co deal cu), bao em "check ky hon".
+> Sáng anh, em đây 👋 Hôm nay pipeline clean — không có việc follow-up gấp. Em vừa xem {loaded}/{total} contact. Muốn em check kỹ hơn không?
 
 Evening:
-> 3h chieu roi — pipeline hom nay clean, khong con viec ton. Neu co contact moi dinh them toi/mai, cho em biet.
+> 3h chiều rồi — pipeline hôm nay ổn, không còn việc tồn. Nếu có contact mới định thêm tối/mai, cho em biết.
 
 Luon kem warning section neu co (vd Gmail agent invalid).
 
@@ -471,24 +617,33 @@ Anh muon em action nhom nao?
 **Cron DAILY_MORNING_BRIEFING luc 8am:**
 
 1. `sme-cli cosmo daily-plan --mode morning`
-2. Gui Telegram group:
+2. `sme-cli event list --filter recent` — check event cũ chưa có attendee
+3. `sme-cli kpi check` — lấy KPI tuần nếu đã đặt
+4. Tổng hợp theo THỨ TỰ PRIORITY, gửi Telegram group:
 
 ```
-Chao buoi sang @akhoa2174! Viec can lam hom nay:
+Sáng anh, em đây 👋
 
-🔥 **Can follow-up gap (2)**
-- **Cinex (Tran Minh, CTO)** — proposal 4d
-  → Gui email nhac nhe + 3 slot call tuan nay
-- **Acme Labs (John Doe)** — proposal 5d
+⚠️ @Hans_Dang — 4 event đã qua (15/5–30/5) chưa 
+có attendee data — mất lead nếu không import hôm nay.
+Em sync Luma lấy danh sách luôn không?
 
-📝 **Recap meeting chua gui (1)**
-- **TechCorp (Sarah Nguyen)** — meeting hom qua, recap qua han
-  → Gui 3-bullet recap + next step, TRUOC 10am
+🔥 7 khách đang chờ follow-up proposal (Anh Thiện,
+Alex Lim, Chị Giang...) — cần push tuần này.
 
-⚠️ Gmail agent Rockship mat xac thuc — reconnect truoc khi send email.
+💬 22 khách In Discussion chưa có next_step — em
+lọc danh sách để anh assign không?
 
-Anh muon em action cai nao?
+[Nếu KPI đã đặt]: 📊 KPI tuần: target 5 contract, 
+đã có 2 — còn thiếu 3.
 ```
+
+**Quy tắc viết:**
+- Greeting: "Sáng anh, em đây 👋" — không thêm ngày tháng vào greeting
+- Item urgent nhất lên đầu, kèm đề xuất action cụ thể
+- Mỗi mục tối đa 2-3 dòng, không liệt kê hết tên
+- Kết bằng 1 câu hỏi cho action ưu tiên nhất, không phải 3 options ngang nhau
+- Có dấu tiếng Việt đầy đủ
 
 ## CONFIG
 

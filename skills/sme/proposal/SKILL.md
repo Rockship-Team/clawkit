@@ -47,18 +47,43 @@ Skill nay chi lam proposal. Neu user hoi:
 
 Khi user noi "proposal", "quote", "bao gia", "viet de xuat" — theo dung 6 buoc.
 
+## BUOC 0 — DISCOVERY (BAT BUOC TRUOC KHI GEN)
+
+**KHONG duoc gen proposal khi chua co brief tu user.**
+
+Neu user chi noi "tao proposal cho X" ma KHONG co them thong tin nhu cau:
+1. Check CRM xem co meeting notes, interaction log, ai_insights khong.
+2. Neu khong co → **HOI USER** truoc (KHONG gen):
+
+```
+Em can brief truoc khi viet proposal cho [ten]:
+
+1. [Ten] dang gap van de gi cu the? (pain point)
+2. Ho muon dat duoc gi sau khi hop tac? (success looks like)
+3. Quy mo team / budget expectation?
+4. Timeline ho mong muon?
+
+Hoac anh co meeting notes / ghi chu tu buoi gap truoc khong? Em extract tu do.
+```
+
+3. Chi bat dau Step 1 sau khi co du lieu nhu cau **tu user hoac tu CRM interaction log**.
+
+**Khong duoc tu sang tac nhu cau, pain point, hay background cua khach hang.**
+
 ## Step 1 — Collect Client Input
 
 1. **Check CRM truoc** → delegate sang `sme-crm`:
 
    > "sme-crm: search contact {company}"
 
-   - Co → dung data tu CRM (profile, `ai_insights`, past interactions).
+   - Co → dung data tu CRM (profile, `ai_insights`, past interactions, meeting notes).
    - Khong co → hoi user hoac research Apollo (delegate `sme-crm`: "apollo search company X").
 
-2. Neu user cung cap meeting notes, extract: requirements, budget, timeline, decision maker, pain points, missing info.
+2. **Chi dung thong tin co that**: tu CRM, user input, Apollo, web research. KHONG tu sang tac "tu 2018", "nhieu doanh nghiep", hay bat ky fact nao khong co source.
 
-3. Neu chi co ten cong ty → delegate sme-crm: "apollo search company + search people c_suite/vp".
+3. Neu user cung cap meeting notes, extract: requirements, budget, timeline, decision maker, pain points, missing info.
+
+4. Neu chi co ten cong ty → delegate sme-crm: "apollo search company + search people c_suite/vp".
 
 ## Step 2 — Normalize Information
 
@@ -103,6 +128,16 @@ Proposal co the la BAT KY loai dich vu — khong bat buoc fit vao 5 template.
 4. **Generate outline**: Fill sections voi client-specific content tu client brief + research. Moi section phai map toi client need — khong viet section vi "template bao phai co".
 
 5. **Pricing**: Chon TIER phu hop tu Step 3 (Starter / Pro / Enterprise). Budget > Enterprise → recommend Enterprise + list add-ons tu CLI. **CAM bia tier moi** (no "Enterprise Plus", "Custom", "Premium").
+
+   **BAT BUOC co section "Investment" trong outline** voi gia chinh xac tu CLI output. KHONG duoc bỏ gia — proposal khong co gia = khong hoan chinh.
+
+   Format mau:
+   ```
+   ## Investment
+   Tier: Starter — 15,000,000 VND/thang
+   Pilot 4 tuan: 15,000,000 VND (1 thang)
+   Discount ap dung: [neu co — startup 20%, referral 5%...]
+   ```
 
 ## Step 5 — User Review
 

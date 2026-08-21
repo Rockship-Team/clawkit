@@ -40,6 +40,7 @@ type channelFlags struct {
 	Message string
 	ChatID  string
 	Caption string
+	Account string
 }
 
 func parseChannelFlags(args []string, positionalKey string) channelFlags {
@@ -55,6 +56,11 @@ func parseChannelFlags(args []string, positionalKey string) channelFlags {
 		case "--caption":
 			if i+1 < len(args) {
 				f.Caption = args[i+1]
+				i++
+			}
+		case "--account":
+			if i+1 < len(args) {
+				f.Account = args[i+1]
 				i++
 			}
 		default:
@@ -85,7 +91,7 @@ func channelSendFile(args []string) {
 		errOut("file is empty: " + f.Path)
 	}
 
-	token, err := readTelegramBotToken()
+	token, err := readTelegramBotToken(f.Account)
 	if err != nil {
 		errOut(err.Error())
 	}
@@ -152,7 +158,7 @@ func channelSendMessage(args []string) {
 	if f.Message == "" || f.ChatID == "" {
 		errOut("usage: channel send-message <text> --chat-id <id>")
 	}
-	token, err := readTelegramBotToken()
+	token, err := readTelegramBotToken(f.Account)
 	if err != nil {
 		errOut(err.Error())
 	}
@@ -192,8 +198,9 @@ func channelSendMessage(args []string) {
 }
 
 // readTelegramBotToken reads the Telegram bot token from the runtime's
-// openclaw.json. Tries $OPENCLAW_HOME then the conventional ~/.openclaw.
-func readTelegramBotToken() (string, error) {
+// openclaw.json. Supports both legacy single-token and multi-account formats.
+// account: optional account name (e.g. "gtm"). Empty = use first available.
+func readTelegramBotToken(account string) (string, error) {
 	paths := []string{}
 	if h := os.Getenv("OPENCLAW_HOME"); h != "" {
 		paths = append(paths, filepath.Join(h, "openclaw.json"))
@@ -211,7 +218,8 @@ func readTelegramBotToken() (string, error) {
 		var cfg struct {
 			Channels struct {
 				Telegram struct {
-					BotToken string `json:"botToken"`
+					BotToken string                       `json:"botToken"`
+					Accounts map[string]map[string]string `json:"accounts"`
 				} `json:"telegram"`
 			} `json:"channels"`
 		}
@@ -219,8 +227,25 @@ func readTelegramBotToken() (string, error) {
 			lastErr = err
 			continue
 		}
+		// Legacy single-token format
 		if cfg.Channels.Telegram.BotToken != "" {
 			return cfg.Channels.Telegram.BotToken, nil
+		}
+		// Multi-account format
+		if len(cfg.Channels.Telegram.Accounts) > 0 {
+			if account != "" {
+				if acc, ok := cfg.Channels.Telegram.Accounts[account]; ok {
+					if tok := acc["botToken"]; tok != "" {
+						return tok, nil
+					}
+				}
+			}
+			// Fallback: first account alphabetically
+			for _, acc := range cfg.Channels.Telegram.Accounts {
+				if tok := acc["botToken"]; tok != "" {
+					return tok, nil
+				}
+			}
 		}
 	}
 	if lastErr != nil {

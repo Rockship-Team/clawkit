@@ -1,0 +1,634 @@
+package main
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/gorilla/websocket"
+)
+
+// cmdOutreach dispatches LinkedIn outreach-tracking subcommands.
+//
+//	sme-cli outreach sync                          # scrape LinkedIn via CDP, record events
+//	sme-cli outreach log-event --event-type X ...  # manual activity log
+//	sme-cli outreach today                         # today's event counts
+//	sme-cli outreach funnel [--days N]             # event counts over a range
+//	sme-cli outreach pending                        # received invitations awaiting a decision
+//	sme-cli outreach list [--event-type X] [--days N] [--limit N]  # raw event rows (name, note, time)
+func cmdOutreach(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: outreach sync|log-event|today|funnel|pending|list")
+		os.Exit(1)
+	}
+	ensureOutreachTable()
+	switch args[0] {
+	case "sync":
+		outreachSync(args[1:])
+	case "log-event":
+		outreachLogEvent(args[1:])
+	case "today":
+		outreachToday(args[1:])
+	case "funnel":
+		outreachFunnel(args[1:])
+	case "pending":
+		outreachPending(args[1:])
+	case "list":
+		outreachList(args[1:])
+	default:
+		errOut("unknown outreach command: " + args[0])
+	}
+}
+
+func ensureOutreachTable() {
+	mustDB().Exec(`CREATE TABLE IF NOT EXISTS outreach_events (
+		id          TEXT PRIMARY KEY,
+		org_id      TEXT NOT NULL DEFAULT 'default',
+		channel     TEXT NOT NULL,
+		event_type  TEXT NOT NULL,
+		profile_url TEXT,
+		name        TEXT,
+		headline    TEXT,
+		note        TEXT,
+		source      TEXT NOT NULL DEFAULT 'manual',
+		fingerprint TEXT NOT NULL,
+		occurred_at TEXT NOT NULL,
+		created_at  TEXT NOT NULL,
+		UNIQUE(org_id, fingerprint)
+	)`)
+}
+
+func outreachFingerprint(orgID, channel, eventType, key string) string {
+	sum := sha256.Sum256([]byte(orgID + "|" + channel + "|" + eventType + "|" + key))
+	return hex.EncodeToString(sum[:])[:24]
+}
+
+// --- Manual logging -------------------------------------------------------
+
+func outreachLogEvent(args []string) {
+	channel := "manual"
+	eventType := ""
+	name := ""
+	headline := ""
+	note := ""
+	count := 1
+
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--channel":
+			i++
+			channel = args[i]
+		case "--event-type":
+			i++
+			eventType = args[i]
+		case "--name":
+			i++
+			name = args[i]
+		case "--headline":
+			i++
+			headline = args[i]
+		case "--note":
+			i++
+			note = args[i]
+		case "--count":
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				count = n
+			}
+		}
+	}
+
+	if eventType == "" {
+		errOut("cần --event-type (vd: cold_call, demo, meeting, event_attended, connection_accepted, ...)")
+		return
+	}
+
+	orgID := defaultOrgID()
+	now := vnNowISO()
+	for n := 0; n < count; n++ {
+		id := newID()
+		_, err := mustDB().Exec(`
+			INSERT INTO outreach_events
+				(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at)
+			VALUES (?, ?, ?, ?, '', ?, ?, ?, 'manual', ?, ?, ?)
+		`, id, orgID, channel, eventType, name, headline, note, id, now, now)
+		if err != nil {
+			errOut(err.Error())
+			return
+		}
+	}
+
+	okOut(map[string]interface{}{
+		"channel": channel, "event_type": eventType, "count": count,
+		"message": fmt.Sprintf("Đã ghi %d event '%s' (%s)", count, eventType, channel),
+	})
+}
+
+// --- Reporting -------------------------------------------------------------
+
+func outreachToday(args []string) {
+	orgID := defaultOrgID()
+	rows, err := queryRows(`
+		SELECT channel, event_type, COUNT(*) as count
+		FROM outreach_events
+		WHERE org_id = ? AND substr(occurred_at, 1, 10) = ?
+		GROUP BY channel, event_type
+		ORDER BY channel, event_type
+	`, orgID, vnToday())
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{
+		"date": vnToday(), "events": rows,
+		"message": fmt.Sprintf("Hôm nay có %d loại hoạt động outreach", len(rows)),
+	})
+}
+
+func outreachFunnel(args []string) {
+	days := 7
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--days" && i+1 < len(args) {
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				days = n
+			}
+		}
+	}
+	orgID := defaultOrgID()
+	since := vnNow().AddDate(0, 0, -days).Format("2006-01-02")
+
+	rows, err := queryRows(`
+		SELECT channel, event_type, COUNT(*) as count
+		FROM outreach_events
+		WHERE org_id = ? AND substr(occurred_at, 1, 10) >= ?
+		GROUP BY channel, event_type
+		ORDER BY channel, event_type
+	`, orgID, since)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+
+	okOut(map[string]interface{}{
+		"since": since, "days": days,
+		"events": rows,
+		"note":   "events là số đếm theo (channel, event_type). Chưa đủ dữ liệu accepted/reply để tính conversion rate tự động — xem outreach pending cho invitation đang chờ.",
+		"message": fmt.Sprintf("%d ngày gần đây: %d loại hoạt động", days, len(rows)),
+	})
+}
+
+func outreachPending(args []string) {
+	orgID := defaultOrgID()
+	rows, err := queryRows(`
+		SELECT id, name, headline, profile_url, occurred_at
+		FROM outreach_events
+		WHERE org_id = ? AND event_type = 'connection_request_received'
+		ORDER BY occurred_at DESC
+		LIMIT 50
+	`, orgID)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{
+		"pending_received_invitations": rows,
+		"count":                        len(rows),
+		"note":                         "Danh sách connection request người khác gửi cho mình, lấy từ lần sync gần nhất — chưa chắc còn pending thật sự nếu đã accept/ignore ngoài LinkedIn từ lần sync trước.",
+	})
+}
+
+// outreachList returns the raw event rows (name, headline/note, time) — the
+// thing to call whenever a user wants to see WHO, not just a count. Never
+// answer a "list ai đã..." question from conversation memory of an earlier
+// tool call; this command reflects the current DB state.
+func outreachList(args []string) {
+	eventType := ""
+	days := 1
+	limit := 100
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--event-type":
+			i++
+			eventType = args[i]
+		case "--days":
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				days = n
+			}
+		case "--limit":
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				limit = n
+			}
+		}
+	}
+
+	orgID := defaultOrgID()
+	since := vnNow().AddDate(0, 0, -days+1).Format("2006-01-02")
+
+	q := `
+		SELECT event_type, name, headline, note, profile_url, occurred_at
+		FROM outreach_events
+		WHERE org_id = ? AND substr(occurred_at, 1, 10) >= ?`
+	qargs := []interface{}{orgID, since}
+	if eventType != "" {
+		q += ` AND event_type = ?`
+		qargs = append(qargs, eventType)
+	}
+	q += ` ORDER BY occurred_at DESC LIMIT ?`
+	qargs = append(qargs, limit)
+
+	rows, err := queryRows(q, qargs...)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{
+		"events": rows, "count": len(rows),
+		"since": since, "event_type_filter": eventType,
+	})
+}
+
+// --- LinkedIn sync via CDP ---------------------------------------------------
+
+type cdpTarget struct {
+	ID                   string `json:"id"`
+	Type                 string `json:"type"`
+	Title                string `json:"title"`
+	URL                  string `json:"url"`
+	WebSocketDebuggerURL string `json:"webSocketDebuggerUrl"`
+}
+
+type cdpEnvelope struct {
+	ID     int             `json:"id"`
+	Method string          `json:"method,omitempty"`
+	Params json.RawMessage `json:"params,omitempty"`
+	Result json.RawMessage `json:"result,omitempty"`
+	Error  *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+type cdpSession struct {
+	conn   *websocket.Conn
+	nextID int
+}
+
+func cdpDial(cdpURL string) (*cdpSession, error) {
+	resp, err := http.Get(strings.TrimRight(cdpURL, "/") + "/json")
+	if err != nil {
+		return nil, fmt.Errorf("không kết nối được CDP endpoint %s: %w", cdpURL, err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	var targets []cdpTarget
+	if err := json.Unmarshal(b, &targets); err != nil {
+		return nil, fmt.Errorf("phản hồi CDP /json không hợp lệ: %w", err)
+	}
+	var page *cdpTarget
+	for i := range targets {
+		if targets[i].Type == "page" {
+			page = &targets[i]
+			break
+		}
+	}
+	if page == nil {
+		return nil, fmt.Errorf("không tìm thấy tab Chrome nào đang mở")
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(page.WebSocketDebuggerURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("kết nối WebSocket CDP thất bại: %w", err)
+	}
+	return &cdpSession{conn: conn}, nil
+}
+
+func (s *cdpSession) call(method string, params map[string]interface{}) (json.RawMessage, error) {
+	s.nextID++
+	id := s.nextID
+	paramsJSON, _ := json.Marshal(params)
+	req := cdpEnvelope{ID: id, Method: method, Params: paramsJSON}
+	b, _ := json.Marshal(req)
+	if err := s.conn.WriteMessage(websocket.TextMessage, b); err != nil {
+		return nil, err
+	}
+	for {
+		_, data, err := s.conn.ReadMessage()
+		if err != nil {
+			return nil, err
+		}
+		var resp cdpEnvelope
+		if err := json.Unmarshal(data, &resp); err != nil {
+			continue
+		}
+		if resp.ID != id {
+			continue // notification or reply to an earlier call
+		}
+		if resp.Error != nil {
+			return nil, fmt.Errorf("CDP error: %s", resp.Error.Message)
+		}
+		return resp.Result, nil
+	}
+}
+
+func (s *cdpSession) navigateAndWait(url string, waitMs int) error {
+	if _, err := s.call("Page.enable", nil); err != nil {
+		return err
+	}
+	if _, err := s.call("Page.navigate", map[string]interface{}{"url": url}); err != nil {
+		return err
+	}
+	_, err := s.call("Runtime.evaluate", map[string]interface{}{
+		"expression":   fmt.Sprintf("new Promise(r => setTimeout(r, %d))", waitMs),
+		"awaitPromise": true,
+	})
+	return err
+}
+
+func (s *cdpSession) evalString(expr string) (string, error) {
+	result, err := s.call("Runtime.evaluate", map[string]interface{}{
+		"expression":    expr,
+		"returnByValue": true,
+		"awaitPromise":  true,
+	})
+	if err != nil {
+		return "", err
+	}
+	var wrapped struct {
+		Result struct {
+			Value string `json:"value"`
+		} `json:"result"`
+		ExceptionDetails *struct {
+			Text string `json:"text"`
+		} `json:"exceptionDetails"`
+	}
+	if err := json.Unmarshal(result, &wrapped); err != nil {
+		return "", fmt.Errorf("không parse được kết quả JS: %w", err)
+	}
+	if wrapped.ExceptionDetails != nil {
+		return "", fmt.Errorf("JS exception: %s", wrapped.ExceptionDetails.Text)
+	}
+	return wrapped.Result.Value, nil
+}
+
+// linkedinCard is one connection-invitation card scraped off a My Network page.
+type linkedinCard struct {
+	Href  string   `json:"href"`
+	Lines []string `json:"lines"`
+}
+
+// scrapeJS finds every profile-link anchor, walks up to the nearest ancestor
+// whose text contains marker (e.g. "Withdraw" or "Accept") and is short enough
+// to be a single card (not the whole page), and returns its text lines.
+const scrapeJS = `(function(){
+  function cardFor(a, marker){
+    let el = a;
+    for (let i=0;i<8 && el; i++){
+      el = el.parentElement;
+      if (el && el.innerText && el.innerText.includes(marker) && el.innerText.length < 500) return el;
+    }
+    return null;
+  }
+  const seen = new Set();
+  const out = [];
+  document.querySelectorAll('a[href*="/in/"]').forEach(function(a){
+    if (seen.has(a.href)) return;
+    const card = cardFor(a, %q);
+    if (!card) return;
+    seen.add(a.href);
+    const lines = card.innerText.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+    out.push({href: a.href, lines: lines});
+  });
+  return JSON.stringify(out);
+})()`
+
+func (s *cdpSession) scrapeCards(marker string) ([]linkedinCard, error) {
+	raw, err := s.evalString(fmt.Sprintf(scrapeJS, marker))
+	if err != nil {
+		return nil, err
+	}
+	var cards []linkedinCard
+	if err := json.Unmarshal([]byte(raw), &cards); err != nil {
+		return nil, fmt.Errorf("không parse được danh sách card: %w", err)
+	}
+	return cards, nil
+}
+
+// parseCard extracts name/headline from the raw text lines of one card.
+// Lines are messy (duplicated name, "Sent X ago", "N other mutual connections",
+// button labels) — this keeps only what's reliably identifiable.
+func parseCard(lines []string) (name, headline string) {
+	skip := func(l string) bool {
+		lo := strings.ToLower(l)
+		return strings.HasPrefix(lo, "sent ") ||
+			l == "Withdraw" || l == "Accept" || l == "Ignore" ||
+			strings.Contains(l, "mutual connection")
+	}
+	for _, l := range lines {
+		if skip(l) {
+			continue
+		}
+		if name == "" {
+			name = l
+			continue
+		}
+		if l == name {
+			continue // LinkedIn duplicates the name line for a11y
+		}
+		headline = l
+		break
+	}
+	return name, headline
+}
+
+// messagingScrapeJS reads the LinkedIn Messaging conversation list (left pane).
+// Rows are virtualized — only ~10 are rendered at a time — so this scrolls the
+// list's own scroll container (.msg-conversations-container__conversations-list)
+// step by step, accumulating cards, until it hits a card whose timestamp is not
+// today's "H:MM AM/PM" format (i.e. an older day) or the list stops growing.
+// Bounded to "today" on purpose — this is a daily activity ledger, not a full
+// inbox export, and unbounded scrolling would be slow and needlessly bot-like.
+const messagingScrapeJS = `(async function(){
+  const scroller = document.querySelector('.msg-conversations-container__conversations-list');
+  const timeRe = /^\d{1,2}:\d{2}\s*(AM|PM)$/;
+  const seen = new Map();
+  let hitOld = false;
+  let stableRounds = 0;
+  let lastSize = -1;
+  for (let round = 0; round < 40 && !hitOld; round++) {
+    document.querySelectorAll('.msg-conversation-listitem').forEach(function(card){
+      const lines = card.innerText.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+      if (lines.length === 0) return;
+      const key = lines.slice(0, 2).join("|");
+      if (seen.has(key)) return;
+      if (!lines.some(function(l){ return timeRe.test(l); })) { hitOld = true; return; }
+      seen.set(key, lines);
+    });
+    if (seen.size === lastSize) {
+      stableRounds++;
+      if (stableRounds >= 3) break;
+    } else {
+      stableRounds = 0;
+    }
+    lastSize = seen.size;
+    if (scroller) scroller.scrollTop += scroller.clientHeight;
+    await new Promise(function(r){ setTimeout(r, 350); });
+  }
+  return JSON.stringify(Array.from(seen.values()));
+})()`
+
+func (s *cdpSession) scrapeMessagingCards() ([][]string, error) {
+	raw, err := s.evalString(messagingScrapeJS)
+	if err != nil {
+		return nil, err
+	}
+	var cards [][]string
+	if err := json.Unmarshal([]byte(raw), &cards); err != nil {
+		return nil, fmt.Errorf("không parse được danh sách hội thoại: %w", err)
+	}
+	return cards, nil
+}
+
+var msgTimePattern = regexp.MustCompile(`^\d{1,2}:\d{2}\s*(AM|PM)$`)
+
+// parseMessageCard extracts the participant name and last-message snippet from
+// one conversation-list row. A "You:" prefix on the snippet means the last
+// message was sent by us (outbound); its absence means they replied.
+func parseMessageCard(lines []string) (name, snippet string, outbound bool) {
+	skip := func(l string) bool {
+		return strings.HasPrefix(l, "Status is") ||
+			strings.HasPrefix(l, ". Press return") ||
+			strings.HasPrefix(l, "Open the options list") ||
+			msgTimePattern.MatchString(l)
+	}
+	for _, l := range lines {
+		if skip(l) {
+			continue
+		}
+		if name == "" {
+			name = l
+			continue
+		}
+		if l == name {
+			continue
+		}
+		snippet = l
+		break
+	}
+	if strings.HasPrefix(snippet, "You:") {
+		return name, strings.TrimSpace(strings.TrimPrefix(snippet, "You:")), true
+	}
+	return name, snippet, false
+}
+
+func outreachSync(args []string) {
+	conn := loadConnections()
+	cdpURL := conn.LinkedIn.CDPUrl
+	if cdpURL == "" {
+		errOut("chưa cấu hình linkedin.cdp_url — chạy: sme-cli config set linkedin.cdp_url http://<host>:<port>")
+		return
+	}
+
+	sess, err := cdpDial(cdpURL)
+	if err != nil {
+		errOut("LinkedIn sync unavailable: " + err.Error())
+		return
+	}
+	defer sess.conn.Close()
+
+	orgID := defaultOrgID()
+	now := vnNowISO()
+	summary := map[string]int{}
+	var errs []string
+
+	sync := func(url, marker, eventType string) {
+		if err := sess.navigateAndWait(url, 3500); err != nil {
+			errs = append(errs, eventType+": "+err.Error())
+			return
+		}
+		cards, err := sess.scrapeCards(marker)
+		if err != nil {
+			errs = append(errs, eventType+": "+err.Error())
+			return
+		}
+		for _, c := range cards {
+			name, headline := parseCard(c.Lines)
+			fp := outreachFingerprint(orgID, "linkedin", eventType, c.Href)
+			res, err := mustDB().Exec(`
+				INSERT INTO outreach_events
+					(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at)
+				VALUES (?, ?, 'linkedin', ?, ?, ?, ?, '', 'sync', ?, ?, ?)
+				ON CONFLICT(org_id, fingerprint) DO NOTHING
+			`, newID(), orgID, eventType, c.Href, name, headline, fp, now, now)
+			if err != nil {
+				errs = append(errs, err.Error())
+				continue
+			}
+			if n, _ := res.RowsAffected(); n > 0 {
+				summary[eventType]++
+			}
+		}
+	}
+
+	sync("https://www.linkedin.com/mynetwork/invitation-manager/sent/", "Withdraw", "connection_request_sent")
+	sync("https://www.linkedin.com/mynetwork/invitation-manager/", "Accept", "connection_request_received")
+
+	// Messaging: no stable per-conversation ID is available from the list view
+	// (LinkedIn's DOM ids are framework-generated and change every page load),
+	// so fingerprint is scoped per participant PER DAY instead of forever —
+	// a new "sent"/"reply" signal for the same person on a later day is a new event.
+	if err := sess.navigateAndWait("https://www.linkedin.com/messaging/", 3500); err != nil {
+		errs = append(errs, "messaging: "+err.Error())
+	} else if cards, err := sess.scrapeMessagingCards(); err != nil {
+		errs = append(errs, "messaging: "+err.Error())
+	} else {
+		today := vnToday()
+		for _, lines := range cards {
+			name, snippet, outbound := parseMessageCard(lines)
+			if name == "" {
+				continue
+			}
+			eventType := "message_reply_received"
+			if outbound {
+				eventType = "message_sent"
+			}
+			fp := outreachFingerprint(orgID, "linkedin", eventType, name+"|"+today)
+			res, err := mustDB().Exec(`
+				INSERT INTO outreach_events
+					(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at)
+				VALUES (?, ?, 'linkedin', ?, '', ?, '', ?, 'sync', ?, ?, ?)
+				ON CONFLICT(org_id, fingerprint) DO NOTHING
+			`, newID(), orgID, eventType, name, snippet, fp, now, now)
+			if err != nil {
+				errs = append(errs, err.Error())
+				continue
+			}
+			if n, _ := res.RowsAffected(); n > 0 {
+				summary[eventType]++
+			}
+		}
+	}
+
+	conn.LinkedIn.LastSyncAt = now
+	saveConnections(conn)
+
+	out := map[string]interface{}{
+		"ok": len(errs) == 0, "synced_at": now, "new_events": summary,
+	}
+	if len(errs) > 0 {
+		out["errors"] = errs
+		out["note"] = "Một phần sync lỗi — số liệu chỉ tính tới thời điểm sync thành công gần nhất, KHÔNG coi phần lỗi là 0."
+	}
+	jsonOut(out)
+}

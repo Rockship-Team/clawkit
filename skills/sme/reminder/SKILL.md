@@ -1,21 +1,31 @@
 ---
 name: sme-reminder
-description: "Cross-cutting trigger engine cho 4 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi' → fetch live data, categorize cells, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler."
+description: "Cross-cutting trigger engine cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
 
-# SME Reminder — Trigger Engine Cho 4 Lifecycle
+# SME Reminder — Trigger Engine Cho 5 Lifecycle
 
 Skill nay la **orchestrator**. No khong tu action — no fetch live state tu cac lifecycle + suggest nen lam gi, roi user chot thi **hand-off sang skill chuyen trach**.
 
-4 lifecycle ma skill theo doi:
+5 lifecycle ma skill theo doi:
 
 | Lifecycle | Data source | Hand-off toi |
 |---|---|---|
-| **Engagement** (BD outreach daily) | `sme-cli cosmo daily-plan` | `sme-engagement` / `sme-crm` |
+| **Engagement** (BD outreach daily qua COSMO) | `sme-cli cosmo daily-plan` | `sme-engagement` / `sme-crm` |
 | **Sales** (proposal / meeting) | `sme-cli cosmo daily-plan` cells `PROPOSAL_*` / `MEETING_*` | `sme-proposal` / `sme-engagement` |
 | **Event** (prep + post) | `sme-cli event list` + event metadata | `sme-campaign` (event flow A) |
 | **Marketing** (content cadence) | `sme-cli social upcoming` | `sme-marketing` |
+| **Outreach** (LinkedIn connection/message activity) | `sme-cli outreach today` / `pending` / `list` / `funnel` | `sme-outreach` |
+
+### ⚠️ Phân biệt "outreach" — 2 nghĩa khác nhau trong skill này
+
+Từ "outreach" xuất hiện ở CẢ Engagement lẫn lifecycle mới "Outreach", dễ nhầm:
+
+- **"hôm nay outreach ai" / "ai cần liên hệ hôm nay"** (câu hỏi GỢI Ý — chưa biết làm gì, hỏi bot đề xuất) → đây là **Engagement**, dùng `sme-cli cosmo daily-plan` như cũ, KHÔNG liên quan `sme-outreach`.
+- **"hôm nay outreach được bao nhiêu người" / "tóm tắt tin nhắn hôm nay" / "sync linkedin" / "connection request tuần này" / "ai đã reply"** (câu hỏi SỐ LIỆU HOẠT ĐỘNG đã làm, đặc biệt nhắc LinkedIn/connection/tin nhắn) → đây là lifecycle **Outreach**, dùng `sme-cli outreach ...`, hand-off `sme-outreach` khi cần chi tiết/action.
+
+Nếu không chắc câu hỏi thuộc loại nào, ưu tiên hỏi lại 1 câu ngắn thay vì đoán sai lifecycle.
 
 ## TRIGGER — Match rong, khong wait clarification
 
@@ -41,6 +51,12 @@ Kich hoat NGAY khi message khop bat ky pattern:
 - Chua `content tuan nay` / `bai dang tuan nay`
 - Chua `post nao chua` / `slot nao trong`
 - Chua `marketing hom nay` / `content hom nay`
+
+### Outreach triggers (LinkedIn — xem ⚠️ phan biet o tren truoc khi match)
+
+- Chua `hom nay outreach duoc bao nhieu` / `sync linkedin` / `tom tat tin nhan hom nay`
+- Chua `connection request tuan nay` / `bao nhieu nguoi accept` / `bao nhieu nguoi reply`
+- Chua `ai vua reply linkedin` / `pending invitation` / `outreach tuan nay the nao`
 
 ### English
 
@@ -225,6 +241,17 @@ sme-cli event list --filter recent     # events <3 ngay truoc, check thank-you
 ```bash
 sme-cli social upcoming --days 7
 ```
+
+**Outreach (LinkedIn):**
+
+```bash
+sme-cli outreach sync              # cập nhật data mới nhất trước khi report
+sme-cli outreach today             # số liệu hôm nay
+sme-cli outreach pending           # connection request đang chờ xử lý
+sme-cli outreach list --event-type message_reply_received --days 1   # ai vừa reply
+```
+
+Chi tiết format Morning/EOD/Weekly cho outreach — xem `sme-outreach` SKILL.md, đừng tự bịa format riêng ở đây.
 
 ### Step 2 — Format ra chat (data-aware, khong mechanical)
 
@@ -529,6 +556,7 @@ Moi reply ket thuc bang:
 | "Prep event", "tao checklist event" | `sme-campaign` (event flow A) |
 | "Soan content", "viet bai FB" | `sme-marketing` |
 | "Gui thank-you sau event" | `sme-campaign` (follow_up flow D) |
+| "Sync linkedin", "list connection request", "soan reply cho ai vua tra loi" | `sme-outreach` |
 
 ## EVENT-SPECIFIC FLOW
 
@@ -619,7 +647,8 @@ Anh muon em action nhom nao?
 1. `sme-cli cosmo daily-plan --mode morning`
 2. `sme-cli event list --filter recent` — check event cũ chưa có attendee
 3. `sme-cli kpi check` — lấy KPI tuần nếu đã đặt
-4. Tổng hợp theo THỨ TỰ PRIORITY, gửi Telegram group:
+4. `sme-cli outreach sync` + `sme-cli outreach pending` + `sme-cli outreach list --event-type message_reply_received --days 1` — số liệu LinkedIn hôm nay
+5. Tổng hợp theo THỨ TỰ PRIORITY, gửi Telegram group:
 
 ```
 Sáng anh, em đây 👋
@@ -633,6 +662,10 @@ Alex Lim, Chị Giang...) — cần push tuần này.
 
 💬 22 khách In Discussion chưa có next_step — em
 lọc danh sách để anh assign không?
+
+🔗 LinkedIn: {N} connection request đã gửi, {R} người
+đã reply hôm qua (vd anh A, chị B) — anh muốn em soạn
+reply cho ai không? {K} connection request đang chờ accept.
 
 [Nếu KPI đã đặt]: 📊 KPI tuần: target 5 contract, 
 đã có 2 — còn thiếu 3.
@@ -658,3 +691,4 @@ Khong can config ngoai `sme-cli config set cosmo.*` (setup khi install sme-crm).
 - **`sme-proposal`**: render proposal + send PDF.
 - **`sme-reminder`** (skill nay): plan/suggest — "ai + lam gi khi nao" — hand-off skill khac execute.
 - **`sme-scheduler`**: pure time-based cron (nhac toi 18h, moi ngay 9h, huy reminder). KHONG fetch data.
+- **`sme-outreach`**: outbound activity ledger cho LinkedIn (connection request, message, reply) — so lieu HOAT DONG DA LAM, khac voi Engagement (goi y NEN lam gi tiep theo tu COSMO). Skill nay chi fetch summary tu `sme-outreach`, KHONG tu lam lai logic scrape/parse.

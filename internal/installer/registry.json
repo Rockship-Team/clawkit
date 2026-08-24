@@ -257,6 +257,10 @@
       ],
       "version": "1.0.0"
     },
+    "outreach": {
+      "description": "Theo dõi hoạt động outbound/prospecting theo channel — hiện tại LinkedIn (connection request sent/received qua sync tự động, read-only) + log tay cho channel khác (cold call, demo, event, walkthrough, meeting). Trigger khi user hỏi 'hôm nay outreach bao nhiêu', 'sync LinkedIn', 'connection request tuần này', 'log 5 cold call', 'còn ai chưa follow-up sau khi connect'. KHÔNG phải CRM (contact/stage — dùng sme-crm), KHÔNG phải conversion sau khi đã kết nối (dùng sme-engagement), KHÔNG phải target (dùng sme-kpi).",
+      "version": "1.0.0"
+    },
     "pre-departure": {
       "description": "Guide Vietnamese students through all pre-departure steps after accepting an admission offer — covering USA (F-1/I-20/SEVIS/DS-160), UK (Student Visa/CAS/BRP), Canada (Study Permit/CAQ), and Australia (Student Visa subclass 500/CoE). Use this skill whenever a student mentions 'visa', 'F-1', 'I-20', 'SEVIS', 'DS-160', 'Student Visa UK', 'CAS', 'Study Permit Canada', 'visa Úc', 'CoE', 'chuẩn bị đi học', 'trước khi đi', 'chỗ ở', 'ký túc xá', 'bảo hiểm', 'vé máy bay', 'orientation', or has accepted an admission offer.",
       "requires_bins": [
@@ -283,7 +287,7 @@
       ]
     },
     "reminder": {
-      "description": "Cross-cutting trigger engine cho 4 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi' → fetch live data, categorize cells, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler.",
+      "description": "Cross-cutting trigger engine cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler.",
       "version": "1.0.0"
     },
     "rockship-support": {
@@ -382,7 +386,7 @@
   },
   "groups": {
     "self-improving-agent": ["agent-learner","knowledge-vault"],
-    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","ops","proposal","reminder","sales","scheduler","strategy","tax"],
+    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","ops","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

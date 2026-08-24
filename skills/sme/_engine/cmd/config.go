@@ -62,6 +62,12 @@ type Connections struct {
 	Apollo struct {
 		APIKey string `json:"api_key"`
 	} `json:"apollo"`
+
+	// LinkedIn (read-only, via a locally-running Chrome CDP endpoint)
+	LinkedIn struct {
+		CDPUrl     string `json:"cdp_url"`
+		LastSyncAt string `json:"last_sync_at"`
+	} `json:"linkedin"`
 }
 
 func loadConnections() Connections {
@@ -168,6 +174,8 @@ func cmdConfig(args []string) {
 			c.COSMO.AuthEmail = val
 		case "apollo.api_key":
 			c.Apollo.APIKey = val
+		case "linkedin.cdp_url":
+			c.LinkedIn.CDPUrl = val
 		default:
 			errOut("unknown config key: " + key)
 		}
@@ -202,6 +210,8 @@ func cmdConfig(args []string) {
 			val = c.COSMO.AuthEmail
 		case "apollo.api_key":
 			val = c.Apollo.APIKey
+		case "linkedin.cdp_url":
+			val = c.LinkedIn.CDPUrl
 		default:
 			errOut("unknown config key: " + key)
 		}

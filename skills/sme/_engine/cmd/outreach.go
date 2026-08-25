@@ -76,6 +76,29 @@ func ensureOutreachTable() {
 		created_at  TEXT NOT NULL,
 		UNIQUE(org_id, fingerprint)
 	)`)
+	// Additive-only migration (Phase 2 execution gate): a nullable campaign_id
+	// so a manually-executed LinkedIn action (Campaign channel=linkedin has no
+	// automated send — see campaign.go) can be traced back to the campaign
+	// that produced it. Never NOT NULL/default, never backfilled — existing
+	// rows are untouched, no new table, no risk to old data.
+	ensureColumn("outreach_events", "campaign_id", "TEXT")
+}
+
+// ensureColumn adds a nullable column to an existing table if it isn't
+// already there — checked via PRAGMA table_info rather than relying on a
+// driver-specific "duplicate column" error string, so this is safe to call
+// on every startup.
+func ensureColumn(table, column, sqlType string) {
+	rows, err := queryRows(fmt.Sprintf("PRAGMA table_info(%s)", table))
+	if err != nil {
+		return
+	}
+	for _, r := range rows {
+		if fmt.Sprint(r["name"]) == column {
+			return
+		}
+	}
+	mustDB().Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, sqlType))
 }
 
 // ensureOutreachClassificationTable holds the Engagement Unified Taxonomy
@@ -113,6 +136,7 @@ func outreachLogEvent(args []string) {
 	headline := ""
 	note := ""
 	count := 1
+	campaignID := ""
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -137,6 +161,9 @@ func outreachLogEvent(args []string) {
 			if err == nil && n > 0 {
 				count = n
 			}
+		case "--campaign-id":
+			i++
+			campaignID = args[i]
 		}
 	}
 
@@ -151,9 +178,9 @@ func outreachLogEvent(args []string) {
 		id := newID()
 		_, err := mustDB().Exec(`
 			INSERT INTO outreach_events
-				(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at)
-			VALUES (?, ?, ?, ?, '', ?, ?, ?, 'manual', ?, ?, ?)
-		`, id, orgID, channel, eventType, name, headline, note, id, now, now)
+				(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at, campaign_id)
+			VALUES (?, ?, ?, ?, '', ?, ?, ?, 'manual', ?, ?, ?, ?)
+		`, id, orgID, channel, eventType, name, headline, note, id, now, now, nullableString(campaignID))
 		if err != nil {
 			errOut(err.Error())
 			return
@@ -161,9 +188,19 @@ func outreachLogEvent(args []string) {
 	}
 
 	okOut(map[string]interface{}{
-		"channel": channel, "event_type": eventType, "count": count,
+		"channel": channel, "event_type": eventType, "count": count, "campaign_id": campaignID,
 		"message": fmt.Sprintf("Đã ghi %d event '%s' (%s)", count, eventType, channel),
 	})
+}
+
+// nullableString returns nil for an empty string so an optional column
+// stores SQL NULL instead of an empty-string sentinel — keeps "no campaign
+// linked" distinguishable from "linked to an empty-string id".
+func nullableString(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 // --- Reporting -------------------------------------------------------------

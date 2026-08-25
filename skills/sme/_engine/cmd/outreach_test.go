@@ -2,6 +2,19 @@ package main
 
 import "testing"
 
+// TestNullableStringDistinguishesEmptyFromUnset proves an empty --campaign-id
+// (the common case — most outreach_events have no campaign) stores real SQL
+// NULL rather than an empty-string sentinel, so "no campaign linked" and
+// "linked to a campaign whose id happens to be empty" can never be confused.
+func TestNullableStringDistinguishesEmptyFromUnset(t *testing.T) {
+	if got := nullableString(""); got != nil {
+		t.Fatalf("nullableString(\"\") = %v, want nil", got)
+	}
+	if got := nullableString("abc-123"); got != "abc-123" {
+		t.Fatalf("nullableString(\"abc-123\") = %v, want \"abc-123\"", got)
+	}
+}
+
 func TestOutreachFingerprintStableAndUnique(t *testing.T) {
 	a := outreachFingerprint("default", "linkedin", "connection_request_sent", "https://www.linkedin.com/in/foo/")
 	b := outreachFingerprint("default", "linkedin", "connection_request_sent", "https://www.linkedin.com/in/foo/")

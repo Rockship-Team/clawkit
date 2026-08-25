@@ -24,7 +24,7 @@ Skill này trả lời **"WHAT HAPPENED IN OUTBOUND"** — activity/event ledger
 
 ```bash
 sme-cli outreach sync                    # đọc LinkedIn qua CDP, ghi event mới (idempotent — sync nhiều lần không trùng)
-sme-cli outreach log-event --event-type X --channel Y [--name N] [--headline H] [--note N] [--count N]
+sme-cli outreach log-event --event-type X --channel Y [--name N] [--headline H] [--note N] [--count N] [--campaign-id ID]
 sme-cli outreach today                   # số event hôm nay, group theo channel + event_type
 sme-cli outreach funnel [--days N]       # số event N ngày gần đây (default 7)
 sme-cli outreach pending                 # connection request người khác gửi cho mình, chưa xử lý ở lần sync gần nhất
@@ -72,9 +72,10 @@ Dùng khi user hỏi "ai chưa follow-up sau khi connect", "ai gửi tin rồi m
 **Campaign LinkedIn channel (Phase 2C):** khi `sme-campaign activate` đánh dấu 1 campaign channel=linkedin
 là `ready_for_manual_send`, KHÔNG có auto-send nào xảy ra (skill này vẫn read-only, không có khả năng gửi —
 xem "SYNC LINKEDIN" bên dưới). Con người tự gửi thủ công theo cadence campaign đã lưu, rồi log lại kết quả
-qua `sme-cli outreach log-event` như bình thường — KHÔNG có cơ chế liên kết event với `campaign_id` (schema
-`outreach_events` hiện lưu theo `name` cào từ LinkedIn, không có `contact_id`/`campaign_id` — biết trước để
-không tự suy diễn liên kết không đáng tin).
+qua `sme-cli outreach log-event ... --campaign-id <id>` để trace được action nào thuộc campaign nào (Phase 2
+execution gate — cột `campaign_id` nullable, thêm sau, KHÔNG bắt buộc, KHÔNG backfill dữ liệu cũ). `name` vẫn
+là cào từ LinkedIn (không phải `contact_id` COSMO thật) — không tự suy diễn liên kết contact chính xác hơn
+những gì `campaign_id` cho phép.
 
 ## SYNC LINKEDIN — read-only, chỉ khi user yêu cầu
 

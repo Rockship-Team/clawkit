@@ -187,6 +187,23 @@ func outreachToday(args []string) {
 	})
 }
 
+// outreachFunnelData is the data-returning core of `outreach funnel` —
+// extracted so sme-analytics can reuse the exact same query (channel
+// comparison / bottleneck detection must never duplicate this SQL or risk
+// the two reports disagreeing on numbers).
+func outreachFunnelData(days int) (rows []map[string]interface{}, since string, err error) {
+	orgID := defaultOrgID()
+	since = vnNow().AddDate(0, 0, -days).Format("2006-01-02")
+	rows, err = queryRows(`
+		SELECT channel, event_type, COUNT(*) as count
+		FROM outreach_events
+		WHERE org_id = ? AND substr(occurred_at, 1, 10) >= ?
+		GROUP BY channel, event_type
+		ORDER BY channel, event_type
+	`, orgID, since)
+	return rows, since, err
+}
+
 func outreachFunnel(args []string) {
 	days := 7
 	for i := 0; i < len(args); i++ {
@@ -198,16 +215,7 @@ func outreachFunnel(args []string) {
 			}
 		}
 	}
-	orgID := defaultOrgID()
-	since := vnNow().AddDate(0, 0, -days).Format("2006-01-02")
-
-	rows, err := queryRows(`
-		SELECT channel, event_type, COUNT(*) as count
-		FROM outreach_events
-		WHERE org_id = ? AND substr(occurred_at, 1, 10) >= ?
-		GROUP BY channel, event_type
-		ORDER BY channel, event_type
-	`, orgID, since)
+	rows, since, err := outreachFunnelData(days)
 	if err != nil {
 		errOut(err.Error())
 		return

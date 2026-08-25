@@ -20,14 +20,25 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
 
 ## 8 Core GTM Business Skills
 
-### 1. `sme-intelligence` *(Phase 2 — chưa có skill riêng)*
-- **Responsibility:** ICP definition, account/contact research, enrichment, qualification criteria, scoring, pain hypothesis — tín hiệu **account-level, trước/ngoài hội thoại**.
-- **Input:** company/contact identifier, industry/segment.
-- **Output:** ICP fit score, enrichment data, pain hypothesis, qualification criteria.
-- **Owns:** logic scoring/pain-hypothesis (khi build ở Phase 2).
-- **Does NOT own:** conversation-level intent/sentiment (→ `sme-engagement`), contact identity storage (→ `sme-crm`).
-- **Dependency:** `sme-crm`, COSMO/Apollo (external).
-- **Hiện tại (tạm thời):** logic nằm rải rác trong `cosmo_ai.go` (ICP/relationship score proxy COSMO) + Apollo enrich qua `sme-crm` delegate. Chưa MOVE, chưa CREATE skill riêng ở Phase 1.
+### 1. `sme-intelligence` *(Phase 2B — đã build, xem `intelligence/SKILL.md`)*
+- **Responsibility:** ICP interpretation, account/contact research orchestration, account-level buying signals,
+  pain hypothesis, early qualification, recommended positioning angle — tín hiệu **account-level, trước/ngoài
+  hội thoại**.
+- **Input:** company name/domain (+ `--org-id` Apollo sau khi disambiguate).
+- **Output:** `sme-cli intelligence account` — signals (evidence-gated), pain_hypotheses (luôn đánh dấu là
+  hypothesis), qualification (high/medium/low/insufficient_data — `unknown` KHÔNG BAO GIỜ = disqualified),
+  target_personas, recommended_angle.
+- **Owns:** facade/orchestration logic nối các capability đã có lại với nhau — KHÔNG viết lại ICP scoring,
+  relationship scoring, hay Apollo research (xem bảng REUSE trong `intelligence/SKILL.md`).
+- **Does NOT own:** outreach execution (→ `sme-outreach`), campaign execution (→ `sme-campaign`), reply
+  intent (→ `sme-engagement`), deal stage/readiness (→ `sme-opportunity`), CRM persistence (→ `sme-crm`), KPI
+  (→ `sme-analytics`).
+- **Dependency:** `sme-crm` (qua `resolveOpportunityContacts`/COSMO search), Apollo (`apollo.go`),
+  `sme-opportunity` (proposal tiers làm "relevant offering" reference).
+- **Known limitation (Phase 2B audit):** `/v1/intelligence/vector-search/*` path đã fix (trước đó gọi sai path,
+  404) nhưng backend hiện 500 do OpenAI embedding key bị 401 — vấn đề COSMO backend, KHÔNG phải client bug,
+  chưa dùng được. Intelligence KHÔNG phụ thuộc endpoint này — dùng Apollo + `cosmoContactsSearch` (filter-based)
+  làm nguồn chính.
 
 ### 2. `sme-campaign`
 - **Responsibility:** campaign objective, segment, channel, cadence/sequence, messaging angle, follow-up strategy, campaign KPI.
@@ -77,12 +88,21 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
 - **Does NOT own:** quyết định deal context/next-step (link `sme-opportunity` — đánh giá readiness trước khi gửi, hiện contact_id vẫn là khóa chính).
 - **Dependency:** `sme-crm`, `sme-opportunity`.
 
-### 8. `sme-analytics` *(Phase 2 — chưa có skill riêng)*
-- **Responsibility:** hợp nhất KPI + funnel + hiệu suất campaign/channel + recommendation.
-- **Owns (khi build):** báo cáo tổng hợp dùng lại `sme-cli kpi` + `sme-cli outreach funnel` nguyên trạng.
-- **Does NOT own:** `sme-bi` (skill khác hẳn, gán agent `intel`, dùng bảng `sales` cục bộ — KHÔNG PHẢI cùng nguồn dữ liệu, KHÔNG merge vào analytics này).
-- **Dependency:** `sme-kpi`, `sme-outreach`.
-- **Hiện tại (tạm thời):** user tự gọi `sme-cli kpi check`/`sme-cli outreach funnel` riêng lẻ, chưa có 1 report hợp nhất.
+### 8. `sme-analytics` *(Phase 2B — đã build, thin aggregation, xem `analytics/SKILL.md`)*
+- **Responsibility:** hợp nhất KPI + outreach funnel + so sánh hiệu suất channel + bottleneck detection +
+  recommendation dựa trên số liệu đo được thật.
+- **Owns:** `sme-cli analytics summary` — pivot lại đúng data đã có (`kpiTeamData`/`kpiActualData`/
+  `outreachFunnelData`, các hàm data-returning được extract ra từ `kpi.go`/`outreach.go` để tái dùng nguyên
+  query, không viết lại). Bottleneck's Qualified/Proposal count lấy từ COSMO `business_stage` qua
+  `fetchAllContacts` (cùng cơ chế pagination đã fix ở Phase 2B COSMO audit).
+- **Does NOT own:** `sme-bi` (skill khác hẳn, gán agent `intel`, dùng bảng `sales` cục bộ — KHÔNG PHẢI cùng
+  nguồn dữ liệu, KHÔNG merge vào analytics này); campaign performance thật (Campaign Engine chưa build —
+  trả cố định `"unavailable_until_campaign_engine"`, Phase 2C).
+- **Dependency:** `sme-kpi`, `sme-outreach`, `sme-opportunity`/COSMO (`business_stage` cho bottleneck).
+- **Kỷ luật "không bịa số":** reply_rate/recommendation không có benchmark tuyệt đối bịa ra (không field
+  reply-rate-target nào trong `weekly_kpis`) — recommendation chỉ so sánh TƯƠNG ĐỐI giữa các channel có đủ
+  volume thật (≥5 tin nhắn, chênh lệch ≥10 điểm %). "Research" stage bị bỏ khỏi bottleneck có chủ đích — chưa
+  có nguồn dữ liệu nào ghi nhận "đã research nhưng chưa liên hệ".
 
 ## Ghi chú Phase 1
 
@@ -93,6 +113,16 @@ opportunity/analytics). Đây thuần là tài liệu ranh giới để Phase 2/
 
 `sme-opportunity` đã build (mục 5) — lightweight aggregation view, KHÔNG bảng mới. Pipeline code-level
 LinkedIn reply → `sme-outreach` → `sme-engagement` taxonomy → `sme-opportunity` đã nối (mục 3, 4, 5).
-Proposal pricing đã config-hoá (mục 7), fallback y hệt giá trị cũ. `sme-intelligence`, `sme-analytics`,
-`sme-campaign` (CLI thực thi), LinkedIn accepted detection, autonomous outreach **vẫn CHƯA implement** —
-để Phase 2B/2C/Future, không nằm trong phạm vi Phase 2A.
+Proposal pricing đã config-hoá (mục 7), fallback y hệt giá trị cũ.
+
+## Ghi chú Phase 2B (Intelligence + Analytics — đã build)
+
+`sme-intelligence` (mục 1) và `sme-analytics` (mục 8) đã build — cả 2 đều là facade/thin-aggregation, KHÔNG
+tạo entity/database mới. Trong lúc audit trước khi build, phát hiện + fix 1 loạt bug client-side ở
+`cosmo.go`/`cosmo_plan.go`/`cosmo_ai.go`/`opportunity.go` (COSMO `/v2/contacts/search` gửi sai request shape
+— filter/pagination bị silently ignored, ảnh hưởng cả `daily-plan`/`sme-opportunity`; `/v1/intelligence/
+vector-search/*` gọi sai path). Test isolation cũng đã fix (`SME_DATA_DIR` giờ điều khiển thật cả `sme.db`/
+`connections.json`, không chỉ data JSON tĩnh). Xem `intelligence/SKILL.md`, `analytics/SKILL.md` cho chi tiết.
+
+`sme-campaign` (CLI thực thi), LinkedIn accepted detection, autonomous outreach, Campaign performance thật
+**vẫn CHƯA implement** — để Phase 2C/Future, không nằm trong phạm vi Phase 2A/2B.

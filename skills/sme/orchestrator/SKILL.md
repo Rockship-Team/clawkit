@@ -24,13 +24,14 @@ mới do user đưa ra ngay lúc đó.
 | Ví dụ request | Đi thẳng vào |
 |---|---|
 | "Viết proposal cho ABC" | `sme-proposal` |
-| "Xem KPI outreach tuần này" | `sme-analytics` (nếu đã có) hoặc `sme-kpi`/`sme-outreach funnel` |
+| "Xem KPI outreach tuần này" | `sme-kpi`/`sme-outreach funnel` (số đơn lẻ) hoặc `sme-analytics` (muốn tổng hợp + bottleneck) |
 | "Sync linkedin" | `sme-outreach` |
 | "Soạn bài FB tuần này" | `sme-marketing` |
 | "Search contact tên X" | `sme-crm` |
 | "Nhắc tôi lúc 6h chiều" | `sme-scheduler` |
 | "Nhắc tôi" (báo cáo trạng thái hiện tại) | `sme-reminder` (Briefing) |
 | "Deal này đang ở đâu / có nên gửi proposal chưa" (1 contact cụ thể) | `sme-opportunity` |
+| "Phân tích công ty X, có đáng target không" (1 account cụ thể, chưa phải multi-step goal) | `sme-intelligence` |
 
 **Nguyên tắc:** nếu 1 skill khác đã có trigger phrase khớp rõ ràng với request, để skill đó tự xử lý —
 KHÔNG kích hoạt orchestrator "cho chắc". Tránh double-trigger (2 skill cùng trả lời 1 request).
@@ -61,14 +62,14 @@ thay vì tự giữ bản sao riêng:
 
 | Nhu cầu | Skill | Ghi chú |
 |---|---|---|
-| ICP, account/contact research, enrichment, scoring, pain hypothesis | `sme-intelligence` (Phase 2 — hiện chưa có skill riêng, tạm dùng `sme-crm` cho enrich/search + Apollo) | Xem `GTM_ARCHITECTURE.md` |
+| Account nên target không, tại sao, buying signal, pain hypothesis (pre-conversation) | `sme-intelligence` | Facade — reuse ICP/relationship score + Apollo, xem `intelligence/SKILL.md`. KHÔNG tự gửi outreach |
 | Campaign objective/segment/cadence/messaging, kích hoạt campaign | `sme-campaign` | Lưu ý: CLI thực thi 1 phần chưa build (Phase 2), `segment.*` đã chạy qua `sme-crm` |
 | LinkedIn connection/message/reply, activity log | `sme-outreach` | |
 | Reply analysis, intent/sentiment/objection, meeting prep/follow-up | `sme-engagement` | Chủ sở hữu Unified Taxonomy — xem `engagement/SKILL.md`. Qualification/stage/readiness → `sme-opportunity`, không còn ở đây |
 | Qualification/opportunity stage/deal risk/next-step/proposal readiness/WON-LOST (deal-level) | `sme-opportunity` | Read-only aggregation view (`sme-cli opportunity view/risk-list`) — không phải bảng DB mới, xem `opportunity/SKILL.md` |
 | Content strategy/generation, campaign asset | `sme-marketing` | |
 | Sinh + gửi proposal | `sme-proposal` | |
-| KPI/funnel/hiệu suất, recommendation | `sme-analytics` (Phase 2 — hiện tạm dùng `sme-kpi` + `sme-outreach funnel` trực tiếp) | KHÔNG nhầm với `sme-bi` (agent `intel`, data khác hẳn) |
+| KPI/funnel/hiệu suất, bottleneck, recommendation | `sme-analytics` | Thin aggregation qua `sme-cli analytics summary` — xem `analytics/SKILL.md`. KHÔNG nhầm với `sme-bi` (agent `intel`, data khác hẳn) |
 | Contact/company data, stage field, segment | `sme-crm` | Shared service, không phải business skill |
 | Báo cáo Morning/EOD/Weekly, overdue, priority alert | `sme-reminder` (Briefing) | Không tự quyết định routing/approval |
 | Nhắc theo giờ cụ thể user tự đặt | `sme-scheduler` | Time-based thuần, không fetch data |

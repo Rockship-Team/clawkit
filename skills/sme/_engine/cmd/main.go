@@ -36,6 +36,10 @@ func main() {
 		cmdOutreach(os.Args[2:])
 	case "opportunity":
 		cmdOpportunity(os.Args[2:])
+	case "intelligence":
+		cmdIntelligence(os.Args[2:])
+	case "analytics":
+		cmdAnalytics(os.Args[2:])
 	// Self-improvement
 	case "cron-health":
 		cmdCronHealth(os.Args[2:])
@@ -105,6 +109,8 @@ Social:      social buckets|voice|formats|next-slot|draft|update|get|list|schedu
 KPI:         kpi set|get|list|check
 Outreach:    outreach sync|log-event|today|funnel|pending|reply-context|log-classification|classified|stale
 Opportunity: opportunity view|risk-list
+Intelligence: intelligence account <company> [--org-id ID]
+Analytics:    analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]
 Self-improve: cron-health log|check|autofix|list
 Measure:      action-log suggest|done|skip|rate|pending|auto-check
 Accounting:  invoice, payment, bank, cashflow, expense

@@ -276,6 +276,21 @@ func kpiCheck(args []string) {
 	jsonOut(row)
 }
 
+// kpiTeamData is the data-returning core of `kpi team` — extracted so
+// sme-analytics can reuse the exact same targets query instead of a second,
+// possibly-drifting copy.
+func kpiTeamData(week string) (rows []map[string]interface{}, start, end string, err error) {
+	start, end, _ = weekBounds(week)
+	rows, err = queryRows(`
+		SELECT member, contracts_target, proposals_target, meetings_target,
+		       contacts_target, revenue_target, set_by, updated_at
+		FROM weekly_kpis
+		WHERE org_id = 'default' AND week_label = ?
+		ORDER BY member
+	`, week)
+	return rows, start, end, err
+}
+
 // kpiTeam — tổng hợp KPI của toàn team BD trong tuần
 func kpiTeam(args []string) {
 	week := isoWeekLabel(vnNow())
@@ -284,15 +299,7 @@ func kpiTeam(args []string) {
 			i++; week = args[i]
 		}
 	}
-	start, end, _ := weekBounds(week)
-
-	rows, err := queryRows(`
-		SELECT member, contracts_target, proposals_target, meetings_target,
-		       contacts_target, revenue_target, set_by, updated_at
-		FROM weekly_kpis
-		WHERE org_id = 'default' AND week_label = ?
-		ORDER BY member
-	`, week)
+	rows, start, end, err := kpiTeamData(week)
 	if err != nil {
 		errOut(err.Error())
 		return
@@ -310,22 +317,11 @@ func kpiTeam(args []string) {
 	})
 }
 
-// kpiActual — lấy actual từ COSMO interactions trong tuần
-func kpiActual(args []string) {
-	week := isoWeekLabel(vnNow())
-	member := ""
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--week":
-			i++; week = args[i]
-		case "--member":
-			i++; member = args[i]
-		}
-	}
-	start, end, _ := weekBounds(week)
-
-	// Query local DB cho interactions trong tuần
-	// (COSMO interactions được log qua sme-cli cosmo log-interaction)
+// kpiActualData is the data-returning core of `kpi actual` — same query
+// sme-analytics reuses for the KPI-summary section, so the two commands can
+// never silently disagree on actual numbers.
+func kpiActualData(week, member string) (rows []map[string]interface{}, start, end string, hasData bool, err error) {
+	start, end, _ = weekBounds(week)
 	q := `
 		SELECT
 			COALESCE(json_extract(raw_data, '$.assigned_to'), 'unknown') as member,
@@ -344,9 +340,34 @@ func kpiActual(args []string) {
 	}
 	q += ` GROUP BY member ORDER BY proposals DESC`
 
-	rows, err := queryRows(q, qargs...)
+	rows, err = queryRows(q, qargs...)
 	if err != nil {
-		// Fallback: table không tồn tại hoặc không có data
+		// Table không tồn tại hoặc không có data — not a hard error, just
+		// "no actuals available" (matches the CLI command's existing
+		// fallback-to-empty behavior).
+		return []map[string]interface{}{}, start, end, false, nil
+	}
+	return rows, start, end, true, nil
+}
+
+// kpiActual — lấy actual từ COSMO interactions trong tuần
+func kpiActual(args []string) {
+	week := isoWeekLabel(vnNow())
+	member := ""
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--week":
+			i++; week = args[i]
+		case "--member":
+			i++; member = args[i]
+		}
+	}
+	rows, start, end, hasData, err := kpiActualData(week, member)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	if !hasData {
 		jsonOut(map[string]interface{}{
 			"ok": true, "week": week, "member": member,
 			"week_start": start, "week_end": end,

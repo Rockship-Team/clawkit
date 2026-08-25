@@ -31,6 +31,10 @@
       ],
       "version": "1.0.0"
     },
+    "analytics": {
+      "description": "Báo cáo tổng hợp KPI + outreach funnel + so sánh hiệu suất kênh + bottleneck trong pipeline + recommendation dựa trên số liệu đo được. Trigger khi user hỏi 'hiệu suất outreach thế nào', 'kênh nào tốt hơn', 'bottleneck ở đâu', 'nên cải thiện gì'. Đây là THIN AGGREGATION layer — KHÔNG phải analytics platform mới, không tự tính số khác với sme-kpi/sme-outreach funnel. KHÔNG PHẢI sme-bi (agent intel khác, data khác hẳn, KHÔNG merge).",
+      "version": "1.0.0"
+    },
     "bds-broker": {
       "description": "Trợ lý môi giới bất động sản — lọc sản phẩm, gửi thông tin dự án, gửi ảnh, đặt lịch xem nhà",
       "requires_bins": [
@@ -177,6 +181,10 @@
           "placeholder": "I"
         }
       ]
+    },
+    "intelligence": {
+      "description": "Pre-conversation, account-level research: who đáng target, tại sao, tại sao lúc này, pain có thể là gì. Trigger khi user hỏi 'phân tích công ty X', 'account Y có đáng outreach không', 'ai nên target ngành Z', 'công ty này có signal gì đáng chú ý'. Đây KHÔNG phải conversation-level intent/sentiment (dùng sme-engagement), KHÔNG phải deal-stage/risk của 1 deal đã có (dùng sme-opportunity), KHÔNG tự gửi outreach hay tạo campaign — chỉ trả về research + recommendation.",
+      "version": "1.0.0"
     },
     "knowledge-vault": {
       "description": "Manage business knowledge in an Obsidian vault — take notes, search, link, and organize information.",
@@ -394,7 +402,7 @@
   },
   "groups": {
     "self-improving-agent": ["agent-learner","knowledge-vault"],
-    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","opportunity","ops","orchestrator","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
+    "sme": ["accounting","analytics","bi","campaign","crm","engagement","hr","intelligence","kpi","learn","legal","marketing","opportunity","ops","orchestrator","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

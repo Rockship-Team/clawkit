@@ -242,6 +242,87 @@ func cosmoAPI(args []string) {
 	rawJSONPassthrough(raw, code)
 }
 
+// cosmoContactsSearch is the ONE place that calls POST /v2/contacts/search
+// with the request shape the backend actually implements: a
+// {"filter": {...}} body (v2schema.ContactSearchRequest.Filter) — NOT a
+// free-text "query"/"pageSize" body. The handler silently ignores unknown
+// body fields, so a {"query": "...", "pageSize": N} body (the shape every
+// call site in this file used before this fix) always falls through to
+// "no filter" and returns the first page regardless of what was asked for.
+// filter may be nil for "no filter, list all" (the actual behavior every
+// call site was unknowingly relying on before this fix).
+//
+// Pagination is backend-side query-string only (parsePagination reads
+// offset/limit/page_index from the query string, never the JSON body).
+// pageIndex is 0-INDEXED, never a raw offset: cosmo-backend's parsePagination
+// silently reinterprets a bare ?offset=N (N>0) as "N whole pages", computing
+// real_offset = N*limit — so passing a true byte offset (e.g. offset=25 to
+// skip one page of 25) actually skips 625 records and silently returns
+// nothing. ?page_index=N sidesteps that entirely: the backend computes
+// offset = N*limit itself, exactly matching normal "page N of size limit"
+// pagination. Root-caused against cosmo-backend's
+// internal/handler/v2/contact/search.go, contact_repository.go, and
+// helpers.go (parsePagination) during the Phase 2B COSMO audit — all client-
+// side bugs, not backend/API contract limitations, so fixing them here is
+// safe and backward compatible.
+func cosmoContactsSearch(filter map[string]interface{}, limit, pageIndex int) ([]byte, int, error) {
+	body := []byte(`{}`)
+	if len(filter) > 0 {
+		b, err := json.Marshal(map[string]interface{}{"filter": filter})
+		if err != nil {
+			return nil, 0, err
+		}
+		body = b
+	}
+	path := fmt.Sprintf("/v2/contacts/search?limit=%d&page_index=%d", limit, pageIndex)
+	return cosmoRequest("POST", path, body)
+}
+
+// contactTextFilter builds an ILIKE-based OR filter across name/company
+// approximating free-text search — COSMO has no true full-text query param
+// on this endpoint, only per-field filters (see cosmoContactsSearch).
+//
+// Deliberately does NOT include "email"/"phone": despite the backend's own
+// isTextSearchField() listing them as text-search fields, domain.Contact has
+// no email/phone COLUMN at all (see cosmo-backend/internal/domain/contact/
+// contact.go) — those values live only inside the profile JSONB blob. Any
+// filter naming "email"/"phone" directly builds `WHERE email ILIKE ...`
+// against a nonexistent column and 500s ("Failed to get contacts"),
+// confirmed live during the Phase 2B COSMO audit. Email lookups must go
+// through contactExactFilter, which redirects to "profile.email".
+func contactTextFilter(query string) map[string]interface{} {
+	if query == "" {
+		return nil
+	}
+	like := "%" + query + "%"
+	return map[string]interface{}{
+		"$or": []interface{}{
+			map[string]interface{}{"name": map[string]interface{}{"$ilike": like}},
+			map[string]interface{}{"company": map[string]interface{}{"$ilike": like}},
+		},
+	}
+}
+
+// contactExactFilter builds a single-field exact-match filter. Passes a
+// PLAIN value (never wrapped in $ilike) because:
+//   - "id" is a UUID column — Postgres rejects ILIKE against uuid (confirmed
+//     live: 500 "Failed to get contacts"). A plain value on "id" isn't in
+//     the backend's text-search/enum-exact field lists, so it falls through
+//     to a raw "=" comparison, which is the exact match we want.
+//   - "email"/"phone" aren't real columns (see contactTextFilter) — the key
+//     is redirected to "profile.<field>", which cosmo-backend's
+//     NormalizeContactFilter special-cases into an exact `profile->>'x' = 'v'`
+//     JSONB match. This only works with a plain string value, and only at
+//     the top level of the filter (not nested inside $or/$and).
+func contactExactFilter(field, value string) map[string]interface{} {
+	key := field
+	switch field {
+	case "email", "phone":
+		key = "profile." + field
+	}
+	return map[string]interface{}{key: value}
+}
+
 func cosmoSearchContact(args []string) {
 	if len(args) == 0 {
 		errOut("usage: cosmo search-contact <query> [page_size]")
@@ -251,11 +332,7 @@ func cosmoSearchContact(args []string) {
 	if len(args) > 1 {
 		fmt.Sscanf(args[1], "%d", &pageSize)
 	}
-	body, _ := json.Marshal(map[string]interface{}{
-		"query":    query,
-		"pageSize": pageSize,
-	})
-	raw, code, err := cosmoRequest("POST", "/v2/contacts/search", body)
+	raw, code, err := cosmoContactsSearch(contactTextFilter(query), pageSize, 0)
 	if err != nil {
 		errOut(err.Error())
 	}
@@ -397,8 +474,7 @@ func cosmoUpsertContactForEvent(name, email, eventID, eventTitle, eventTypeID, r
 // email. Returns contact id or empty string. Silent on errors — caller
 // will fall through to create.
 func cosmoFindContactByEmail(email string) string {
-	body, _ := json.Marshal(map[string]interface{}{"query": email, "pageSize": 5})
-	raw, code, err := cosmoRequest("POST", "/v2/contacts/search", body)
+	raw, code, err := cosmoContactsSearch(contactExactFilter("email", email), 5, 0)
 	if err != nil || code >= 400 {
 		return ""
 	}

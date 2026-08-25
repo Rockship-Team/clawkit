@@ -14,7 +14,16 @@ import (
 
 var db *sql.DB
 
+// smeDir resolves where sme.db/connections.json live. $SME_DATA_DIR (same
+// env var dataDir() already honored for static reference JSON) overrides the
+// default — this is what lets tests/manual verification point the ENTIRE
+// engine (DB + config, not just reference data) at an isolated directory
+// without ever touching the real ~/.openclaw/workspace/sme-data. Unset →
+// identical to the pre-existing hardcoded default.
 func smeDir() string {
+	if d := os.Getenv("SME_DATA_DIR"); d != "" {
+		return d
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".openclaw", "workspace", "sme-data")
 }

@@ -45,18 +45,25 @@ type opportunityContact struct {
 	Replies90d     int
 }
 
-// resolveOpportunityContacts searches COSMO via the exact same endpoint
-// fetchAllContacts/flattenContact already use (/v2/contacts/search), so
-// contact parsing stays in one place. If query looks like a UUID, only an
-// exact id match is returned (never a fuzzy guess); otherwise every match
-// COSMO's search returns is returned for the caller to disambiguate.
+// resolveOpportunityContacts searches COSMO via the shared cosmoContactsSearch
+// helper (cosmo.go) — a real server-side filter, not the client-side-only
+// "return everything, hope it's in the first page" behavior this function had
+// before the Phase 2B COSMO search fix. If query looks like a UUID, an exact
+// server-side id filter is used (a contact outside the default recency-sorted
+// page would previously have been silently unreachable); otherwise an ILIKE
+// text filter across name/company/email is used and every match is returned
+// for the caller to disambiguate — never a fuzzy guess among candidates.
 func resolveOpportunityContacts(query string) ([]opportunityContact, error) {
-	body, _ := json.Marshal(map[string]interface{}{
-		"query":    query,
-		"page":     1,
-		"pageSize": 25,
-	})
-	raw, code, err := cosmoRequest("POST", "/v2/contacts/search", body)
+	wantID := looksLikeUUID(query)
+	var filter map[string]interface{}
+	limit := 25
+	if wantID {
+		filter = contactExactFilter("id", query)
+		limit = 5
+	} else {
+		filter = contactTextFilter(query)
+	}
+	raw, code, err := cosmoContactsSearch(filter, limit, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +81,6 @@ func resolveOpportunityContacts(query string) ([]opportunityContact, error) {
 		return nil, err
 	}
 	var out []opportunityContact
-	wantID := looksLikeUUID(query)
 	for _, item := range resp.Data.List {
 		pc := flattenContact(item.Entity)
 		if wantID && pc.ID != query {

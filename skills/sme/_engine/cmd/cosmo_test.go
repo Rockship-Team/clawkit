@@ -129,6 +129,77 @@ func TestCosmoDoRequest(t *testing.T) {
 	})
 }
 
+// TestContactTextFilterShape locks in the /v2/contacts/search request shape
+// found during the Phase 2B COSMO audit: the endpoint only understands a
+// {"filter": {...}} body with per-field operators, never a free-text "query"
+// field. A regression back to the old {"query": ...} shape would silently
+// make every contact search return the unfiltered first page again.
+func TestContactTextFilterShape(t *testing.T) {
+	if f := contactTextFilter(""); f != nil {
+		t.Fatalf("empty query should yield nil filter (list-all), got %v", f)
+	}
+	f := contactTextFilter("wilson")
+	or, ok := f["$or"].([]interface{})
+	if !ok || len(or) != 2 {
+		t.Fatalf("expected $or with 2 field conditions (name, company — NOT email, no email column), got %#v", f)
+	}
+	wantFields := map[string]bool{"name": false, "company": false}
+	for _, cond := range or {
+		m, ok := cond.(map[string]interface{})
+		if !ok {
+			t.Fatalf("condition not a map: %#v", cond)
+		}
+		for field, v := range m {
+			if field == "email" || field == "phone" {
+				t.Fatalf("contactTextFilter must never filter on %q — no such column on domain.Contact, 500s live", field)
+			}
+			if _, known := wantFields[field]; !known {
+				t.Fatalf("unexpected filter field %q", field)
+			}
+			wantFields[field] = true
+			op, ok := v.(map[string]interface{})
+			if !ok || op["$ilike"] != "%wilson%" {
+				t.Fatalf("%s: expected $ilike \"%%wilson%%\", got %#v", field, v)
+			}
+		}
+	}
+	for field, seen := range wantFields {
+		if !seen {
+			t.Errorf("missing filter condition for field %q", field)
+		}
+	}
+}
+
+// TestContactExactFilterRedirectsProfileOnlyFields proves email/phone
+// filters redirect to "profile.<field>" (the JSONB path cosmo-backend
+// special-cases into an exact match) instead of a bare field name, which
+// would build a query against a nonexistent column and 500 live. It also
+// proves the value is passed PLAIN (never $ilike-wrapped) — "id" is a UUID
+// column and Postgres rejects ILIKE against uuid (confirmed live: 500).
+func TestContactExactFilterRedirectsProfileOnlyFields(t *testing.T) {
+	f := contactExactFilter("email", "a@b.com")
+	if v, ok := f["profile.email"]; !ok || v != "a@b.com" {
+		t.Fatalf(`expected {"profile.email": "a@b.com"}, got %#v`, f)
+	}
+	if _, ok := f["email"]; ok {
+		t.Fatalf("must not filter on bare \"email\" — no such column, 500s live")
+	}
+
+	f = contactExactFilter("phone", "0900000000")
+	if v, ok := f["profile.phone"]; !ok || v != "0900000000" {
+		t.Fatalf(`expected {"profile.phone": "0900000000"}, got %#v`, f)
+	}
+
+	f = contactExactFilter("id", "bcdf68ca-82b3-4197-8d55-dc3939760fc5")
+	v, ok := f["id"]
+	if !ok {
+		t.Fatalf("expected bare \"id\" key, got %#v", f)
+	}
+	if _, isMap := v.(map[string]interface{}); isMap {
+		t.Fatalf("id value must be a plain string, not an $ilike operator map — got %#v", v)
+	}
+}
+
 // fakeJWT builds a minimal unsigned JWT with the given exp claim. The signature
 // segment is a placeholder — cosmoTokenExpired only decodes the payload.
 func fakeJWT(t *testing.T, exp int64) string {

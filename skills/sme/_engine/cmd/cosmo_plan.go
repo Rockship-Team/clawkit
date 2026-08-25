@@ -154,13 +154,16 @@ type planAction struct {
 func fetchAllContacts(maxPages int) ([]planContact, int, error) {
 	var all []planContact
 	total := 0
+	const pageSize = 25
 	for page := 1; page <= maxPages; page++ {
-		body, _ := json.Marshal(map[string]interface{}{
-			"query":    "",
-			"page":     page,
-			"pageSize": 25,
-		})
-		raw, code, err := cosmoRequest("POST", "/v2/contacts/search", body)
+		// limit/page_index MUST be query-string params (cosmoContactsSearch)
+		// — the previous body-only {"page","pageSize"} shape was silently
+		// ignored server-side, so every "page" here used to re-fetch the
+		// exact same first 25 contacts (confirmed during Phase 2B COSMO
+		// audit — this is why daily-plan cells showed the same contact
+		// duplicated across "different" pages, and cell counts were
+		// inflated by a factor of maxPages, instead of real coverage).
+		raw, code, err := cosmoContactsSearch(nil, pageSize, page-1)
 		if err != nil {
 			return nil, 0, err
 		}

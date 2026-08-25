@@ -96,6 +96,7 @@ Kich hoat NGAY khi message khop bat ky pattern:
 - `EVENT_PREP_SOON` / `EVENT_POSTMORTEM` → event
 - `WEEKLY_CONTENT_CHECK` → marketing
 - `PIPELINE_WATCH` → real-time alert moi 10p (Gmail reply + stuck deal)
+- `GOAL_REVIEW` → proactive Goal Briefing 1 lần/sáng ngày làm việc (Phase 3C, xem "GOAL_REVIEW MODE" bên dưới)
 
 ## PIPELINE_WATCH MODE — REAL-TIME ALERT
 
@@ -206,6 +207,80 @@ Step 3 — Alert tap trung 1 message (nhom theo group):
     }
   }
   ```
+
+## GOAL_REVIEW MODE — PROACTIVE GOAL BRIEFING (Phase 3C)
+
+**Schedule:** `0 8 * * 1-5` (1 lần/sáng, 8h ICT, thứ Hai-Sáu — trước khi PIPELINE_WATCH bắt đầu chạy lúc
+9h). Đây là job MỚI, riêng, tần suất thấp — **KHÔNG nhét vào PIPELINE_WATCH** (job đó chạy 30 phút/lần,
+quá dày cho 1 việc chỉ cần check 1 lần/ngày, và giữ PIPELINE_WATCH đúng phạm vi ban đầu: Gmail reply +
+stuck deal, không phình thành orchestrator).
+
+**Quan trọng:** Skill này KHÔNG tự làm NBA reasoning (đã disclaim ở đầu file) — toàn bộ logic phát hiện
+bottleneck/quyết định case đã nằm sẵn, deterministic, trong `goal_nba.go`/`goal_review.go` (Go, không phải
+LLM). Ở đây chỉ GỌI CLI có sẵn rồi trình bày — giống hệt cách PIPELINE_WATCH gọi `gog gmail search` rồi
+trình bày, không phải reminder tự "sở hữu" Gmail.
+
+### Luồng (mỗi goal `status=active`)
+
+```bash
+sme-cli goal list --status active                 # lấy danh sách goal đang active
+sme-cli goal review-check <goal_id>                # cho TỪNG goal — xem bên dưới
+```
+
+`goal review-check` đã tự làm toàn bộ phần khó — tính progress (cùng logic `goal view`), tính NBA (cùng
+logic `goal next-action`), và so sánh với lần review TRƯỚC đã từng thông báo (không phải lần check gần
+nhất) để quyết định `notify: true/false` — đây là cổng anti-noise chính, deterministic, đã unit-test
+(`goal_review_test.go`). Output có sẵn field `notify`, `reasons`, `progress`, `nba`, `days_remaining`.
+
+**Nếu `notify: false`** → dừng lại, KHÔNG gửi gì cho goal này (không có "mọi thứ vẫn ổn" mỗi sáng).
+
+**Nếu `notify: true`** → tiếp tục 2 bước enrichment sau trước khi soạn Briefing:
+
+1. **Memory context (targeted, không dump toàn bộ):** Nếu NBA nhắc tới 1 account/contact cụ thể hoặc lặp
+   lại 1 action đã từng đề xuất, gọi `memory_search` với query cụ thể (vd tên account + "outreach"/"hold"/
+   "preference") để lấy context liên quan — vd user từng nói "đừng động vào ABC tới tháng 9". KHÔNG dump
+   toàn bộ memory vào context. Nếu `memory_search` lỗi/timeout/không có kết quả → **bỏ qua, tiếp tục bình
+   thường** — memory là enrichment, KHÔNG được phép chặn luồng chính (giống PIPELINE_WATCH: nếu Gmail API
+   lỗi, job đó cũng không crash, chỉ báo lỗi/bỏ qua).
+2. **ActionLog continuity:** `goal next-action`/`review-check`'s NBA output đã có sẵn `previously_suggested`
+   / `previous_status` / `continuity_note` (Phase 3C, xem `goal_nba.go`) — nếu `continuity_note` không
+   rỗng, đưa nó vào Briefing thay vì lặp lại y hệt đề xuất cũ như thể mới toanh.
+
+### Format Briefing (ngắn gọn — xem Part 5 spec)
+
+```
+🎯 Goal: {goal_text}
+Progress: {progress}/{target} — còn {remaining}
+Deadline: {days_remaining} ngày
+
+Thay đổi đáng chú ý:
+- {reasons từ goal review-check, viết lại tự nhiên}
+
+Ưu tiên tiếp theo:
+{nba.recommended_action}
+{continuity_note nếu có}
+
+Action:
+{"AUTO: " + mô tả nếu approval_required=false, hoặc "APPROVAL cần: " + mô tả nếu approval_required=true}
+```
+
+Nếu `nba.reason == "progress >= target"` → Briefing PHẢI nói rõ goal đã đạt target, đề xuất
+`sme-cli goal complete <id>` (hỏi xác nhận, KHÔNG tự complete), và KHÔNG đề xuất thêm lead-gen nào nữa cho
+goal này.
+
+### Quy tac GOAL_REVIEW
+
+- **Không action bên ngoài từ cron này** — chỉ research/tính toán/chuẩn bị nếu Approval Policy cho phép AUTO
+  (giống PIPELINE_WATCH: chỉ draft, không tự gửi). Activate campaign/gửi email/LinkedIn/schedule meeting/gửi
+  proposal → luôn dừng lại hỏi, không bao giờ tự làm từ 1 cron job.
+- **Telegram channel:** Gửi vào chat cá nhân @akhoa2174 (`7142847127`) — GIỐNG PIPELINE_WATCH, KHÔNG gửi vào
+  group BD (`-5147613854` đã tắt thông báo group từ trước, xem lý do trong lịch sử — không bật lại).
+- **1 message duy nhất** cho toàn bộ goal cần notify hôm đó (nếu có ≥2 goal active cùng cần briefing, gộp
+  lại, không spam nhiều tin liên tiếp).
+- **Không notify nếu `notify: false`** cho TẤT CẢ goal đang active → job kết thúc im lặng, không gửi gì.
+- **State tự quản lý bởi `goal review-check`** trong chính `sme.db` (bảng `goal_review_state`) — KHÔNG cần
+  1 file JSON riêng như `pipeline-watch-state.json` (khác PIPELINE_WATCH: state ở đây gắn với business logic
+  Go, không phải raw thread-id dedup của agent).
 
 ## QUY TAC BAT BUOC
 

@@ -78,8 +78,74 @@ func goalNextAction(args []string) {
 	}
 
 	result := decideGoalNBA(g, progress, signals)
-	logGoalNBA(g, result.RecommendedAction)
+
+	// Phase 3C — ActionLog continuity: don't silently spam a duplicate
+	// "fresh priority" if the exact same recommendation was already logged
+	// and marked done, with nothing having changed since. Pure lookup, no
+	// weighting/self-learning — see decideContinuity's doc comment.
+	continuity := checkGoalNBAContinuity(g.ID, result.RecommendedAction)
+	result.PreviouslySuggested = continuity.PreviouslySuggested
+	result.PreviousStatus = continuity.PreviousStatus
+	result.ContinuityNote = decideContinuityNote(continuity)
+
+	if !(continuity.PreviouslySuggested && continuity.SameAsLast && continuity.PreviousStatus == "done") {
+		logGoalNBA(g, result.RecommendedAction)
+	}
 	okOut(structToMap(result))
+}
+
+// goalNBAContinuity is the result of a plain ActionLog lookup — the most
+// recent goal_nba suggestion logged for this goal, and whether the new
+// recommendation is textually identical to it. RecommendedAction text is
+// deterministically derived from the bottleneck case + exact counts (see
+// decideGoalNBA), so an exact string match is a reliable proxy for "same
+// case, same counts, nothing changed" without needing a separate
+// structured comparison field.
+type goalNBAContinuity struct {
+	PreviouslySuggested bool
+	PreviousStatus      string // "pending" | "done" | "skipped"
+	SameAsLast          bool
+}
+
+// checkGoalNBAContinuity looks up the single most recent goal_nba entry
+// for this goal — Phase 3C Part 3 (ActionLog feedback CONTEXT, not
+// self-learning): this only informs whether to re-log/re-flag the same
+// recommendation, it never changes decideGoalNBA's case selection or
+// weights.
+func checkGoalNBAContinuity(goalID, newAction string) goalNBAContinuity {
+	ensureActionLogTable()
+	row, err := queryOne(`
+		SELECT action_text, status FROM action_suggestions
+		WHERE contact_id = ? AND source = 'goal_nba'
+		ORDER BY suggested_at DESC LIMIT 1
+	`, goalID)
+	if err != nil || row == nil {
+		return goalNBAContinuity{}
+	}
+	prevAction := toString(row["action_text"])
+	return goalNBAContinuity{
+		PreviouslySuggested: true,
+		PreviousStatus:      toString(row["status"]),
+		SameAsLast:          prevAction == newAction,
+	}
+}
+
+// decideContinuityNote turns the continuity lookup into the one honest
+// sentence the orchestrator/reminder should surface — never silent, never
+// an instruction to change behavior beyond "don't treat this as new".
+func decideContinuityNote(c goalNBAContinuity) string {
+	if !c.PreviouslySuggested || !c.SameAsLast {
+		return ""
+	}
+	switch c.PreviousStatus {
+	case "done":
+		return "Đề xuất này giống hệt lần gần nhất (đã done, chưa có evidence mới) — không phải priority mới."
+	case "skipped":
+		return "Đề xuất này đã từng bị skip trước đó — cân nhắc lại thay vì lặp lại y hệt."
+	case "pending":
+		return "Đề xuất này vẫn đang pending từ lần trước, chưa được xử lý."
+	}
+	return ""
 }
 
 // goalSignals are the real, already-computable inputs decideGoalNBA
@@ -106,6 +172,13 @@ type nbaResult struct {
 	Confidence         string      `json:"confidence"`
 	ApprovalRequired   bool        `json:"approval_required"`
 	Reason             string      `json:"reason"`
+
+	// Phase 3C — ActionLog continuity (Part 3), filled in by goalNextAction
+	// AFTER decideGoalNBA returns. Never set inside decideGoalNBA itself —
+	// keeps the pure decision tree free of DB access.
+	PreviouslySuggested bool   `json:"previously_suggested,omitempty"`
+	PreviousStatus      string `json:"previous_status,omitempty"`
+	ContinuityNote      string `json:"continuity_note,omitempty"`
 }
 
 // decideGoalNBA is the PURE decision tree (Cases A-E from the Phase 3B

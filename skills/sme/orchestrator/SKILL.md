@@ -115,6 +115,57 @@ Trình bày cho user:
 dùng action_rate/kết quả NBA trước đó để tự thay đổi recommendation tương lai (đó là learning, thuộc
 Phase 3C/Future — hiện `goal next-action` chỉ log vào ActionLog để có traceability, không tự học từ đó).
 
+### ACTIONLOG CONTINUITY (Phase 3C) — tránh lặp lại đề xuất y hệt
+
+`goal next-action`/`goal review-check` giờ trả thêm 3 field: `previously_suggested`, `previous_status`,
+`continuity_note` (xem `checkGoalNBAContinuity` trong `goal_nba.go`) — đây là 1 lookup ActionLog đơn thuần
+(action_text lần gần nhất cho đúng goal này, có giống recommendation hiện tại không), **KHÔNG phải
+self-learning, KHÔNG đổi decision tree**. Khi trình bày recommendation cho user:
+
+- Nếu `continuity_note` không rỗng và `previous_status = "done"` → recommendation này y hệt lần trước đã
+  làm xong, chưa có evidence mới → **đừng trình bày như 1 priority mới**, chỉ nhắc ngắn ("việc này em từng
+  báo rồi, anh đã xử lý, hiện chưa có gì mới") hoặc bỏ qua nếu không ai hỏi trực tiếp.
+- Nếu `previous_status = "skipped"` → có thể vẫn đề xuất lại (KHÔNG tự động bỏ qua), nhưng PHẢI nhắc rõ đã
+  từng bị skip trước đó, để user tự quyết định có đổi ý không — không lặp lại mù quáng như thể lần đầu.
+- Nếu `previous_status = "pending"` → nhắc việc này vẫn đang chờ xử lý từ lần trước, không tạo thêm bản ghi
+  ActionLog trùng.
+- Nếu rỗng (không có gì trước đó, hoặc recommendation khác lần trước) → trình bày bình thường như Phase 3B.
+
+### MEMORY-AWARE NBA (Phase 3C) — dùng context/preference đã học, không đổi CRM
+
+Trước khi trình bày 1 recommendation liên quan tới **1 account/contact cụ thể được nêu tên, chiến lược
+campaign/message, hoặc 1 action đang định lặp lại** — gọi `memory_search` (native tool memory-core, KHÔNG
+phải sme-cli) với query CỤ THỂ (vd tên account + "outreach"/"preference"/"hold"/"correction"), KHÔNG dump
+toàn bộ memory vào context.
+
+- **Có kết quả liên quan** (vd "ABC hẹn liên hệ lại tháng 9", "user không muốn follow-up dồn dập") → điều
+  chỉnh CÁCH trình bày/đề xuất recommendation cho đúng — vd không đề xuất outreach ABC ngay, hoặc đổi tone
+  follow-up sang nhẹ nhàng hơn. **KHÔNG được dùng để đổi `business_stage` hay bất kỳ field CRM nào** — đó là
+  CRM's job (`sme-crm`), memory chỉ là context/lý do, không phải fact.
+- **Không có kết quả liên quan** → tiếp tục bình thường, y hệt Phase 3B, không cần nói gì thêm.
+- **`memory_search` lỗi/timeout/không khả dụng** → **PHẢI tiếp tục luồng chính bình thường**, không chờ,
+  không crash, không hỏi lại user — chỉ đơn giản là recommendation không có thêm memory context lần này.
+  Memory KHÔNG BAO GIỜ được phép chặn GTM flow.
+
+**Memory WRITE — khi nào ghi lại:** Chỉ ghi khi trong hội thoại có 1 trong các tín hiệu rõ ràng: preference
+tường minh của user, correction tường minh, "đừng liên hệ X cho tới khi...", 1 bài học campaign có bằng
+chứng thật, hoặc lý do quyết định quan trọng sẽ cần lại sau. **KHÔNG ghi mọi reply/activity thường
+xuyên** — những cái đó đã có sẵn ở CRM/ActionLog/event data, ghi lại vào Memory là trùng lặp không cần
+thiết. Dùng ĐÚNG format/vị trí đã định nghĩa sẵn trong `skills/learn/SKILL.md` (per-user file
+`~/workspace-gtm/memory/users/{username}.md`, team file `team-bd.md`, cập nhật `MEMORY.md` index) — KHÔNG
+tự nghĩ ra format/writer mới.
+
+**Ownership quyết định (Phase 3C audit — xem thêm câu trả lời đầy đủ trong báo cáo Phase 3C):** `sme-learn`
+tồn tại trên disk (`skills/learn/SKILL.md`) nhưng KHÔNG có trong danh sách skill active của agent `gtm`
+(`openclaw.json agents.list[].skills` không có `"learn"`) — đây là gap vận hành (bị rớt khỏi config, không
+phải bị thay thế có chủ đích), memory-core plugin (native, đã bật, `dreaming` REM phase enabled) vẫn tự động
+promote các pattern LẶP LẠI ≥3 lần vào MEMORY.md, nhưng KHÔNG bắt được 1 câu nói tường minh, quan trọng,
+chỉ nói 1 lần (memory-core promotion cần `minRecallCount=3`). Quyết định: **IMPROVE, không blanket
+reactivate** — thay vì bật lại `sme-learn` như 1 background behavior chạy sau MỌI turn của TẤT CẢ skill
+(blast radius rộng, khó verify trong 1 phase), phần ghi memory tường minh giờ được kích hoạt trực tiếp ngay
+tại đây (orchestrator, trong luồng Goal/NBA) và trong GOAL_REVIEW MODE (`reminder/SKILL.md`) — dùng ĐÚNG
+format `sme-learn` đã định nghĩa, không phải 1 writer song song mới.
+
 ## BƯỚC 2 — PLANNING (chia bước)
 
 Chia goal thành chuỗi bước, mỗi bước gắn với 1 skill cụ thể. Ví dụ:

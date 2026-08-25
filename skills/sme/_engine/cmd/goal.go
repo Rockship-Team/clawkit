@@ -31,9 +31,10 @@ import (
 //	sme-cli goal complete <id>
 //	sme-cli goal cancel <id>
 //	sme-cli goal next-action <id>    # Phase 3B — goal-aware NBA, see goal_nba.go
+//	sme-cli goal review-check <id>   # Phase 3C — anti-noise proactive review gate, see goal_review.go
 func cmdGoal(args []string) {
 	if len(args) == 0 {
-		errOut("usage: goal set|list|view|check|complete|cancel|next-action")
+		errOut("usage: goal set|list|view|check|complete|cancel|next-action|review-check")
 		return
 	}
 	ensureGoalsTable()
@@ -50,6 +51,8 @@ func cmdGoal(args []string) {
 		goalSetStatus(args[1:], "cancelled")
 	case "next-action":
 		goalNextAction(args[1:])
+	case "review-check":
+		goalReviewCheck(args[1:])
 	default:
 		errOut("unknown goal command: " + args[0])
 	}
@@ -240,12 +243,12 @@ func loadGoal(id string) (*goalRecord, error) {
 // was captured (e.g. a metric added to goalMetricStages after this goal was
 // created) — never guesses.
 type goalProgressResult struct {
-	OK                bool
-	CurrentValue      int
-	Progress          int
-	Remaining         int
-	MeasurementMethod string
-	ScopeStatus       string
+	OK                bool   `json:"ok"`
+	CurrentValue      int    `json:"current_value"`
+	Progress          int    `json:"progress"`
+	Remaining         int    `json:"remaining"`
+	MeasurementMethod string `json:"measurement_method"`
+	ScopeStatus       string `json:"scope_status,omitempty"`
 }
 
 // calculateGoalProgress is the PURE arithmetic core — progress = current -

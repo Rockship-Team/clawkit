@@ -32,7 +32,7 @@ import (
 //	sme-cli cosmo daily-plan [--mode morning|evening|all] [--max-pages N]
 func cmdCosmo(args []string) {
 	if len(args) == 0 {
-		errOut("usage: cosmo api|search-contact|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions|daily-plan")
+		errOut("usage: cosmo api|search-contact|find-by-email|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions|daily-plan")
 		return
 	}
 	switch args[0] {
@@ -40,6 +40,8 @@ func cmdCosmo(args []string) {
 		cosmoAPI(args[1:])
 	case "search-contact":
 		cosmoSearchContact(args[1:])
+	case "find-by-email":
+		cosmoFindByEmailCmd(args[1:])
 	case "get-contact":
 		cosmoGetContact(args[1:])
 	case "create-contact":
@@ -498,4 +500,58 @@ func cosmoFindContactByEmail(email string) string {
 		}
 	}
 	return ""
+}
+
+// cosmoFindByEmailCmd is a CLI-exposed wrapper around the same email lookup
+// cosmoFindContactByEmail already does — added during Phase 3A's PIPELINE_WATCH
+// dry-run: reminder/SKILL.md's documented step ("search trong COSMO contacts
+// qua sme-cli cosmo search-contact") does not actually work for matching a
+// Gmail sender address, because cosmo search-contact deliberately only
+// filters name/company (email/phone aren't real columns — see cosmo.go's
+// contactTextFilter, Phase 2B). Without this command, PIPELINE_WATCH would
+// silently never match any real reply to a contact. Returns richer context
+// (name/company/business_stage/next_step) than the internal helper so the
+// caller doesn't need a second round-trip.
+func cosmoFindByEmailCmd(args []string) {
+	if len(args) == 0 {
+		errOut("usage: cosmo find-by-email <email>")
+		return
+	}
+	email := args[0]
+	raw, code, err := cosmoContactsSearch(contactExactFilter("email", email), 5, 0)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	if code >= 400 {
+		errOut(fmt.Sprintf("HTTP %d: %s", code, string(raw)))
+		return
+	}
+	var resp struct {
+		Data struct {
+			List []struct {
+				Entity map[string]interface{} `json:"entity"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		errOut(err.Error())
+		return
+	}
+	emailLower := strings.ToLower(strings.TrimSpace(email))
+	for _, item := range resp.Data.List {
+		e := item.Entity
+		if em, _ := e["email"].(string); strings.ToLower(em) == emailLower {
+			okOut(map[string]interface{}{
+				"found":          true,
+				"id":             e["id"],
+				"name":           e["name"],
+				"company":        e["company"],
+				"business_stage": e["business_stage"],
+				"next_step":      e["next_step"],
+			})
+			return
+		}
+	}
+	okOut(map[string]interface{}{"found": false, "email": email})
 }

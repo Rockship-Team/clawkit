@@ -42,6 +42,8 @@ func main() {
 		cmdAnalytics(os.Args[2:])
 	case "campaign":
 		cmdCampaign(os.Args[2:])
+	case "goal":
+		cmdGoal(os.Args[2:])
 	// Self-improvement
 	case "cron-health":
 		cmdCronHealth(os.Args[2:])
@@ -114,6 +116,7 @@ Opportunity: opportunity view|risk-list
 Intelligence: intelligence account <company> [--org-id ID]
 Analytics:    analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]
 Campaign:     campaign create|list|view|stats|add-template|templates|activate|pause|delete
+Goal:         goal set|list|view|check|complete|cancel
 Self-improve: cron-health log|check|autofix|list
 Measure:      action-log suggest|done|skip|rate|pending|auto-check
 Accounting:  invoice, payment, bank, cashflow, expense

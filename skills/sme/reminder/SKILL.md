@@ -99,7 +99,11 @@ Kich hoat NGAY khi message khop bat ky pattern:
 
 ## PIPELINE_WATCH MODE — REAL-TIME ALERT
 
-Cron job moi 10 phut (8h-22h ICT) trigger mode nay. Job lam 2 viec:
+**Schedule thật (đã đồng bộ với cron job Phase 3A, KHÔNG phải 10 phút như bản cũ ghi):** `*/30 9-18 * * 1-5`
+(mỗi 30 phút, 9h-18h ICT, thứ Hai-Sáu). Giữ tần suất này — KHÔNG tự tăng lên 10 phút, tránh spam Gmail API
+quota + alert noise không cần thiết. **Job hiện tại (Phase 1) chỉ làm phần A (Gmail reply) — phần B (stuck
+deal) bên dưới là spec tham khảo, CHƯA có cron riêng, dùng `sme-cli opportunity risk-list`/`daily-plan` khi
+user hỏi trực tiếp thay vì chờ alert tự động.**
 
 ### A. Gmail reply detection (auto stage update)
 
@@ -109,9 +113,11 @@ gog gmail search "is:unread newer_than:15m" -a rockship17.co@gmail.com --max 20 
 ```
 
 Step 2 — Cho moi thread:
-1. Lay `from` email → search trong COSMO contacts (qua sme-cli cosmo search-contact hoac DB query)
-2. Neu KHONG match → bo qua (khong phai BD reply)
-3. Neu MATCH → continue:
+1. Lay `from` email → `sme-cli cosmo find-by-email <email>` (**KHÔNG dùng `cosmo search-contact`** — lệnh
+   đó chỉ filter theo name/company, email/phone không phải cột thật trong COSMO nên sẽ luôn trả 0 kết quả
+   dù contact có tồn tại — phát hiện qua dry-run Phase 3A, đã thêm `find-by-email` riêng cho đúng việc này)
+2. Neu `found: false` → bo qua (khong phai BD reply)
+3. Neu `found: true` → continue, dùng luôn `name`/`company`/`business_stage`/`next_step` trả về:
 
 Step 3 — Phan tich noi dung reply (LLM call ngan) — **dung Unified Taxonomy cua `sme-engagement`**
 (xem `engagement/SKILL.md` muc "UNIFIED TAXONOMY", KHONG tu dinh nghia vocab rieng o day nua):

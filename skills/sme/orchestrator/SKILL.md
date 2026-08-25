@@ -43,6 +43,44 @@ mơ hồ thật sự): "User muốn gì, kết quả cuối cùng trông như th
 
 Nếu sau bước này vẫn không rõ goal → hỏi lại NGẮN GỌN 1 câu, KHÔNG tự đoán rồi làm sai hướng.
 
+### GOAL PERSISTENCE (Phase 3A) — khi nào lưu lại goal để nhớ về sau
+
+Trước Phase 3A, mọi goal user đưa ra chỉ tồn tại trong đúng lượt chat đó — hôm sau agent không biết lại.
+Giờ có `sme-cli goal set/list/view/complete/cancel` (xem `_engine/cmd/goal.go`) để lưu goal **1 bảng nhỏ
+riêng** — KHÔNG nhét vào `weekly_kpis` (chỉ hỗ trợ 5 metric cố định theo tuần, không hợp cho goal tự do).
+
+**Nhận diện goal nên persist** — user đưa ra 1 outcome có ít nhất 1 trong 2:
+- **measurable target** (số cụ thể: "5 qualified leads", "10 contract")
+- **deadline** (mốc thời gian: "tháng này", "cuối quý")
+
+→ Tự động persist, **AUTO, không cần hỏi xin phép** (đây là internal action, không phải external send):
+
+```bash
+sme-cli goal set --text "<nguyên văn goal>" --metric <qualified_leads|proposals|contracts|custom> --target N --deadline YYYY-MM-DD
+```
+
+Chọn `--metric`:
+- Goal nói rõ "qualified lead(s)" → `qualified_leads`
+- Goal nói rõ "proposal" → `proposals`
+- Goal nói rõ "contract"/"hợp đồng"/"chốt deal" → `contracts`
+- Không khớp loại nào trong 3 loại trên (vd "10 event", "20 demo") → `custom` — vẫn lưu target/deadline,
+  nhưng `goal check` sẽ trả progress = `unknown` vì chưa có nguồn dữ liệu tin cậy cho loại này (KHÔNG suy
+  diễn/bịa số — đây là kỷ luật bắt buộc của Phase 3A).
+- Không tự tính `--deadline` nếu user chỉ nói "tháng này" mà không rõ ngày cụ thể → dùng ngày cuối tháng
+  hiện tại (deterministic, không đoán mơ hồ hơn).
+
+**Goal MƠ HỒ** (không có target lẫn deadline, vd "tăng doanh số", "làm marketing tốt hơn") → **KHÔNG tự
+bịa số/deadline**. Hỏi lại 1 câu ngắn ("Cụ thể là bao nhiêu / tới khi nào?"). Nếu user vẫn không cho số cụ
+thể sau khi hỏi → có thể lưu với `--metric custom --target 0` (không target), không được tự chọn 1 con số
+thay user.
+
+User **không cần biết** `sme-cli goal` tồn tại — đây là internal action, chỉ cần confirm ngắn gọn: "Em ghi
+nhận goal này rồi, sẽ theo dõi cho anh."
+
+**Chưa làm ở Phase 3A** (để Phase 3B): tự động dùng Goal để chọn Next Best Action, tự động chain
+Intelligence/Campaign theo goal delta. `goal check` ở Phase 3A chỉ show lại định nghĩa + progress hiện tại
+(nếu có nguồn tin cậy) — KHÔNG tự đề xuất hành động dựa trên đó.
+
 ## BƯỚC 2 — PLANNING (chia bước)
 
 Chia goal thành chuỗi bước, mỗi bước gắn với 1 skill cụ thể. Ví dụ:
@@ -73,6 +111,7 @@ thay vì tự giữ bản sao riêng:
 | Contact/company data, stage field, segment | `sme-crm` | Shared service, không phải business skill |
 | Báo cáo Morning/EOD/Weekly, overdue, priority alert | `sme-reminder` (Briefing) | Không tự quyết định routing/approval |
 | Nhắc theo giờ cụ thể user tự đặt | `sme-scheduler` | Time-based thuần, không fetch data |
+| User đặt 1 mục tiêu có target/deadline ("tháng này cần X"), hoặc hỏi lại goal đang track | `sme-orchestrator` (persist qua `sme-cli goal set/view` trực tiếp) | Xem "GOAL PERSISTENCE" ở BƯỚC 1 — KHÔNG có skill riêng cho goal, đây là 1 phần của orchestrator |
 
 ## BƯỚC 4 — NEXT BEST ACTION (mức BASIC, Phase 1)
 

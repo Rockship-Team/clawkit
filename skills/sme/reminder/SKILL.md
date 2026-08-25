@@ -1,14 +1,34 @@
 ---
 name: sme-reminder
-description: "Cross-cutting trigger engine cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler."
+description: "Proactive GTM Briefing cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, BAO CAO trang thai. KHONG phai memory search, KHONG phai cron scheduler, KHONG quyet dinh workflow/approval (xem sme-orchestrator)."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
 
-# SME Reminder — Trigger Engine Cho 5 Lifecycle
+# SME Reminder — Proactive GTM Briefing
 
-Skill nay la **orchestrator**. No khong tu action — no fetch live state tu cac lifecycle + suggest nen lam gi, roi user chot thi **hand-off sang skill chuyen trach**.
+Skill này là **Briefing** (Morning Brief / EOD Brief / Weekly Review / overdue detection / priority alert
+/ proactive reminder) — KHÔNG phải orchestrator. Nó fetch live state từ các lifecycle + trình bày rõ ràng
+cho user, nhưng **KHÔNG tự quyết định workflow đa bước, KHÔNG tự quyết định approval, KHÔNG làm Next Best
+Action** — 3 việc đó thuộc về `sme-orchestrator` (skill riêng).
 
-5 lifecycle ma skill theo doi:
+**Sở hữu (Own):**
+- Morning Brief / EOD Brief / Weekly Review
+- Overdue detection (event chưa attendee, proposal stuck, follow-up quá hạn)
+- Priority alerts (PIPELINE_WATCH)
+- Proactive reminders theo lịch (cron)
+- KPI/status summary
+
+**KHÔNG sở hữu (Does NOT own) — đã MOVE sang `sme-orchestrator`:**
+- Skill routing cho goal đa bước/mơ hồ
+- Workflow planning
+- Approval decision cho hành động rủi ro
+- Next Best Action logic
+
+Khi user, ngay sau khi xem briefing, chốt 1 hành động **đơn giản, rõ ràng** (vd "ok soạn proposal cho X")
+→ vẫn có thể đi thẳng vào skill tương ứng (xem TRIGGER section, không cần vòng qua orchestrator). Chỉ khi
+hành động đó lại mơ hồ/đa bước thì mới cần `sme-orchestrator`.
+
+5 lifecycle mà skill theo dõi (chỉ để BÁO CÁO, không phải để quyết định phải làm gì):
 
 | Lifecycle | Data source | Hand-off toi |
 |---|---|---|
@@ -20,9 +40,15 @@ Skill nay la **orchestrator**. No khong tu action — no fetch live state tu cac
 
 ### ⚠️ Phân biệt "outreach" — 2 nghĩa khác nhau trong skill này
 
-Từ "outreach" xuất hiện ở CẢ Engagement lẫn lifecycle mới "Outreach", dễ nhầm:
+Từ "outreach" xuất hiện ở CẢ Engagement lẫn lifecycle mới "Outreach", dễ nhầm. **Điểm phân biệt mấu chốt:
+có chữ "ai" (hỏi NGƯỜI) hay không (hỏi SỐ):**
 
-- **"hôm nay outreach ai" / "ai cần liên hệ hôm nay"** (câu hỏi GỢI Ý — chưa biết làm gì, hỏi bot đề xuất) → đây là **Engagement**, dùng `sme-cli cosmo daily-plan` như cũ, KHÔNG liên quan `sme-outreach`.
+- **"hôm nay outreach ai" / "ai cần liên hệ hôm nay" / "nên outreach ai"** (có chữ "ai" — câu hỏi GỢI Ý
+  chưa biết làm gì, hỏi bot đề xuất NGƯỜI nào cần liên hệ) → đây là **Engagement**, dùng
+  `sme-cli cosmo daily-plan` như cũ, KHÔNG liên quan `sme-outreach`. **Test case đã xác nhận SAI trước
+  đây:** "hôm nay outreach ai" từng bị route nhầm sang LinkedIn data — PHẢI trả lời bằng gợi ý contact từ
+  COSMO (vd "Cinex — Trần Minh, CTO, proposal 4 ngày chưa reply"), TUYỆT ĐỐI KHÔNG trả lời bằng số
+  connection request/tin nhắn LinkedIn.
 - **"hôm nay outreach được bao nhiêu người" / "tóm tắt tin nhắn hôm nay" / "sync linkedin" / "connection request tuần này" / "ai đã reply"** (câu hỏi SỐ LIỆU HOẠT ĐỘNG đã làm, đặc biệt nhắc LinkedIn/connection/tin nhắn) → đây là lifecycle **Outreach**, dùng `sme-cli outreach ...`, hand-off `sme-outreach` khi cần chi tiết/action.
 
 Nếu không chắc câu hỏi thuộc loại nào, ưu tiên hỏi lại 1 câu ngắn thay vì đoán sai lifecycle.
@@ -87,14 +113,19 @@ Step 2 — Cho moi thread:
 2. Neu KHONG match → bo qua (khong phai BD reply)
 3. Neu MATCH → continue:
 
-Step 3 — Phan tich noi dung reply (LLM call ngan):
-- Sentiment: `positive` / `neutral` / `polite_decline` / `negative`
-- Intent: `interested` / `asking_pricing` / `asking_info` / `not_now` / `pass`
-- Suggested stage:
-  - "interested" + "asking_pricing" → `QUALIFIED → PROPOSAL`
-  - "interested" + "asking_info" → giu `QUALIFIED`, tra info
-  - "not_now" → `QUALIFIED → DROPPED`
-  - "pass" → `LOST`
+Step 3 — Phan tich noi dung reply (LLM call ngan) — **dung Unified Taxonomy cua `sme-engagement`**
+(xem `engagement/SKILL.md` muc "UNIFIED TAXONOMY", KHONG tu dinh nghia vocab rieng o day nua):
+- Intent (5 gia tri COSMO chuan): `interested` / `requesting_info` / `scheduling_meeting` / `declining` / `unclear`
+- Sentiment (moi, truc giao voi intent): `positive` / `neutral` / `negative`
+- Objection (neu co): `none` / `price` / `timing` / `authority` / `trust` / `other`
+- Suggested stage (map tu intent) — **KHONG tu dong nhay Proposal chi vi 1 reply tich cuc**:
+  - `interested` + sentiment positive → **giu `QUALIFIED`**, de xuat buoc qualification/discovery tiep theo
+    (hoi ro nhu cau, dat meeting tim hieu). CHI goi y chuyen `QUALIFIED → PROPOSAL` khi khach da xac nhan
+    ro rang muon nhan bao gia/proposal cu the (du evidence) — khong suy dien tu 1 tin nhan tich cuc don le.
+  - `requesting_info` → giu `QUALIFIED`, tra info
+  - `scheduling_meeting` → set meeting ngay
+  - `declining` → `QUALIFIED → DROPPED` (hoac `LOST` neu sentiment negative ro rang)
+  - `unclear` → hoi lai 1 cau clarify, chua doi stage
 
 Step 4 — Alert + draft reply (KHONG auto-update DB without OK):
 
@@ -102,17 +133,18 @@ Step 4 — Alert + draft reply (KHONG auto-update DB without OK):
 📨 @Hans_Dang — Vinasun (anh Pham Van Tam) vừa reply!
 
 Sentiment: positive — hỏi pricing
-→ Suggested: chuyển QUALIFIED → PROPOSAL
+→ Suggested: giữ QUALIFIED, hỏi rõ nhu cầu trước khi báo giá (chưa đủ evidence để nhảy Proposal)
 
 📧 Em đã draft reply:
 ---
-Chào anh Tâm, cảm ơn anh quan tâm. Để em gửi 
-anh proposal chi tiết với 3 mức giá...
+Chào anh Tâm, cảm ơn anh quan tâm. Anh cho em 
+hỏi thêm quy mô/nhu cầu cụ thể để em chuẩn bị 
+proposal phù hợp nhất nhé...
 ---
 
-→ "1" — em gửi reply + update stage
+→ "1" — em gửi reply (giữ nguyên stage QUALIFIED)
 → "2" — em viết draft khác
-→ "3" — chỉ update stage, không gửi email
+→ "3" — anh đã có đủ info, chuyển stage QUALIFIED → PROPOSAL luôn
 
 https://cosmoagents-bd.logicx.vn/contacts/{contact_id}
 ```
@@ -539,24 +571,16 @@ Evening:
 
 Luon kem warning section neu co (vd Gmail agent invalid).
 
-### Step 3 — Ket thuc voi CTA + hand-off
+### Step 3 — Ket thuc voi CTA
 
 Moi reply ket thuc bang:
 
 > Anh muon em action cai nao? (tao campaign / draft email / schedule meeting / enrich contact / setup event prep...)
 
-**Hand-off rules:**
-
-| User chot action | Hand-off sang |
-|---|---|
-| "Tao campaign X", "gui email cho nhom" | `sme-campaign` |
-| "Draft reply", "schedule meeting", "prep meeting" | `sme-engagement` |
-| "Viet proposal cho Y" | `sme-proposal` |
-| "Enrich contact Z", "search khach" | `sme-crm` |
-| "Prep event", "tao checklist event" | `sme-campaign` (event flow A) |
-| "Soan content", "viet bai FB" | `sme-marketing` |
-| "Gui thank-you sau event" | `sme-campaign` (follow_up flow D) |
-| "Sync linkedin", "list connection request", "soan reply cho ai vua tra loi" | `sme-outreach` |
+**Routing sau khi user chốt action:** xem bảng "SKILL ROUTING TABLE" trong `sme-orchestrator/SKILL.md` —
+đây là nguồn duy nhất, KHÔNG duy trì bản sao riêng ở đây để tránh lệch nhau. Với action đơn giản/rõ ràng
+(vd "viết proposal cho Y", "soạn content FB"), có thể đi thẳng vào skill tương ứng ngay mà không cần gọi
+`sme-orchestrator` — chỉ cần orchestrator khi action tiếp theo lại mơ hồ hoặc cần nhiều skill phối hợp.
 
 ## EVENT-SPECIFIC FLOW
 
@@ -689,6 +713,7 @@ Khong can config ngoai `sme-cli config set cosmo.*` (setup khi install sme-crm).
 - **`sme-campaign`**: tao campaign (event / cold / re-engage / follow-up) + event lifecycle.
 - **`sme-marketing`**: sinh content (social post, blog, landing, email copy, ads).
 - **`sme-proposal`**: render proposal + send PDF.
-- **`sme-reminder`** (skill nay): plan/suggest — "ai + lam gi khi nao" — hand-off skill khac execute.
+- **`sme-reminder`** (skill nay): **Briefing** — bao cao trang thai theo lich (Morning/EOD/Weekly, overdue, alert). KHONG quyet dinh workflow/approval/routing — xem `sme-orchestrator`.
+- **`sme-orchestrator`**: goal understanding + planning + skill routing + approval decision + Next Best Action (basic) cho request da buoc/mo ho. Reminder KHONG lam viec nay nua — da MOVE sang day.
 - **`sme-scheduler`**: pure time-based cron (nhac toi 18h, moi ngay 9h, huy reminder). KHONG fetch data.
 - **`sme-outreach`**: outbound activity ledger cho LinkedIn (connection request, message, reply) — so lieu HOAT DONG DA LAM, khac voi Engagement (goi y NEN lam gi tiep theo tu COSMO). Skill nay chi fetch summary tu `sme-outreach`, KHONG tu lam lai logic scrape/parse.

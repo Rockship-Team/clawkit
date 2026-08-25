@@ -117,7 +117,7 @@
       "version": "1.0.0"
     },
     "engagement": {
-      "description": "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep, pilot plan, stage update, customer reply, internal handoff. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, stage flow chuan, output structure 4 phan).",
+      "description": "Conversion flow cho SME — daily BD actions, reply handling, meeting prep, pilot plan, customer reply, internal handoff. So huu: reply analysis, intent, sentiment, objection, buying signal trong hoi thoai, suggested response, meeting prep/follow-up. Stage-transition (ENGAGED→QUALIFIED→PROPOSAL→WON) hien dang thuc thi TAM THOI o day cho toi khi sme-opportunity duoc build (Phase 2) — xem RESPONSIBILITY BOUNDARY. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, output structure 4 phan).",
       "version": "1.0.0",
       "setup_prompts": [
         {
@@ -257,8 +257,12 @@
       ],
       "version": "1.0.0"
     },
+    "orchestrator": {
+      "description": "GTM Orchestrator — CHỈ kích hoạt cho yêu cầu ĐA BƯỚC / MỤC TIÊU TỔNG QUÁT / MƠ HỒ cần phối hợp NHIỀU skill hoặc chưa rõ nên dùng skill nào (vd 'tìm công ty logistics ở Singapore rồi bắt đầu outreach', 'giúp anh build lại pipeline cho ngành F&B từ đầu', 'lo hết vụ khách này cho anh'). KHÔNG kích hoạt cho yêu cầu đơn giản đã rõ 1 skill cụ thể — những yêu cầu đó đi THẲNG vào skill tương ứng (vd 'viết proposal cho ABC' → sme-proposal trực tiếp, 'xem KPI outreach' → sme-analytics/sme-kpi trực tiếp, 'sync linkedin' → sme-outreach trực tiếp). Khi kích hoạt: hiểu goal → chia bước → chọn skill/tool theo thứ tự → tra approval policy trước khi thực thi hành động rủi ro → đánh giá kết quả từng bước trước khi sang bước kế.",
+      "version": "1.0.0"
+    },
     "outreach": {
-      "description": "Theo dõi hoạt động outbound/prospecting theo channel — hiện tại LinkedIn (connection request sent/received qua sync tự động, read-only) + log tay cho channel khác (cold call, demo, event, walkthrough, meeting). Trigger khi user hỏi 'hôm nay outreach bao nhiêu', 'sync LinkedIn', 'connection request tuần này', 'log 5 cold call', 'còn ai chưa follow-up sau khi connect'. KHÔNG phải CRM (contact/stage — dùng sme-crm), KHÔNG phải conversion sau khi đã kết nối (dùng sme-engagement), KHÔNG phải target (dùng sme-kpi).",
+      "description": "Theo dõi hoạt động outbound/prospecting theo channel — hiện tại LinkedIn (connection request sent/received qua sync tự động, read-only) + log tay cho channel khác (cold call, demo, event, walkthrough, meeting). Trigger khi user hỏi SỐ LIỆU đã làm: 'hôm nay outreach được bao nhiêu (người/tin)', 'sync LinkedIn', 'connection request tuần này', 'log 5 cold call', 'còn ai chưa follow-up sau khi connect'. QUAN TRỌNG — KHÔNG kích hoạt cho câu hỏi 'outreach ai' / 'nên outreach ai' / 'ai cần liên hệ' (không có số, hỏi GỢI Ý người cần liên hệ) — đó là sme-reminder/sme-engagement, KHÔNG phải skill này. KHÔNG phải CRM (contact/stage — dùng sme-crm), KHÔNG phải conversion sau khi đã kết nối (dùng sme-engagement), KHÔNG phải target (dùng sme-kpi).",
       "version": "1.0.0"
     },
     "pre-departure": {
@@ -287,7 +291,7 @@
       ]
     },
     "reminder": {
-      "description": "Cross-cutting trigger engine cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, suggest action → hand-off skill tuong ung de thuc thi. KHONG phai memory search, KHONG phai cron scheduler.",
+      "description": "Proactive GTM Briefing cho 5 lifecycle SME: marketing (content cadence slips), engagement (daily BD outreach qua COSMO), sales (proposal follow-up / meeting prep), event (prep checklist 1-3 ngay truoc + post-event thank-you overdue), outreach (LinkedIn connection/message activity qua sme-outreach). Khi user noi 'nhac toi', 'ai can follow-up', 'hom nay outreach ai', 'event sap toi can lam gi', 'content tuan nay con gi', 'hom nay outreach duoc bao nhieu', 'tom tat tin nhan hom nay' → fetch live data, categorize, BAO CAO trang thai. KHONG phai memory search, KHONG phai cron scheduler, KHONG quyet dinh workflow/approval (xem sme-orchestrator).",
       "version": "1.0.0"
     },
     "rockship-support": {
@@ -386,7 +390,7 @@
   },
   "groups": {
     "self-improving-agent": ["agent-learner","knowledge-vault"],
-    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","ops","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
+    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","ops","orchestrator","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

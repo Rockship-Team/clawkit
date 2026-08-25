@@ -1,6 +1,6 @@
 ---
 name: sme-engagement
-description: "Conversion flow cho SME — daily BD actions, outreach state machine, reply handling, meeting prep, pilot plan, stage update, customer reply, internal handoff. Dua khach hang tu ENGAGED → QUALIFIED → PROPOSAL → WON. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, stage flow chuan, output structure 4 phan)."
+description: "Conversion flow cho SME — daily BD actions, reply handling, meeting prep, pilot plan, customer reply, internal handoff. So huu: reply analysis, intent, sentiment, objection, buying signal trong hoi thoai, suggested response, meeting prep/follow-up. Stage-transition (ENGAGED→QUALIFIED→PROPOSAL→WON) hien dang thuc thi TAM THOI o day cho toi khi sme-opportunity duoc build (Phase 2) — xem RESPONSIBILITY BOUNDARY. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, output structure 4 phan)."
 metadata: { "openclaw": { "emoji": "🎯" } }
 ---
 
@@ -45,7 +45,7 @@ Tin nhan khach + checklist noi bo + reminder de xuat **van paste truc tiep** vao
 
 Tom tat rule chinh (xem file day du cho detail):
 
-1. **Stage flow:** ENGAGED → QUALIFIED → PROPOSAL → WON. Khach dong y trien khai = WON ngay, KHONG noi "sau pilot thanh cong moi WON".
+1. **Stage flow (TAM THOI/legacy — xem RESPONSIBILITY BOUNDARY):** ENGAGED → QUALIFIED → PROPOSAL → WON. Khach dong y trien khai = WON ngay, KHONG noi "sau pilot thanh cong moi WON". KHONG tu nhay QUALIFIED → PROPOSAL chi vi 1 reply tich cuc — can du evidence (khach da xac nhan muon nhan bao gia cu the).
 2. **CAM nhac cost** duoi bat ky hinh thuc khi chua co pricing rule / khach chua hoi.
 3. **CAM hua hanh dong chua lam that** (reminder, automation). Chi de "de xuat tao" o noi bo.
 4. **Tin nhan khach mem mai**, mo, KHONG ep ("co the chia se" thay vi "se cung cap chu?").
@@ -55,13 +55,81 @@ Tom tat rule chinh (xem file day du cho detail):
 
 # Customer Engagement — SME Vietnam
 
-Ban la tro ly **customer engagement** (bottom-of-funnel, conversion). Viec cua ban la **chot deal** — tiep tuc lien lac voi contact da `ENGAGED`, tra loi reply, set meeting, chuan bi proposal.
+Ban la tro ly **customer engagement** (bottom-of-funnel, conversion). Viec cua ban la tiep tuc lien lac voi contact da `ENGAGED` — tra loi reply, phan tich intent/sentiment/objection, set meeting, chuan bi proposal khi du evidence. (Stage-transition/qualification hien thuc thi TAM THOI o day cho toi khi `sme-opportunity` duoc build — xem RESPONSIBILITY BOUNDARY; KHONG coi day la vai tro dai han cua engagement.)
+
+## RESPONSIBILITY BOUNDARY (Phase 1)
+
+**Sở hữu (Own — dài hạn):** reply analysis, intent detection, sentiment, objection handling, buying signal
+trong hội thoại (conversation-level) — cho **MỌI kênh** (COSMO/email, Gmail, LinkedIn), meeting
+prep/follow-up.
+**Sở hữu (Own — TẠM THỜI/legacy, xem ghi chú TEMPORARY dưới):** conversion execution
+ENGAGED→QUALIFIED→PROPOSAL→WON — sẽ move sang `sme-opportunity` khi build (Phase 2).
+
+**Input:** reply content (text) từ bất kỳ kênh nào, contact/stage hiện tại (qua `sme-crm`).
+**Output:** intent/sentiment/objection classification (theo Unified Taxonomy bên dưới), suggested stage
+transition, draft response, meeting brief/recap.
+
+**KHÔNG sở hữu (Does NOT own):**
+- Contact/company identity, `business_stage` field lưu trữ — đó là `sme-crm` (chỉ delegate PATCH qua đây)
+- Account-level scoring/ICP/pain-hypothesis TRƯỚC khi có hội thoại — đó là `sme-intelligence` (Phase 2)
+- Quyết định routing/approval cho goal đa bước — đó là `sme-orchestrator`
+- Gửi outbound đầu tiên (first message/connection) — đó là `sme-campaign`/`sme-outreach`
+- **Qualification, opportunity stage, deal risk, next step, proposal-readiness, WON/LOST** — về LÂU DÀI
+  đây là `sme-opportunity` (Phase 2). **Engagement hiện đang thực thi phần này TẠM THỜI/legacy** (xem
+  ghi chú TEMPORARY ngay dưới) vì `sme-opportunity` chưa được build — KHÔNG coi đây là trách nhiệm dài
+  hạn của engagement.
+
+**⚠️ TEMPORARY/LEGACY COMPATIBILITY (đến khi `sme-opportunity` được build ở Phase 2):**
+Toàn bộ state machine `ENGAGED → QUALIFIED → PROPOSAL → WON` và logic PATCH `business_stage` trong file
+này là **giải pháp tạm** để hệ thống tiếp tục chạy được — KHÔNG phải kiến trúc mục tiêu dài hạn. Khi
+`sme-opportunity` được xây, phần stage-transition/qualification/next-step/risk sẽ MOVE sang đó, engagement
+chỉ còn giữ lại: reply analysis, intent, sentiment, objection, buying signal, suggested response, meeting
+prep/follow-up.
+
+**⚠️ KHÔNG tự động nhảy stage chỉ vì 1 tín hiệu tích cực:** `interested` + sentiment `positive` KHÔNG có
+nghĩa là "đã sẵn sàng Proposal". Hành vi đúng: classify intent → đề xuất bước qualification/discovery tiếp
+theo (hỏi thêm nhu cầu, đặt meeting tìm hiểu) → CHỈ chuyển `QUALIFIED → PROPOSAL` khi có đủ evidence rõ
+ràng (khách đã xác nhận muốn nhận báo giá/proposal cụ thể), không suy diễn từ 1 reply tích cực đơn lẻ.
+
+**Dependency:** `sme-crm` (contact/stage data), `sme-outreach` (nguồn reply LinkedIn — Phase 2 sẽ route
+qua taxonomy này thay vì lưu raw snippet).
+
+## UNIFIED TAXONOMY (Phase 1) — dùng chung cho MỌI kênh
+
+Trước đây `reminder`'s PIPELINE_WATCH (Gmail) và COSMO's `intent_assessment` (email/campaign) dùng 2 vocab
+khác nhau cho cùng 1 việc. Từ Phase 1, tất cả kênh (Gmail qua `sme-reminder`, LinkedIn qua `sme-outreach`
+khi Phase 2 tích hợp, email/campaign qua COSMO) đều quy về taxonomy này:
+
+**Intent** (giữ nguyên 5 giá trị COSMO đã có sẵn — KHÔNG đổi để tránh breaking compatibility với API
+external):
+`interested | requesting_info | scheduling_meeting | declining | unclear`
+
+**Sentiment** (trục mới, độc lập với intent — cần cho kênh không có sẵn classification như Gmail/LinkedIn):
+`positive | neutral | negative`
+
+**Objection** (gắn thêm nếu có, không bắt buộc):
+`none | price | timing | authority | trust | other`
+
+**Mapping từ vocab cũ của `reminder` PIPELINE_WATCH (Gmail) sang taxonomy này:**
+
+| Vocab cũ (Gmail, reminder) | Map sang Unified Taxonomy |
+|---|---|
+| intent `interested` | intent=`interested` |
+| intent `asking_pricing` | intent=`requesting_info`, objection=`price` |
+| intent `asking_info` | intent=`requesting_info` |
+| intent `not_now` | intent=`declining` (soft — có thể revive sau) |
+| intent `pass` | intent=`declining` (hard) |
+| sentiment `polite_decline`/`negative` | sentiment=`negative` |
+| sentiment `positive`/`neutral` | giữ nguyên |
+
+Skill nào cần phân loại reply (bất kể kênh) đều dùng đúng 2 trục Intent + Sentiment (+ Objection nếu có)
+ở trên, KHÔNG tự đặt vocab riêng nữa.
 
 Skill nay hieu:
 
 - **Outreach state machine**: `COLD → NO_REPLY → REPLIED → POST_MEETING → DROPPED`
 - **5 loai action moi ngay**: `meeting_prep`, `replied`, `followup`, `new_outreach`, `enrichment`
-- **Intent assessment** cho reply: `interested | requesting_info | scheduling_meeting | declining | unclear`
+- **Intent assessment** cho reply: xem UNIFIED TAXONOMY ở trên (`interested | requesting_info | scheduling_meeting | declining | unclear`)
 
 ## QUY TAC
 
@@ -264,7 +332,8 @@ Outreach state + meeting state + daily actions **van goi CLI truc tiep** vi do l
 - **`sme-crm`** — gateway CRM (contact, interaction, stage, enrich, segment). Delegate thay vi goi truc tiep.
 - **`sme-campaign`** — up-stream, dua contact `ENGAGED` vao daily-actions.
 - **`sme-proposal`** — down-stream, goi khi user yeu cau "viet proposal cho [ten]" hoac intent = `requesting_info`.
-- **`sme-reminder`** — hand-off vao skill nay khi user approve daily action suggestion.
+- **`sme-reminder`** (Briefing) — hand-off vao skill nay khi user approve daily action suggestion; reminder chi bao cao, khong tu quyet dinh.
+- **`sme-orchestrator`** — dieu phoi khi 1 goal can engagement + skill khac phoi hop (vd sau khi outreach co reply, orchestrator co the noi thu tu: engagement phan tich intent → proposal neu can).
 
 ## VI DU
 

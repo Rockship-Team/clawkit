@@ -1,6 +1,6 @@
 ---
 name: sme-outreach
-description: "Theo dõi hoạt động outbound/prospecting theo channel — hiện tại LinkedIn (connection request sent/received qua sync tự động, read-only) + log tay cho channel khác (cold call, demo, event, walkthrough, meeting). Trigger khi user hỏi 'hôm nay outreach bao nhiêu', 'sync LinkedIn', 'connection request tuần này', 'log 5 cold call', 'còn ai chưa follow-up sau khi connect'. KHÔNG phải CRM (contact/stage — dùng sme-crm), KHÔNG phải conversion sau khi đã kết nối (dùng sme-engagement), KHÔNG phải target (dùng sme-kpi)."
+description: "Theo dõi hoạt động outbound/prospecting theo channel — hiện tại LinkedIn (connection request sent/received qua sync tự động, read-only) + log tay cho channel khác (cold call, demo, event, walkthrough, meeting). Trigger khi user hỏi SỐ LIỆU đã làm: 'hôm nay outreach được bao nhiêu (người/tin)', 'sync LinkedIn', 'connection request tuần này', 'log 5 cold call', 'còn ai chưa follow-up sau khi connect'. QUAN TRỌNG — KHÔNG kích hoạt cho câu hỏi 'outreach ai' / 'nên outreach ai' / 'ai cần liên hệ' (không có số, hỏi GỢI Ý người cần liên hệ) — đó là sme-reminder/sme-engagement, KHÔNG phải skill này. KHÔNG phải CRM (contact/stage — dùng sme-crm), KHÔNG phải conversion sau khi đã kết nối (dùng sme-engagement), KHÔNG phải target (dùng sme-kpi)."
 metadata: { "openclaw": { "emoji": "🔗" } }
 ---
 

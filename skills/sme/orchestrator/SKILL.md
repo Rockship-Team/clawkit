@@ -63,7 +63,7 @@ thay vì tự giữ bản sao riêng:
 | Nhu cầu | Skill | Ghi chú |
 |---|---|---|
 | Account nên target không, tại sao, buying signal, pain hypothesis (pre-conversation) | `sme-intelligence` | Facade — reuse ICP/relationship score + Apollo, xem `intelligence/SKILL.md`. KHÔNG tự gửi outreach |
-| Campaign objective/segment/cadence/messaging, kích hoạt campaign | `sme-campaign` | Lưu ý: CLI thực thi 1 phần chưa build (Phase 2), `segment.*` đã chạy qua `sme-crm` |
+| Campaign objective/segment/cadence/messaging, kích hoạt campaign | `sme-campaign` | CLI thực thi thật (Phase 2C) — `campaign create/activate/pause`, xem `campaign/SKILL.md`. Activate = APPROVAL, tạo ≠ activate |
 | LinkedIn connection/message/reply, activity log | `sme-outreach` | |
 | Reply analysis, intent/sentiment/objection, meeting prep/follow-up | `sme-engagement` | Chủ sở hữu Unified Taxonomy — xem `engagement/SKILL.md`. Qualification/stage/readiness → `sme-opportunity`, không còn ở đây |
 | Qualification/opportunity stage/deal risk/next-step/proposal readiness/WON-LOST (deal-level) | `sme-opportunity` | Read-only aggregation view (`sme-cli opportunity view/risk-list`) — không phải bảng DB mới, xem `opportunity/SKILL.md` |

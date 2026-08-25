@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -15,14 +16,17 @@ import (
 // use — Analytics never re-derives its own copy of these queries).
 //
 //	sme-cli analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]
+//	sme-cli analytics campaigns [--max-pages N]
 func cmdAnalytics(args []string) {
 	if len(args) == 0 {
-		errOut("usage: analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]")
+		errOut("usage: analytics summary|campaigns")
 		return
 	}
 	switch args[0] {
 	case "summary":
 		analyticsSummary(args[1:])
+	case "campaigns":
+		analyticsCampaigns(args[1:])
 	default:
 		errOut("unknown analytics command: " + args[0])
 	}
@@ -239,4 +243,127 @@ func analyticsRecommendations(channelComparison []map[string]interface{}) []stri
 		"Kênh %s có reply rate %.1f%% (n=%d tin nhắn) — thấp hơn đáng kể so với %s (%.1f%%, n=%d). Nên review lại message/targeting cho %s.",
 		worst.channel, worst.rate, worst.messages, best.channel, best.rate, best.messages, worst.channel,
 	)}
+}
+
+// --- Campaign analytics (Phase 2C) -----------------------------------------
+
+// analyticsCampaigns reports only metrics COSMO's real Campaign API already
+// computes (sent/reply/reply_rate per campaign via GetByID/List — see
+// campaign.go) plus Qualified/Proposal counts reused from analyticsBottleneck
+// (same fetchAllContacts business_stage aggregation, not re-derived).
+// Channel is read per-campaign via the same campaignChannel() helper
+// campaignActivate uses — one small source of truth for "what channel is
+// this campaign", never two.
+func analyticsCampaigns(args []string) {
+	maxPages := 8
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--max-pages" && i+1 < len(args) {
+			i++
+			if n, err := strconv.Atoi(args[i]); err == nil && n > 0 {
+				maxPages = n
+			}
+		}
+	}
+
+	raw, code, err := cosmoRequest("GET", "/v1/campaigns?limit=100", nil)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	if code >= 400 {
+		errOut(fmt.Sprintf("HTTP %d: %s", code, string(raw)))
+		return
+	}
+	var resp struct {
+		Data struct {
+			List []struct {
+				Entity struct {
+					ID     string `json:"id"`
+					Status string `json:"status"`
+				} `json:"entity"`
+				Sent      int     `json:"sent"`
+				Reply     int     `json:"reply"`
+				ReplyRate float64 `json:"reply_rate"`
+			} `json:"list"`
+			Total int `json:"total"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		errOut(err.Error())
+		return
+	}
+	truncated := resp.Data.Total > len(resp.Data.List)
+
+	byStatus := map[string]int{}
+	byChannel := map[string]*struct{ campaigns, sent, reply int }{}
+	totalSent, totalReply := 0, 0
+	for _, item := range resp.Data.List {
+		byStatus[item.Entity.Status]++
+		totalSent += item.Sent
+		totalReply += item.Reply
+
+		view, code, err := cosmoGetCampaign(item.Entity.ID)
+		channel := "email"
+		if err == nil && code < 400 {
+			channel = campaignChannel(view)
+		}
+		ch, ok := byChannel[channel]
+		if !ok {
+			ch = &struct{ campaigns, sent, reply int }{}
+			byChannel[channel] = ch
+		}
+		ch.campaigns++
+		ch.sent += item.Sent
+		ch.reply += item.Reply
+	}
+
+	channelPerf := make([]map[string]interface{}, 0, len(byChannel))
+	for channel, ch := range byChannel {
+		entry := map[string]interface{}{
+			"channel": channel, "campaigns": ch.campaigns, "sent": ch.sent, "reply": ch.reply,
+		}
+		if ch.sent > 0 {
+			entry["reply_rate"] = fmt.Sprintf("%.1f%%", float64(ch.reply)/float64(ch.sent)*100)
+		} else {
+			entry["reply_rate"] = "insufficient_data"
+		}
+		channelPerf = append(channelPerf, entry)
+	}
+
+	replyRate := "insufficient_data"
+	if totalSent > 0 {
+		replyRate = fmt.Sprintf("%.1f%%", float64(totalReply)/float64(totalSent)*100)
+	}
+
+	// Reuse the exact same COSMO business_stage aggregation as `analytics
+	// summary`'s bottleneck — never a second copy of that scan.
+	bottleneck, _ := analyticsBottleneck(nil, maxPages)
+	qualified, proposal := 0, 0
+	for _, s := range bottleneck {
+		switch s["stage"] {
+		case "Qualified":
+			qualified = s["count"].(int)
+		case "Proposal":
+			proposal = s["count"].(int)
+		}
+	}
+
+	note := "sent/reply/reply_rate lấy nguyên từ COSMO GetByID/List — không tự tính lại. qualified_opportunities/proposals reuse COSMO business_stage (cùng logic `analytics summary`'s bottleneck)."
+	if truncated {
+		note += fmt.Sprintf(" CẢNH BÁO: org có %d campaign, chỉ lấy được %d (limit=100) — số liệu dưới đây CHƯA đầy đủ.", resp.Data.Total, len(resp.Data.List))
+	}
+
+	okOut(map[string]interface{}{
+		"campaigns_created":       resp.Data.Total,
+		"by_status":               byStatus,
+		"active_campaigns":        byStatus["active"],
+		"messages_sent":           totalSent,
+		"replies":                 totalReply,
+		"reply_rate":              replyRate,
+		"channel_performance":     channelPerf,
+		"qualified_opportunities": qualified,
+		"proposals":               proposal,
+		"truncated":               truncated,
+		"note":                    note,
+	})
 }

@@ -69,6 +69,13 @@ mới, KHÔNG tạo event mới. Phân 3 nhóm:
 
 Dùng khi user hỏi "ai chưa follow-up sau khi connect", "ai gửi tin rồi mà im lặng", "còn ai cần nhắn lại".
 
+**Campaign LinkedIn channel (Phase 2C):** khi `sme-campaign activate` đánh dấu 1 campaign channel=linkedin
+là `ready_for_manual_send`, KHÔNG có auto-send nào xảy ra (skill này vẫn read-only, không có khả năng gửi —
+xem "SYNC LINKEDIN" bên dưới). Con người tự gửi thủ công theo cadence campaign đã lưu, rồi log lại kết quả
+qua `sme-cli outreach log-event` như bình thường — KHÔNG có cơ chế liên kết event với `campaign_id` (schema
+`outreach_events` hiện lưu theo `name` cào từ LinkedIn, không có `contact_id`/`campaign_id` — biết trước để
+không tự suy diễn liên kết không đáng tin).
+
 ## SYNC LINKEDIN — read-only, chỉ khi user yêu cầu
 
 `sme-cli outreach sync` kết nối tới Chrome đã đăng nhập LinkedIn của user (qua CDP, đã cấu hình sẵn `linkedin.cdp_url` trong `sme-cli config`) và đọc 2 trang:

@@ -4,7 +4,7 @@ description: "Báo cáo tổng hợp KPI + outreach funnel + so sánh hiệu su�
 metadata: { "openclaw": { "emoji": "📊" } }
 ---
 
-# SME Analytics — Thin Aggregation (Phase 2B)
+# SME Analytics — Thin Aggregation (Phase 2B + Campaign Analytics Phase 2C)
 
 Analytics **KHÔNG tính số liệu mới** — mọi con số đều reuse trực tiếp từ `sme-cli kpi`/`sme-cli outreach
 funnel`/COSMO `business_stage` (qua cơ chế `fetchAllContacts` đã dùng ở `cosmo daily-plan`/`sme-opportunity`).
@@ -14,6 +14,7 @@ Nếu số trong Analytics khác với gọi `kpi team`/`outreach funnel` riêng
 
 ```bash
 sme-cli analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]
+sme-cli analytics campaigns [--max-pages N]     # Phase 2C — campaign metrics thật
 ```
 
 ## OUTPUT FIELDS
@@ -26,7 +27,21 @@ sme-cli analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pa
 | `channel_comparison` | Pivot lại `outreach_funnel` theo channel | `reply_rate` chỉ tính khi có `messages > 0`, nếu không → `"insufficient_data"` |
 | `bottleneck` | Outreach/Reply từ `outreach_events`; Qualified/Proposal từ COSMO `business_stage` | **KHÔNG có stage "Research"** — hệ thống hiện chưa có nguồn dữ liệu này, cố tình bỏ qua thay vì giả 0 |
 | `recommendations` | So sánh reply_rate GIỮA các channel (relative), không so với benchmark tuyệt đối bịa ra | Chỉ xuất hiện khi có ≥2 channel đủ volume (≥5 tin nhắn) VÀ chênh lệch ≥10 điểm % |
-| `campaign_performance` | Cố định `"unavailable_until_campaign_engine"` | Campaign Engine chưa build (Phase 2C) |
+| `campaign_performance` | `sme-cli analytics campaigns` (xem bảng riêng bên dưới) — KHÔNG dùng `analytics summary` cho campaign | Campaign Engine đã build (Phase 2C) |
+
+## CAMPAIGN ANALYTICS (Phase 2C) — `sme-cli analytics campaigns`
+
+| Field | Nguồn | Ghi chú |
+|---|---|---|
+| `campaigns_created`, `by_status`, `active_campaigns` | `GET /v1/campaigns` (COSMO thật) | |
+| `messages_sent`, `replies`, `reply_rate` | Sum `sent`/`reply` COSMO trả sẵn per-campaign (GetByID/List) | KHÔNG tự tính lại — 0% khi denominator thật = 0, không phải `insufficient_data` (khác `channel_comparison` của `analytics summary`, ở đây `messages_sent` luôn ≥0 sản phẩm của COSMO tính sẵn) |
+| `channel_performance` | Đọc `cmetadata.client.channel` per-campaign (qua `campaignChannel()` — cùng hàm `campaign activate` dùng) | Không tự suy channel từ tên/playbook |
+| `qualified_opportunities`, `proposals` | Reuse `analyticsBottleneck`'s COSMO `business_stage` scan (KHÔNG chạy lại lần 2) | |
+
+**Chưa hỗ trợ (audit Phase 2C, để rõ chứ không giả lập):** sent/reply chi tiết theo
+từng recipient (chỉ có aggregate count qua COSMO GetByID, không có event feed
+per-recipient trong phạm vi API đã audit) — nếu cần drill-down từng người, phải audit
+sâu hơn `relations.CampaignWithEmails`/`CampaignWithConversations` (chưa làm ở Phase 2C).
 
 ## QUY TẮC "KHÔNG BỊA SỐ"
 
@@ -37,8 +52,8 @@ sme-cli analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pa
   recommendation.
 - Bottleneck chỉ hiện stage có nguồn dữ liệu thật — không cố hiện đủ "Research → Outreach → Reply →
   Qualified → Proposal" nếu 1 stage không đo được.
-- `campaign_performance` luôn trả cố định "chưa dùng được" — KHÔNG tự bịa số performance khi Campaign Engine
-  chưa tồn tại.
+- `analytics campaigns` chỉ đọc số COSMO đã tính (sent/reply/reply_rate) — không tự suy diễn per-recipient
+  detail khi API không cung cấp.
 
 ## RANH GIỚI
 

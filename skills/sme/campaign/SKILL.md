@@ -12,9 +12,9 @@ Ban la tro ly **campaign** (top-of-funnel). Viec cua ban la **thu hut su quan ta
 
 **BAT BUOC** khi user noi: "list campaign", "xem cac campaign", "co campaign nao dang chay", "show campaigns", "campaign hien tai":
 
-Goi qua sme-cli (delegate sme-crm de xu ly auth + API call):
+Goi qua sme-cli (lệnh thật, Phase 2C):
 ```bash
-sme-cli cosmo api GET /v1/campaigns?limit=20
+sme-cli campaign list
 ```
 
 Hoac neu sme-cli chua config → fallback huong dan user mo:
@@ -293,63 +293,121 @@ Thay vao do, **PHAI**:
    - **CAM** dung signal nhay cam (kien tung, scandal, financial trouble) — uu tien positive/neutral (hiring, milestone, podcast, content share).
 3. Output 3-5 subject (KHONG clickbait) + body 1 dong cach nhau ro rang.
 
-### 7 buoc CLI workflow (cho campaign formal — gui hang loat list >5 contact)
+### CLI workflow THẬT (Phase 2C — campaign.go, không còn chỉ là doc)
 
-**1. Xac dinh target audience** — delegate sang `sme-crm`:
+**Lưu ý:** lệnh dưới đây gọi thẳng COSMO Campaign API thật (đã audit source code
+`cosmo-backend/internal/handler/v1/campaign/`), KHÔNG phải giả lập. Xem "CAMPAIGN
+ENGINE — RANH GIỚI & STATE MODEL" bên dưới cho behavior chi tiết trước khi dùng.
 
-> "Em can list khach target. Anh mo ta kieu 'fintech founder Sai Gon', 'HR manager SaaS 50-200 nguoi'..."
+**1. Xác định target audience** — delegate sang `sme-crm` như cũ:
 
-Sme-crm search/enrich/build list, return `list_contact_id`.
+> "Em cần list khách target. Anh mô tả kiểu 'fintech founder Sài Gòn', 'HR manager SaaS 50-200 người'..."
 
-**2. Tao campaign DRAFT:**
+Sme-crm search/enrich/build list qua `POST /v1/list-contacts`, trả về `list_contact_id`
+(1 danh sách `contact_ids` cố định — KHÔNG phải saved-filter tự động cập nhật).
 
-```bash
-sme-cli campaign create \
-  --name "Q2 Fintech Outreach" \
-  --playbook cold_outreach \
-  --list-contact-id <UUID> \
-  --language vi
-```
-
-Playbook mac dinh:
-- `cold_outreach` — contact moi, chua tiep xuc (default)
-- `event_invite` — moi tham du event
-- `revive_dormant_leads` — 6+ thang im ang (hoac dung flow C re_engage)
-- `content_offering` — chia se content, thu hut
-
-**3. Generate AI templates:**
+**2. Nghiên cứu account (nếu cần) — delegate `sme-intelligence`:**
 
 ```bash
-sme-cli campaign gen-templates <campaign_id>
+sme-cli intelligence account "<tên công ty>"
 ```
 
-Neu template chua hay, regenerate cai cu the:
-```bash
-sme-cli campaign regen-template <campaign_id> <template_id>
-```
+Dùng `recommended_angle`/`pain_hypotheses` làm cơ sở cho messaging angle bên dưới —
+**KHÔNG tự tính lại ICP/signal trong campaign.go.**
 
-**4. (Optional) Preview sample:**
+**3. Tạo campaign DRAFT:**
 
 ```bash
-sme-cli campaign preview <campaign_id>
+sme-cli campaign create --name "Q2 Fintech Outreach" --playbook cold_outreach [--channel email|linkedin]
 ```
 
-**5. Activate (PATCH status=active — buoc trigger gui):**
+Mặc định `--channel email` (COSMO Campaign hiện chỉ có 1 channel thật: email qua
+Agent/Gmail). `--channel linkedin` chỉ đổi cách `activate` xử lý (xem bên dưới) —
+KHÔNG tạo channel mới ở COSMO (COSMO không có khái niệm channel).
+
+Gắn segment sau khi đã có `list_contact_id`:
+```bash
+sme-cli cosmo api PATCH /v1/campaigns/<id> '{"list_contact_id":"<UUID>"}'
+```
+
+Playbook (label mô tả, không phải enum COSMO validate):
+- `cold_outreach` — contact mới, chưa tiếp xúc (default)
+- `event_invite` — mời tham dự event
+- `revive_dormant_leads` — 6+ tháng im ắng (hoặc dùng flow C re_engage)
+- `content_offering` — chia sẻ content, thu hút
+
+**4. Soạn nội dung — agent tự soạn theo `sme-marketing/SKILL.md` mục C "EMAIL COPY"**
+(cadence 0-3-7 đã có sẵn ở đó — KHÔNG viết lại rule copywriting trong campaign.go).
+Rồi lưu từng bước cadence qua:
+
+```bash
+sme-cli campaign add-template <campaign_id> --type initial --subject "..." --content "..." --send-after 0
+sme-cli campaign add-template <campaign_id> --type followup_1 --subject "..." --content "..." --send-after 3
+sme-cli campaign add-template <campaign_id> --type followup_2 --subject "..." --content "..." --send-after 7
+```
+
+`--send-after N` = số ngày sau khi campaign active mới gửi bước đó (field thật của
+COSMO, không phải cơ chế tự chế). Xem template đã lưu: `sme-cli campaign templates <campaign_id>`.
+
+**5. Activate (APPROVAL — KHÔNG tự làm khi user chỉ nói "tạo campaign"):**
 
 ```bash
 sme-cli campaign activate <campaign_id>
 ```
 
-⚠️ **Khong activate → khong email nao duoc gui.**
+⚠️ **Tạo campaign ≠ activate.** Chỉ activate khi user xác nhận rõ ràng ý muốn gửi.
 
-**6. Theo doi:**
+- **Channel email:** activate gọi PATCH `status=active` thật — COSMO sẽ enqueue
+  worker gửi email theo cadence đã lưu. Trước khi cho phép, lệnh tự kiểm tra
+  Google-auth của Agent (`/v1/agents/search`) — nếu KHÔNG phải `"active"` (vd
+  `"invalid Google grant"`) → **từ chối activate**, campaign vẫn draft, KHÔNG bypass.
+- **Channel linkedin:** activate **KHÔNG BAO GIỜ** gọi COSMO status=active (COSMO
+  không có khái niệm channel — agent_id luôn nghĩa là "email identity sẽ gửi", ép
+  campaign LinkedIn qua path đó có thể vô tình trigger gửi EMAIL thật). Thay vào đó
+  chỉ đánh dấu `ready_for_manual_send` trong `cmetadata.client` — **con người tự gửi
+  LinkedIn thủ công**, log lại qua `sme-cli outreach log-event` (sme-outreach chỉ
+  đọc, không có khả năng gửi — xem `outreach/SKILL.md`).
+
+**6. Theo dõi:**
 
 ```bash
-sme-cli campaign stats <campaign_id>   # open/reply rate
-sme-cli campaign list
+sme-cli campaign view <campaign_id>    # = stats: sent/reply/reply_rate/interested/interest_rate (COSMO tính sẵn)
+sme-cli campaign list [--status active]
+sme-cli analytics campaigns            # tổng hợp toàn bộ campaign — xem analytics/SKILL.md
 ```
 
-**7. Hand-off:** Khi contact reply hoac trigger ENGAGED signal, campaign tu dong PATCH `business_stage = ENGAGED`. Chuyen sang `sme-engagement` (down-stream).
+**7. Pause / Delete:**
+
+```bash
+sme-cli campaign pause <campaign_id>   # PATCH status=paused — an toàn ở mọi trạng thái
+sme-cli campaign delete <campaign_id>  # xoá hẳn (soft-delete phía COSMO)
+```
+
+**8. Hand-off:** Khi contact reply hoặc trigger ENGAGED signal, chuyển sang
+`sme-engagement` (Unified Taxonomy) — campaign.go không tự phân loại reply.
+
+## CAMPAIGN ENGINE — RANH GIỚI & STATE MODEL (Phase 2C)
+
+**State model — dùng nguyên enum COSMO thật, KHÔNG tự đặt tên khác:**
+`draft → scheduled/active → paused → ended`. Không có state "READY"/"COMPLETED" tự
+chế — nếu cần trạng thái trung gian cho riêng LinkedIn, dùng `cmetadata.client.linkedin_status`
+(không đổi COSMO `status` thật).
+
+**Campaign KHÔNG own (delegate, không viết lại logic):**
+- ICP/research/scoring → `sme-intelligence`
+- CRM contact storage/segment → `sme-crm` (`list_contact_id` tham chiếu, không copy)
+- Nội dung email → agent soạn theo `sme-marketing/SKILL.md` — campaign.go chỉ lưu
+  (`POST /v1/template`), KHÔNG gọi AI generate nào (COSMO's own AI-generate endpoints
+  cần OpenAI key hiện đang lỗi 401 phía backend — tránh phụ thuộc)
+- LinkedIn thực thi → `sme-outreach` (chỉ đọc — không có send)
+- Reply intent → `sme-engagement`
+- Deal stage/readiness → `sme-opportunity`
+- KPI/aggregation → `sme-analytics`
+
+**Google email auth — known issue (xác nhận lại mỗi lần trước khi activate kênh
+email):** agent `rockship17.co@gmail.com` hiện `status: "invalid Google grant"`.
+`campaign activate` tự kiểm tra live và từ chối nếu vẫn invalid — KHÔNG bypass,
+KHÔNG hiện token. Cần user tự reconnect Google trong COSMO UI.
 
 ## C. RE_ENGAGE — Phuc hoi khach cu
 

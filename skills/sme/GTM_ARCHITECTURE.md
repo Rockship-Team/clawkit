@@ -40,14 +40,16 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
   chưa dùng được. Intelligence KHÔNG phụ thuộc endpoint này — dùng Apollo + `cosmoContactsSearch` (filter-based)
   làm nguồn chính.
 
-### 2. `sme-campaign`
-- **Responsibility:** campaign objective, segment, channel, cadence/sequence, messaging angle, follow-up strategy, campaign KPI.
-- **Input:** campaign objective (event_outreach/cold_reach/re_engage/follow_up), segment.
-- **Output:** campaign record, sequence lịch trình, messaging draft theo cadence.
-- **Owns:** campaign lifecycle definition (4 loại), segment.* (qua `sme-crm`, đã chạy thật).
-- **Does NOT own:** thực thi gửi LinkedIn/email (→ `sme-outreach`/`sme-marketing`), reply handling (→ `sme-engagement`).
-- **Dependency:** `sme-crm` (segment), `sme-intelligence` (messaging input, Phase 2), `sme-outreach` (thực thi kênh).
-- **Gap đã biết:** CLI thực thi (`create`/`gen-templates`/`activate`/`stats`) chưa tồn tại — Phase 2.
+### 2. `sme-campaign` *(Phase 2C — đã build, xem `campaign/SKILL.md`)*
+- **Responsibility:** campaign objective, segment reference, cadence/sequence, messaging angle, follow-up strategy, campaign status/KPI.
+- **Input:** playbook (label, không phải enum COSMO), `list_contact_id` (từ `sme-crm`), template content (agent soạn theo `sme-marketing/SKILL.md`).
+- **Output:** `sme-cli campaign create/list/view/stats/add-template/templates/activate/pause/delete` — gọi thẳng COSMO Campaign API thật (`/v1/campaigns`, `/v1/template`), không phải giả lập.
+- **Owns:** campaign lifecycle state (`draft/scheduled/active/paused/ended` — enum COSMO thật, không tự đặt tên khác), cadence qua `send_after`/`position` trên từng template.
+- **Does NOT own:** ICP/research/scoring (→ `sme-intelligence`), CRM contact/segment storage (→ `sme-crm`, chỉ tham chiếu `list_contact_id`), sinh nội dung (→ agent áp dụng `sme-marketing/SKILL.md` mục C, campaign.go KHÔNG có copywriting engine riêng), thực thi gửi LinkedIn (→ `sme-outreach` — read-only, KHÔNG có send), reply handling (→ `sme-engagement`), KPI aggregation (→ `sme-analytics`).
+- **Dependency:** `sme-crm` (segment), `sme-intelligence` (messaging angle input), `sme-marketing` (content rules), `sme-outreach` (LinkedIn tracking thủ công), `sme-analytics` (`analytics campaigns`).
+- **Channel semantics (quan trọng — không phải chuyện nhỏ):** COSMO Campaign KHÔNG có khái niệm channel — `agent_id` luôn nghĩa là "email identity sẽ gửi". `--channel email` (default) dùng path PATCH `status=active` thật, đã enqueue worker gửi email. `--channel linkedin` **KHÔNG BAO GIỜ** chạm COSMO `status=active` (tránh vô tình trigger gửi email cho campaign định là LinkedIn) — chỉ đánh dấu `cmetadata.client.linkedin_status=ready_for_manual_send`, con người tự gửi, log qua `sme-outreach`.
+- **Google email auth (known issue, xác nhận live mỗi phiên):** agent duy nhất của org (`rockship17.co@gmail.com`) có `status: "invalid Google grant"` (xác nhận qua `POST /v1/agents/search`) — `campaign activate` tự kiểm tra và TỪ CHỐI nếu vẫn invalid, không bypass. Không block phần còn lại của Campaign engine (draft/template/segment/pause/delete/stats đều hoạt động bình thường).
+- **Known backend bug (ngoài phạm vi sửa):** `DELETE /v1/template/:id` panic (500, nil pointer) — để lại vài template row mồ côi vô hại (campaign cha đã xoá) từ quá trình test phiên này.
 
 ### 3. `sme-outreach`
 - **Responsibility:** LinkedIn (và kênh khác trong tương lai) outbound activity — connection request, message send/follow-up/re-engagement, activity logging.
@@ -126,3 +128,25 @@ vector-search/*` gọi sai path). Test isolation cũng đã fix (`SME_DATA_DIR` 
 
 `sme-campaign` (CLI thực thi), LinkedIn accepted detection, autonomous outreach, Campaign performance thật
 **vẫn CHƯA implement** — để Phase 2C/Future, không nằm trong phạm vi Phase 2A/2B.
+
+## Ghi chú Phase 2C (Campaign Execution — đã build)
+
+`sme-campaign` (mục 2) đã build — gọi thẳng COSMO Campaign API thật (`create/list/view/stats/add-template/
+templates/activate/pause/delete`), audit kỹ trước khi build (capability matrix trong `campaign/SKILL.md`).
+Không tạo core skill thứ 9, không migration DB mới (campaign/template/list-contact đều sống ở COSMO).
+`sme-analytics` mở rộng thêm `analytics campaigns` (mục 8) — reuse `sent/reply/reply_rate` COSMO tính sẵn,
+không tự tính lại.
+
+Phát hiện quan trọng trong lúc audit: COSMO Campaign hoàn toàn không có khái niệm "channel" — `agent_id` luôn
+là 1 email identity (Gmail/Outlook OAuth). Vì `sme-outreach` xác nhận (lại) KHÔNG có khả năng gửi LinkedIn
+(chỉ đọc qua CDP `Runtime.evaluate`), channel LinkedIn của Campaign chỉ có thể là kế hoạch + tracking thủ
+công — KHÔNG có "activate" thật cho LinkedIn. Agent email duy nhất của org đang `invalid Google grant` —
+xác nhận live, KHÔNG bypass — nên channel email cũng chưa test được thật sự gửi trong phiên này (chỉ test
+tới bước bị từ chối activate, đúng theo thiết kế an toàn).
+
+LinkedIn accepted detection: audit lại (Phase 2C) không tìm thêm được signal đáng tin cậy nào ngoài những gì
+đã biết ở Phase 1 (trang "Received invitations" trộn lẫn connection cá nhân + follow company) — vẫn
+`unsupported/deferred`, không block Phase 2C.
+
+Campaign engine chưa test được: gửi email thật (do Google auth), reply/sent event chi tiết theo từng người
+nhận (chỉ có aggregate count qua COSMO GetByID) — cả 2 đều document rõ trong Known Issues, không giả lập số.

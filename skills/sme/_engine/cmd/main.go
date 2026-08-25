@@ -40,6 +40,8 @@ func main() {
 		cmdIntelligence(os.Args[2:])
 	case "analytics":
 		cmdAnalytics(os.Args[2:])
+	case "campaign":
+		cmdCampaign(os.Args[2:])
 	// Self-improvement
 	case "cron-health":
 		cmdCronHealth(os.Args[2:])
@@ -111,6 +113,7 @@ Outreach:    outreach sync|log-event|today|funnel|pending|reply-context|log-clas
 Opportunity: opportunity view|risk-list
 Intelligence: intelligence account <company> [--org-id ID]
 Analytics:    analytics summary [--days N] [--week YYYY-Www] [--member NAME] [--max-pages N]
+Campaign:     campaign create|list|view|stats|add-template|templates|activate|pause|delete
 Self-improve: cron-health log|check|autofix|list
 Measure:      action-log suggest|done|skip|rate|pending|auto-check
 Accounting:  invoice, payment, bank, cashflow, expense

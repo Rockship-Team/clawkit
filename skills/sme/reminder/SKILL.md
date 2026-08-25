@@ -98,6 +98,35 @@ Kich hoat NGAY khi message khop bat ky pattern:
 - `PIPELINE_WATCH` → real-time alert moi 10p (Gmail reply + stuck deal)
 - `GOAL_REVIEW` → proactive Goal Briefing 1 lần/sáng ngày làm việc (Phase 3C, xem "GOAL_REVIEW MODE" bên dưới)
 
+## DELIVERY CONTRACT — NO_REPLY SENTINEL (Phase 3C Delivery Gate) — ÁP DỤNG CHO CẢ PIPELINE_WATCH VÀ GOAL_REVIEW
+
+**Root cause đã audit:** cron `delivery.mode = "announce"` forward NGUYÊN VĂN final reply text ra Telegram —
+KHÔNG QUAN TÂM nội dung nói gì. Kể cả khi agent tự quyết định "không có gì để báo", câu văn xuôi đó VẪN bị
+gửi đi (đã confirm trực tiếp — cả `pipeline-watch` lẫn `goal-review` từng gửi tin dù log nói "no alert"/"end
+silently"). Viết văn xuôi kiểu "không có gì mới" KHÔNG đủ — announce mode vẫn coi đó là nội dung cần gửi.
+
+**Fix (dùng nguyên capability có sẵn trong OpenClaw runtime — KHÔNG patch platform, KHÔNG tự gửi Telegram
+qua curl):** `delivery.mode` giữ nguyên `"announce"` (đường đã CHỨNG MINH tới được user, không đổi qua
+`"none"`/curl nữa — 2 cách đó đã thử và bỏ, xem lịch sử). OpenClaw runner có sẵn 1 sentinel token nhận diện
+ở tầng cron-delivery: nếu TOÀN BỘ final reply text (sau khi trim) là ĐÚNG NGUYÊN VĂN `NO_REPLY` — không có
+chữ nào khác trước/sau — runner tự nhận ra đây là "im lặng có chủ đích" và **KHÔNG gọi Telegram sender**,
+đánh dấu run thành công với `delivered=false`. Không cần biết token/chat_id, không cần tool gì thêm — chỉ
+cần đúng 1 dòng final reply.
+
+**QUY TẮC BẮT BUỘC (cả PIPELINE_WATCH lẫn GOAL_REVIEW):**
+- KHÔNG có gì đáng báo (`notify=false` / không reply mới / không stuck deal mới) → **final reply của cả turn
+  PHẢI là ĐÚNG NGUYÊN VĂN, DUY NHẤT chuỗi**: `NO_REPLY` — không thêm giải thích, không thêm markdown, không
+  thêm câu nào khác trước/sau (kể cả "Đã kiểm tra xong" cũng KHÔNG được thêm — vì đó vẫn là text, runner sẽ
+  forward nếu final reply không khớp CHÍNH XÁC token này).
+- Có gì đáng báo thật (`notify=true` / phát hiện reply-thread mới, stuck deal mới) → viết Briefing/Alert bình
+  thường làm final reply (xem format bên dưới) — KHÔNG liên quan gì tới `NO_REPLY`, gửi qua đúng con đường
+  `announce` như trước giờ, đã chứng minh tới được user.
+- KHÔNG BAO GIỜ trộn `NO_REPLY` với bất kỳ chữ nào khác trong cùng final reply (vd `"NO_REPLY - không có
+  gì mới"` sẽ KHÔNG được nhận diện là sentinel, vẫn bị forward nguyên văn) — chỉ đúng 4 ký tự `NO_REPLY`
+  (có thể có khoảng trắng thừa 2 đầu, runner tự trim) là hợp lệ.
+- KHÔNG dùng khoảng trắng/zero-width character/tin nhắn rỗng để giả vờ "im lặng" — dùng ĐÚNG sentinel
+  `NO_REPLY` đã được runner nhận diện, không tự sáng tạo cách khác.
+
 ## PIPELINE_WATCH MODE — REAL-TIME ALERT
 
 **Schedule thật (đã đồng bộ với cron job Phase 3A, KHÔNG phải 10 phút như bản cũ ghi):** `*/30 9-18 * * 1-5`
@@ -134,7 +163,8 @@ Step 3 — Phan tich noi dung reply (LLM call ngan) — **dung Unified Taxonomy 
   - `declining` → `QUALIFIED → DROPPED` (hoac `LOST` neu sentiment negative ro rang)
   - `unclear` → hoi lai 1 cau clarify, chua doi stage
 
-Step 4 — Alert + draft reply (KHONG auto-update DB without OK):
+Step 4 — Alert + draft reply (KHONG auto-update DB without OK). **Viet noi dung nay lam final reply cua
+turn — day chinh la cach gui (xem "DELIVERY CONTRACT — NO_REPLY SENTINEL" o dau file):**
 
 ```
 📨 @Hans_Dang — Vinasun (anh Pham Van Tam) vừa reply!
@@ -169,7 +199,8 @@ sme-cli cosmo api GET '/v1/contacts?stage=PROPOSAL&inactive_days=5'
 
 Step 2 — Dedupe: skip neu contact da duoc alert trong 24h qua (check memory file `pipeline-watch-state.json` field `last_alert_per_contact`).
 
-Step 3 — Alert tap trung 1 message (nhom theo group):
+Step 3 — Alert tap trung 1 message (nhom theo group). **Viet noi dung nay lam final reply cua turn (xem
+"DELIVERY CONTRACT — NO_REPLY SENTINEL" o dau file):**
 
 ```
 ⚠️ @Hans_Dang — 3 deal stuck >5 ngày chưa phản hồi:
@@ -194,7 +225,7 @@ Step 3 — Alert tap trung 1 message (nhom theo group):
 
 - **Quiet hours:** Cron chi chay 8h-22h ICT. Sau 22h KHONG bot nhac (boss yen tinh).
 - **Frequency:** moi 10p, KHONG nhanh hon (de tranh quota Gmail API + spam alert)
-- **No alert if nothing new:** Im lang neu khong co reply moi + khong co stuck deal moi. KHONG send "Em check xong, 0 thay doi" — anti-noise.
+- **No alert if nothing new:** Im lang neu khong co reply moi + khong co stuck deal moi — nghia la final reply cua turn phai la DUNG NGUYEN VAN `NO_REPLY` (xem "DELIVERY CONTRACT — NO_REPLY SENTINEL" o tren). KHONG viet cau van xuoi kieu "khong co gi moi" — runner van forward nguyen van cau do, chi co dung token `NO_REPLY` moi duoc runner nhan dien la im lang that su.
 - **Telegram channel:** Send vao chat ca nhan @akhoa2174 (KHONG vao group BD — tranh ngo voi team).
 - **Confirmation pattern:** Stage update = side-effect → PHAI hoi OK truoc khi update DB. Em chi suggest, anh OK roi moi execute.
 - **State file:** `~/.openclaw/workspace-gtm/memory/pipeline-watch-state.json`:
@@ -232,7 +263,9 @@ logic `goal next-action`), và so sánh với lần review TRƯỚC đã từng 
 nhất) để quyết định `notify: true/false` — đây là cổng anti-noise chính, deterministic, đã unit-test
 (`goal_review_test.go`). Output có sẵn field `notify`, `reasons`, `progress`, `nba`, `days_remaining`.
 
-**Nếu `notify: false`** → dừng lại, KHÔNG gửi gì cho goal này (không có "mọi thứ vẫn ổn" mỗi sáng).
+**Nếu `notify: false`** → KHÔNG gửi gì cho goal này (không có "mọi thứ vẫn ổn" mỗi sáng). Nếu **TẤT CẢ**
+goal active đều `notify:false` → final reply của cả turn PHẢI là ĐÚNG NGUYÊN VĂN `NO_REPLY` (xem "DELIVERY
+CONTRACT — NO_REPLY SENTINEL" ở trên) — không viết câu văn xuôi nào khác, kể cả "không có gì cần báo".
 
 **Nếu `notify: true`** → tiếp tục 2 bước enrichment sau trước khi soạn Briefing:
 
@@ -268,6 +301,10 @@ Nếu `nba.reason == "progress >= target"` → Briefing PHẢI nói rõ goal đ�
 `sme-cli goal complete <id>` (hỏi xác nhận, KHÔNG tự complete), và KHÔNG đề xuất thêm lead-gen nào nữa cho
 goal này.
 
+**Khi có ≥1 goal `notify:true`:** viết Briefing ở trên làm final reply của turn — đây chính là cách gửi
+(job dùng `delivery.mode=announce`, đường đã chứng minh tới được user). KHÔNG cần `NO_REPLY`, KHÔNG cần
+thêm hành động nào khác.
+
 ### Quy tac GOAL_REVIEW
 
 - **Không action bên ngoài từ cron này** — chỉ research/tính toán/chuẩn bị nếu Approval Policy cho phép AUTO
@@ -277,7 +314,8 @@ goal này.
   group BD (`-5147613854` đã tắt thông báo group từ trước, xem lý do trong lịch sử — không bật lại).
 - **1 message duy nhất** cho toàn bộ goal cần notify hôm đó (nếu có ≥2 goal active cùng cần briefing, gộp
   lại, không spam nhiều tin liên tiếp).
-- **Không notify nếu `notify: false`** cho TẤT CẢ goal đang active → job kết thúc im lặng, không gửi gì.
+- **Không notify nếu `notify: false`** cho TẤT CẢ goal đang active → final reply PHẢI là đúng nguyên văn
+  `NO_REPLY` (xem "DELIVERY CONTRACT — NO_REPLY SENTINEL" ở đầu file) → job kết thúc, runner không gửi gì.
 - **State tự quản lý bởi `goal review-check`** trong chính `sme.db` (bảng `goal_review_state`) — KHÔNG cần
   1 file JSON riêng như `pipeline-watch-state.json` (khác PIPELINE_WATCH: state ở đây gắn với business logic
   Go, không phải raw thread-id dedup của agent).

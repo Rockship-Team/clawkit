@@ -41,27 +41,27 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
 ### 3. `sme-outreach`
 - **Responsibility:** LinkedIn (và kênh khác trong tương lai) outbound activity — connection request, message send/follow-up/re-engagement, activity logging.
 - **Input:** target profile/segment (từ campaign), draft message (từ marketing/intelligence).
-- **Output:** `outreach_events` (connection_request_sent/received, message_sent/reply_received).
-- **Owns:** LinkedIn CDP client, dedup/fingerprint ledger.
-- **Does NOT own:** phân loại intent/sentiment của reply (→ `sme-engagement`, Phase 2 sẽ route qua đây thay vì lưu raw snippet).
-- **Dependency:** `sme-intelligence` (messaging angle), `sme-engagement` (hand-off khi có reply), `sme-crm`.
+- **Output:** `outreach_events` (connection_request_sent/received, message_sent/reply_received); từ Phase 2A
+  thêm `outreach_reply_classifications` (kết quả phân loại do `sme-engagement` thực hiện, `sme-outreach` chỉ
+  validate + lưu — xem mục 4).
+- **Owns:** LinkedIn CDP client, dedup/fingerprint ledger, stale/follow-up derived view (`opportunity view`/`risk-list` không, mà `outreach stale` — reuse `outreach_events`, không entity mới).
+- **Does NOT own:** phân loại intent/sentiment của reply (→ `sme-engagement`) — **Phase 2A đã build pipeline code-level** (`outreach reply-context` → agent classify → `outreach log-classification`), thay cho hành vi chỉ prompt-following trước đây. Xem `outreach/SKILL.md` mục PIPELINE.
+- **Dependency:** `sme-intelligence` (messaging angle), `sme-engagement` (hand-off khi có reply), `sme-crm`, `sme-opportunity` (đọc lại classification làm Evidence).
 
 ### 4. `sme-engagement`
 - **Responsibility (long-term):** reply analysis, intent/sentiment/objection (Unified Taxonomy — xem `engagement/SKILL.md`), buying signal trong hội thoại, suggested response, meeting prep/follow-up.
 - **Input:** reply content (mọi kênh), contact/stage hiện tại.
-- **Output:** intent/sentiment/objection classification, draft response, meeting brief/recap. (Suggested stage transition — xem ghi chú TEMPORARY bên dưới.)
-- **Owns:** Unified Taxonomy (chủ sở hữu duy nhất, mọi kênh khác reuse).
-- **Does NOT own (long-term):** contact identity/`business_stage` storage (→ `sme-crm`), account-level scoring trước hội thoại (→ `sme-intelligence`), gửi outbound đầu tiên (→ `sme-campaign`/`sme-outreach`), **qualification/opportunity stage/deal risk/next-step/proposal-readiness/WON-LOST** (→ `sme-opportunity`, Phase 2).
-- **⚠️ TEMPORARY/legacy (đến khi `sme-opportunity` được build):** stage-transition `ENGAGED→QUALIFIED→PROPOSAL→WON` hiện vẫn thực thi trong `sme-engagement` vì chưa có `sme-opportunity`. Đây KHÔNG phải trách nhiệm dài hạn — sẽ move sang `sme-opportunity` khi build. Trong lúc này, `interested`+`positive` KHÔNG tự nhảy `PROPOSAL` — chỉ classify + đề xuất qualification/discovery (xem `engagement/SKILL.md`).
-- **Dependency:** `sme-crm`, `sme-outreach` (nguồn reply LinkedIn).
+- **Output:** intent/sentiment/objection classification, draft response, meeting brief/recap.
+- **Owns:** Unified Taxonomy (chủ sở hữu duy nhất, mọi kênh khác reuse — kể cả code-level pipeline mới của `sme-outreach`, xem mục 3).
+- **Does NOT own:** contact identity/`business_stage` storage (→ `sme-crm`), account-level scoring trước hội thoại (→ `sme-intelligence`), gửi outbound đầu tiên (→ `sme-campaign`/`sme-outreach`), **qualification/opportunity stage/deal risk/next-step/proposal-readiness/WON-LOST** (→ `sme-opportunity`, **Phase 2A đã build**, không còn TEMPORARY). `interested`+`positive` KHÔNG tự nhảy `PROPOSAL` — Opportunity đánh giá readiness, `sme-crm` mới thực thi PATCH stage sau khi user xác nhận.
+- **Dependency:** `sme-crm`, `sme-outreach` (nguồn reply LinkedIn), `sme-opportunity` (cross-check readiness trước khi đề xuất đổi stage).
 
-### 5. `sme-opportunity` *(Phase 2 — chưa có skill riêng)*
-- **Responsibility:** hợp nhất qualification/pain/next-step/risk thành 1 view nhất quán (Phase 2: light view, không entity mới); tương lai (Phase 3+, chỉ nếu cần): BANT đầy đủ.
-- **Input:** `business_stage`, `next_step`, `risk_flags` (hiện đều từ COSMO qua `sme-crm`/`sme-engagement`).
-- **Output:** 1 view rủi ro/next-step thống nhất (hợp nhất 2 khái niệm risk hiện đang tách biệt: `risk_flags` của engagement + `LOW_PRIORITY` render-rule của reminder).
-- **Does NOT own:** entity/database riêng ở Phase 1/2 (rủi ro migration cao, hoãn Future Phase).
-- **Dependency:** `sme-crm`, `sme-engagement`.
-- **Hiện tại (tạm thời):** xem trực tiếp qua `sme-engagement`/`sme-crm`, chưa có skill riêng.
+### 5. `sme-opportunity` *(Phase 2A — đã build, xem `opportunity/SKILL.md`)*
+- **Responsibility:** hợp nhất qualification/pain/next-step/risk/proposal-readiness thành 1 view nhất quán (lightweight, không entity mới); tương lai (Phase 3+, chỉ nếu cần): BANT đầy đủ.
+- **Input:** `business_stage`, `next_step`, `stage_label`, `relationship.*` (COSMO qua `/v2/contacts/search`, cùng cơ chế `cosmo_plan.go`), risk cell (`classify()`), LinkedIn reply classification (`outreach_reply_classifications`).
+- **Output:** `sme-cli opportunity view`/`risk-list` — 1 view risk/next-step/readiness thống nhất (đã merge `cosmo_plan.go` cell + `LOW_PRIORITY` render-rule cũ của reminder thành 1 nguồn duy nhất). Budget/Authority/Timeline/Known Pain luôn `unknown` nếu chưa có evidence — không suy diễn.
+- **Does NOT own:** entity/database riêng (KHÔNG có bảng `opportunities` — pure aggregation); tự generate/gửi proposal (→ `sme-proposal`); phân loại reply (→ `sme-engagement`, Opportunity chỉ đọc kết quả).
+- **Dependency:** `sme-crm`, `sme-engagement`, `sme-outreach` (classification data).
 
 ### 6. `sme-marketing`
 - **Responsibility:** content strategy, content generation, campaign asset, (Phase 2+) market signal tổng hợp.
@@ -71,9 +71,11 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
 
 ### 7. `sme-proposal`
 - **Responsibility:** sinh + render (PDF) + gửi proposal, có approval gate.
-- **Owns:** `proposal.go` (chromium chain, pricing tier — Phase 2 sẽ config-hoá thay vì hardcode).
-- **Does NOT own:** quyết định deal context/next-step (nên link `sme-opportunity` khi có, hiện chỉ link `contact_id`).
-- **Dependency:** `sme-crm`, `sme-opportunity` (Phase 2+).
+- **Owns:** `proposal.go` (chromium chain — không đổi); pricing tier/add-on/discount **từ Phase 2A đã config-hoá**
+  (`Connections.Proposal.*` trong `config.go`, fallback đúng 100% giá trị hardcode cũ nếu config rỗng —
+  KHÔNG đổi business pricing, KHÔNG đổi HTML/PDF).
+- **Does NOT own:** quyết định deal context/next-step (link `sme-opportunity` — đánh giá readiness trước khi gửi, hiện contact_id vẫn là khóa chính).
+- **Dependency:** `sme-crm`, `sme-opportunity`.
 
 ### 8. `sme-analytics` *(Phase 2 — chưa có skill riêng)*
 - **Responsibility:** hợp nhất KPI + funnel + hiệu suất campaign/channel + recommendation.
@@ -86,3 +88,11 @@ Xem thêm: `skills/sme/orchestrator/SKILL.md` (routing table chính thức), `sk
 
 Không có bảng nào ở trên yêu cầu tạo database mới, migration, hay implement 3 skill Phase 2 (intelligence/
 opportunity/analytics). Đây thuần là tài liệu ranh giới để Phase 2/3 build đúng chỗ.
+
+## Ghi chú Phase 2A (Deal Lifecycle — đã build)
+
+`sme-opportunity` đã build (mục 5) — lightweight aggregation view, KHÔNG bảng mới. Pipeline code-level
+LinkedIn reply → `sme-outreach` → `sme-engagement` taxonomy → `sme-opportunity` đã nối (mục 3, 4, 5).
+Proposal pricing đã config-hoá (mục 7), fallback y hệt giá trị cũ. `sme-intelligence`, `sme-analytics`,
+`sme-campaign` (CLI thực thi), LinkedIn accepted detection, autonomous outreach **vẫn CHƯA implement** —
+để Phase 2B/2C/Future, không nằm trong phạm vi Phase 2A.

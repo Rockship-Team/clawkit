@@ -320,7 +320,16 @@ Output JSON (daily-plan) co field quan trong:
 
 ### 🔑 QUY TAC LOW_PRIORITY — auto-deprioritize sau 3 follow-up im lang
 
-**Rule (tinh tai render time, KHONG can API change):**
+**Từ Phase 2A:** rule merge risk đã chuyển sang `sme-cli opportunity risk-list` (1 nguồn duy nhất, xem
+`opportunity/SKILL.md` mục "RISK — 1 nguồn duy nhất") — dùng lệnh này thay vì tự tính lại ở đây. Rule bên
+dưới giữ lại làm tài liệu tham chiếu logic gốc (`cosmo_plan.go` không đổi), KHÔNG tính lại 1 lần nữa trong
+`sme-reminder`.
+
+```bash
+sme-cli opportunity risk-list        # thay cho việc tự đếm outbound_count/last_reply_at trong reminder
+```
+
+**Rule gốc (đã move vào `opportunity.go`, tham chiếu — KHÔNG tự implement lại ở reminder):**
 
 Sau khi fetch `daily-plan`, voi moi contact:
 - Dem outbound interactions (email/LinkedIn/Zalo/call) tu lan reply gan nhat (hoac tu khi tao contact neu chua bao gio reply).

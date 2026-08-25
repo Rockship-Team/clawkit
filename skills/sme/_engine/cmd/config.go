@@ -68,6 +68,15 @@ type Connections struct {
 		CDPUrl     string `json:"cdp_url"`
 		LastSyncAt string `json:"last_sync_at"`
 	} `json:"linkedin"`
+
+	// Proposal pricing — overrides the hardcoded defaults in proposal.go when
+	// set. Empty/missing fields fall back to the exact current defaults, so a
+	// missing or partial config never breaks proposal generation.
+	Proposal struct {
+		Tiers         []proposalTier `json:"tiers,omitempty"`
+		AddOns        []string       `json:"add_ons,omitempty"`
+		DiscountRules []string       `json:"discount_rules,omitempty"`
+	} `json:"proposal"`
 }
 
 func loadConnections() Connections {
@@ -176,6 +185,24 @@ func cmdConfig(args []string) {
 			c.Apollo.APIKey = val
 		case "linkedin.cdp_url":
 			c.LinkedIn.CDPUrl = val
+		case "proposal.tiers_json":
+			var tiers []proposalTier
+			if err := json.Unmarshal([]byte(val), &tiers); err != nil {
+				errOut("proposal.tiers_json must be a JSON array of tiers: " + err.Error())
+			}
+			c.Proposal.Tiers = tiers
+		case "proposal.add_ons_json":
+			var addOns []string
+			if err := json.Unmarshal([]byte(val), &addOns); err != nil {
+				errOut("proposal.add_ons_json must be a JSON array of strings: " + err.Error())
+			}
+			c.Proposal.AddOns = addOns
+		case "proposal.discount_rules_json":
+			var rules []string
+			if err := json.Unmarshal([]byte(val), &rules); err != nil {
+				errOut("proposal.discount_rules_json must be a JSON array of strings: " + err.Error())
+			}
+			c.Proposal.DiscountRules = rules
 		default:
 			errOut("unknown config key: " + key)
 		}
@@ -212,6 +239,15 @@ func cmdConfig(args []string) {
 			val = c.Apollo.APIKey
 		case "linkedin.cdp_url":
 			val = c.LinkedIn.CDPUrl
+		case "proposal.tiers_json":
+			b, _ := json.Marshal(effectiveProposalTiers())
+			val = string(b)
+		case "proposal.add_ons_json":
+			b, _ := json.Marshal(effectiveProposalAddOns())
+			val = string(b)
+		case "proposal.discount_rules_json":
+			b, _ := json.Marshal(effectiveDiscountRules())
+			val = string(b)
 		default:
 			errOut("unknown config key: " + key)
 		}

@@ -34,6 +34,8 @@ func main() {
 		cmdKPI(os.Args[2:])
 	case "outreach":
 		cmdOutreach(os.Args[2:])
+	case "opportunity":
+		cmdOpportunity(os.Args[2:])
 	// Self-improvement
 	case "cron-health":
 		cmdCronHealth(os.Args[2:])
@@ -101,7 +103,8 @@ BD:          cosmo, apollo, proposal, event
 Channel:     channel send-file|send-message
 Social:      social buckets|voice|formats|next-slot|draft|update|get|list|schedule|mark-posted|upcoming|delete
 KPI:         kpi set|get|list|check
-Outreach:    outreach sync|log-event|today|funnel|pending
+Outreach:    outreach sync|log-event|today|funnel|pending|reply-context|log-classification|classified|stale
+Opportunity: opportunity view|risk-list
 Self-improve: cron-health log|check|autofix|list
 Measure:      action-log suggest|done|skip|rate|pending|auto-check
 Accounting:  invoice, payment, bank, cashflow, expense

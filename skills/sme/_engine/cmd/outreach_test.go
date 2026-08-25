@@ -62,6 +62,63 @@ func TestParseCard(t *testing.T) {
 	}
 }
 
+func TestClassifyStaleState(t *testing.T) {
+	cases := []struct {
+		name       string
+		latestType string
+		hasMessage bool
+		since      int
+		threshold  int
+		want       string
+	}{
+		{"connected, no message, past threshold", "connection_request_sent", false, 5, 3, "connected_no_message"},
+		{"connected, no message, fresh", "connection_request_sent", false, 1, 3, ""},
+		{"connected, but message already sent", "connection_request_sent", true, 5, 3, ""},
+		{"message sent, no reply, stale", "message_sent", false, 4, 3, "sent_no_reply"},
+		{"message sent, fresh", "message_sent", false, 1, 3, ""},
+		{"reply received, no follow-up yet, stale", "message_reply_received", false, 4, 3, "due_follow_up"},
+		{"reply received, fresh", "message_reply_received", false, 0, 3, ""},
+	}
+	for _, tc := range cases {
+		got := classifyStaleState(tc.latestType, tc.hasMessage, tc.since, tc.threshold)
+		if got != tc.want {
+			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestUnifiedTaxonomyEnumsMatchEngagementSpec(t *testing.T) {
+	wantIntents := []string{"interested", "requesting_info", "scheduling_meeting", "declining", "unclear"}
+	for _, v := range wantIntents {
+		if !validIntents[v] {
+			t.Errorf("expected intent %q to be valid", v)
+		}
+	}
+	if len(validIntents) != len(wantIntents) {
+		t.Errorf("validIntents has %d entries, want exactly %d (no extra vocab)", len(validIntents), len(wantIntents))
+	}
+
+	wantSentiments := []string{"positive", "neutral", "negative"}
+	for _, v := range wantSentiments {
+		if !validSentiments[v] {
+			t.Errorf("expected sentiment %q to be valid", v)
+		}
+	}
+	if len(validSentiments) != len(wantSentiments) {
+		t.Errorf("validSentiments has %d entries, want exactly %d", len(validSentiments), len(wantSentiments))
+	}
+
+	wantObjections := []string{"none", "price", "timing", "authority", "trust", "other"}
+	for _, v := range wantObjections {
+		if !validObjections[v] {
+			t.Errorf("expected objection %q to be valid", v)
+		}
+	}
+	if len(validObjections) != len(wantObjections) {
+		t.Errorf("validObjections has %d entries, want exactly %d", len(validObjections), len(wantObjections))
+	}
+}
+
 func TestParseMessageCard(t *testing.T) {
 	cases := []struct {
 		name         string

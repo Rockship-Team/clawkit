@@ -23,12 +23,17 @@ import (
 //	sme-cli outreach funnel [--days N]             # event counts over a range
 //	sme-cli outreach pending                        # received invitations awaiting a decision
 //	sme-cli outreach list [--event-type X] [--days N] [--limit N]  # raw event rows (name, note, time)
+//	sme-cli outreach reply-context [--limit N]     # unclassified replies, for hand-off to sme-engagement
+//	sme-cli outreach log-classification --event-id X --intent I --sentiment S --objection O [--contact-id ID] [--note N]
+//	sme-cli outreach classified [--days N]         # replies already classified
+//	sme-cli outreach stale [--days N]              # derived: connected-no-message / sent-no-reply / due-follow-up
 func cmdOutreach(args []string) {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: outreach sync|log-event|today|funnel|pending|list")
+		fmt.Fprintln(os.Stderr, "usage: outreach sync|log-event|today|funnel|pending|list|reply-context|log-classification|classified|stale")
 		os.Exit(1)
 	}
 	ensureOutreachTable()
+	ensureOutreachClassificationTable()
 	switch args[0] {
 	case "sync":
 		outreachSync(args[1:])
@@ -42,6 +47,14 @@ func cmdOutreach(args []string) {
 		outreachPending(args[1:])
 	case "list":
 		outreachList(args[1:])
+	case "reply-context":
+		outreachReplyContext(args[1:])
+	case "log-classification":
+		outreachLogClassification(args[1:])
+	case "classified":
+		outreachClassified(args[1:])
+	case "stale":
+		outreachStale(args[1:])
 	default:
 		errOut("unknown outreach command: " + args[0])
 	}
@@ -62,6 +75,27 @@ func ensureOutreachTable() {
 		occurred_at TEXT NOT NULL,
 		created_at  TEXT NOT NULL,
 		UNIQUE(org_id, fingerprint)
+	)`)
+}
+
+// ensureOutreachClassificationTable holds the Engagement Unified Taxonomy
+// result for a given reply event. This is NOT a second taxonomy — intent/
+// sentiment/objection are validated against the exact same enums
+// engagement/SKILL.md defines (see validIntent/validSentiment/validObjection
+// below), so outreach.go stores the classification but never invents it.
+func ensureOutreachClassificationTable() {
+	mustDB().Exec(`CREATE TABLE IF NOT EXISTS outreach_reply_classifications (
+		id            TEXT PRIMARY KEY,
+		org_id        TEXT NOT NULL DEFAULT 'default',
+		event_id      TEXT NOT NULL,
+		contact_id    TEXT,
+		intent        TEXT NOT NULL,
+		sentiment     TEXT NOT NULL,
+		objection     TEXT NOT NULL,
+		note          TEXT,
+		classified_at TEXT NOT NULL,
+		created_at    TEXT NOT NULL,
+		UNIQUE(org_id, event_id)
 	)`)
 }
 
@@ -631,4 +665,291 @@ func outreachSync(args []string) {
 		out["note"] = "Một phần sync lỗi — số liệu chỉ tính tới thời điểm sync thành công gần nhất, KHÔNG coi phần lỗi là 0."
 	}
 	jsonOut(out)
+}
+
+// --- LinkedIn reply → Engagement Unified Taxonomy pipeline ------------------
+//
+// outreach.go's job here is ONLY to detect/retrieve the reply and pass it +
+// contact context onward, then persist whatever normalized result comes
+// back. It never classifies the reply itself and never defines its own
+// vocabulary — sme-engagement remains the single owner of the taxonomy
+// (engagement/SKILL.md "UNIFIED TAXONOMY"). The three enums below exist here
+// only to REJECT a value that doesn't match that taxonomy, not to redefine it.
+
+var validIntents = map[string]bool{
+	"interested": true, "requesting_info": true, "scheduling_meeting": true,
+	"declining": true, "unclear": true,
+}
+var validSentiments = map[string]bool{"positive": true, "neutral": true, "negative": true}
+var validObjections = map[string]bool{
+	"none": true, "price": true, "timing": true, "authority": true, "trust": true, "other": true,
+}
+
+type replyClassification struct {
+	EventID      string `json:"event_id"`
+	ContactID    string `json:"contact_id,omitempty"`
+	Intent       string `json:"intent"`
+	Sentiment    string `json:"sentiment"`
+	Objection    string `json:"objection"`
+	Note         string `json:"note,omitempty"`
+	ClassifiedAt string `json:"classified_at"`
+}
+
+// outreachReplyContext returns LinkedIn replies not yet classified, so the
+// agent can resolve the contact (via the existing `sme-cli cosmo
+// search-contact <name>` — reused as-is, not reimplemented here) and
+// classify with sme-engagement's Unified Taxonomy, then write the result
+// back via log-classification.
+func outreachReplyContext(args []string) {
+	limit := 20
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--limit" && i+1 < len(args) {
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				limit = n
+			}
+		}
+	}
+	orgID := defaultOrgID()
+	rows, err := queryRows(`
+		SELECT e.id as event_id, e.name, e.note as snippet, e.occurred_at
+		FROM outreach_events e
+		LEFT JOIN outreach_reply_classifications c
+			ON c.org_id = e.org_id AND c.event_id = e.id
+		WHERE e.org_id = ? AND e.event_type = 'message_reply_received' AND c.id IS NULL
+		ORDER BY e.occurred_at DESC
+		LIMIT ?
+	`, orgID, limit)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{
+		"unclassified_replies": rows,
+		"count":                len(rows),
+		"next_step": "Với mỗi reply: (1) resolve contact qua `sme-cli cosmo search-contact <name>`, " +
+			"(2) phân loại theo Unified Taxonomy của sme-engagement (intent/sentiment/objection) — " +
+			"KHÔNG tự định nghĩa vocab khác, (3) ghi kết quả qua `sme-cli outreach log-classification`.",
+	})
+}
+
+// outreachLogClassification persists the Engagement-computed classification
+// for one reply event. It validates against the Unified Taxonomy enums so
+// this table can never silently drift into a second vocabulary.
+func outreachLogClassification(args []string) {
+	var eventID, contactID, intent, sentiment, objection, note string
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--event-id":
+			i++
+			eventID = args[i]
+		case "--contact-id":
+			i++
+			contactID = args[i]
+		case "--intent":
+			i++
+			intent = args[i]
+		case "--sentiment":
+			i++
+			sentiment = args[i]
+		case "--objection":
+			i++
+			objection = args[i]
+		case "--note":
+			i++
+			note = args[i]
+		}
+	}
+	if eventID == "" {
+		errOut("cần --event-id (lấy từ `outreach reply-context`)")
+		return
+	}
+	if !validIntents[intent] {
+		errOut("intent không hợp lệ — phải là 1 trong: interested, requesting_info, scheduling_meeting, declining, unclear (Unified Taxonomy của sme-engagement)")
+		return
+	}
+	if !validSentiments[sentiment] {
+		errOut("sentiment không hợp lệ — phải là 1 trong: positive, neutral, negative")
+		return
+	}
+	if !validObjections[objection] {
+		errOut("objection không hợp lệ — phải là 1 trong: none, price, timing, authority, trust, other")
+		return
+	}
+
+	orgID := defaultOrgID()
+	now := vnNowISO()
+	id := newID()
+	_, err := mustDB().Exec(`
+		INSERT INTO outreach_reply_classifications
+			(id, org_id, event_id, contact_id, intent, sentiment, objection, note, classified_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(org_id, event_id) DO UPDATE SET
+			contact_id=excluded.contact_id, intent=excluded.intent, sentiment=excluded.sentiment,
+			objection=excluded.objection, note=excluded.note, classified_at=excluded.classified_at
+	`, id, orgID, eventID, contactID, intent, sentiment, objection, note, now, now)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{
+		"event_id": eventID, "contact_id": contactID,
+		"intent": intent, "sentiment": sentiment, "objection": objection,
+		"message": "Đã ghi classification. Stage KHÔNG tự đổi — sme-opportunity đánh giá readiness riêng, KHÔNG auto-jump Proposal.",
+	})
+}
+
+func outreachClassified(args []string) {
+	days := 7
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--days" && i+1 < len(args) {
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				days = n
+			}
+		}
+	}
+	orgID := defaultOrgID()
+	since := vnNow().AddDate(0, 0, -days+1).Format("2006-01-02")
+	rows, err := queryRows(`
+		SELECT c.event_id, c.contact_id, c.intent, c.sentiment, c.objection, c.note, c.classified_at,
+		       e.name, e.occurred_at
+		FROM outreach_reply_classifications c
+		JOIN outreach_events e ON e.org_id = c.org_id AND e.id = c.event_id
+		WHERE c.org_id = ? AND substr(c.classified_at, 1, 10) >= ?
+		ORDER BY c.classified_at DESC
+	`, orgID, since)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+	okOut(map[string]interface{}{"classified": rows, "count": len(rows), "since": since})
+}
+
+// queryReplyClassificationsByContact is used by opportunity.go to fold
+// LinkedIn-sourced classifications into the Opportunity view's evidence —
+// the actual code-level link from Outreach → Engagement → Opportunity.
+func queryReplyClassificationsByContact(orgID, contactID string) ([]replyClassification, error) {
+	if contactID == "" {
+		return nil, nil
+	}
+	rows, err := queryRows(`
+		SELECT event_id, contact_id, intent, sentiment, objection, note, classified_at
+		FROM outreach_reply_classifications
+		WHERE org_id = ? AND contact_id = ?
+		ORDER BY classified_at DESC
+	`, orgID, contactID)
+	if err != nil {
+		return nil, err
+	}
+	var out []replyClassification
+	for _, r := range rows {
+		out = append(out, replyClassification{
+			EventID:      fmt.Sprint(r["event_id"]),
+			ContactID:    fmt.Sprint(r["contact_id"]),
+			Intent:       fmt.Sprint(r["intent"]),
+			Sentiment:    fmt.Sprint(r["sentiment"]),
+			Objection:    fmt.Sprint(r["objection"]),
+			Note:         fmt.Sprint(r["note"]),
+			ClassifiedAt: fmt.Sprint(r["classified_at"]),
+		})
+	}
+	return out, nil
+}
+
+// --- Stale / follow-up derived view -----------------------------------------
+//
+// Pure aggregation over outreach_events already collected by sync — no new
+// events are ever created here, no schema beyond what ensureOutreachTable
+// already defines.
+
+type staleEntry struct {
+	Name        string `json:"name"`
+	State       string `json:"state"`
+	LastEvent   string `json:"last_event_type"`
+	OccurredAt  string `json:"occurred_at"`
+	DaysSince   int    `json:"days_since"`
+}
+
+// classifyStaleState is the pure decision function behind outreachStale —
+// separated out so it's testable without a database.
+func classifyStaleState(latestType string, hasMessage bool, daysSinceLatest, thresholdDays int) string {
+	switch {
+	case latestType == "connection_request_sent" && !hasMessage && daysSinceLatest >= thresholdDays:
+		return "connected_no_message"
+	case latestType == "message_sent" && daysSinceLatest >= thresholdDays:
+		return "sent_no_reply"
+	case latestType == "message_reply_received" && daysSinceLatest >= thresholdDays:
+		return "due_follow_up"
+	default:
+		return ""
+	}
+}
+
+func outreachStale(args []string) {
+	days := 3
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--days" && i+1 < len(args) {
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err == nil && n > 0 {
+				days = n
+			}
+		}
+	}
+	orgID := defaultOrgID()
+	rows, err := queryRows(`
+		SELECT name, event_type, occurred_at
+		FROM outreach_events
+		WHERE org_id = ? AND name IS NOT NULL AND name != ''
+		ORDER BY name, occurred_at DESC
+	`, orgID)
+	if err != nil {
+		errOut(err.Error())
+		return
+	}
+
+	type nameState struct {
+		latestType string
+		latestAt   string
+		hasMessage bool
+	}
+	byName := map[string]*nameState{}
+	order := []string{}
+	for _, r := range rows {
+		name := fmt.Sprint(r["name"])
+		eventType := fmt.Sprint(r["event_type"])
+		occurredAt := fmt.Sprint(r["occurred_at"])
+		st, ok := byName[name]
+		if !ok {
+			st = &nameState{}
+			byName[name] = st
+			order = append(order, name)
+		}
+		if st.latestAt == "" {
+			st.latestType = eventType
+			st.latestAt = occurredAt
+		}
+		if eventType == "message_sent" || eventType == "message_reply_received" {
+			st.hasMessage = true
+		}
+	}
+
+	var entries []staleEntry
+	for _, name := range order {
+		st := byName[name]
+		since := daysSince(strings.Replace(st.latestAt, " ", "T", 1))
+		if state := classifyStaleState(st.latestType, st.hasMessage, since, days); state != "" {
+			entries = append(entries, staleEntry{Name: name, State: state, LastEvent: st.latestType, OccurredAt: st.latestAt, DaysSince: since})
+		}
+	}
+
+	okOut(map[string]interface{}{
+		"days_threshold": days,
+		"stale":          entries,
+		"count":          len(entries),
+		"note":           "Derived từ outreach_events hiện có — KHÔNG tạo event mới, KHÔNG tự gửi tin nhắn. Chỉ đề xuất, chờ user quyết định.",
+	})
 }

@@ -29,7 +29,45 @@ sme-cli outreach today                   # số event hôm nay, group theo chann
 sme-cli outreach funnel [--days N]       # số event N ngày gần đây (default 7)
 sme-cli outreach pending                 # connection request người khác gửi cho mình, chưa xử lý ở lần sync gần nhất
 sme-cli outreach list [--event-type X] [--days N] [--limit N]   # danh sách TÊN + nội dung — default 1 ngày (hôm nay)
+sme-cli outreach reply-context --contact-id X        # context reply LinkedIn mới nhất của 1 contact, để phân loại
+sme-cli outreach log-classification --contact-id X --intent I --sentiment S [--objection O]   # ghi kết quả phân loại
+sme-cli outreach classified --contact-id X           # xem lại các lần đã phân loại cho contact này
+sme-cli outreach stale [--days N]                    # ai đã connect/nhắn nhưng chưa reply, quá N ngày (default 14) — derived, không tạo event mới
 ```
+
+## PIPELINE: LinkedIn reply → Engagement taxonomy → Opportunity (Phase 2A)
+
+`sme-outreach` chỉ lưu HOẠT ĐỘNG thô (connection/message/reply), KHÔNG tự phân loại intent/sentiment —
+việc phân loại luôn thuộc `sme-engagement` (chủ sở hữu duy nhất Unified Taxonomy, xem `engagement/SKILL.md`).
+Pipeline code-level (không chỉ prompt-level) như sau:
+
+```
+LinkedIn reply (message_reply_received, đã có qua sync)
+  → sme-cli outreach reply-context --contact-id X     (outreach.go: lấy reply gần nhất + contact context)
+  → agent phân loại theo Unified Taxonomy (engagement/SKILL.md — Intent/Sentiment/Objection)
+  → sme-cli outreach log-classification --contact-id X --intent I --sentiment S --objection O
+       (outreach.go: validate I/S/O đúng enum của taxonomy, reject nếu sai — KHÔNG tự định nghĩa vocab khác;
+        ghi vào bảng outreach_reply_classifications)
+  → sme-cli opportunity view <contact_id>   (opportunity.go: đọc lại classification này làm Evidence)
+```
+
+**Ranh giới rõ:** outreach.go KHÔNG chứa logic phân loại (không gọi LLM, không tự suy intent) — nó chỉ
+(1) trả context để agent phân loại, và (2) validate + lưu kết quả agent đã phân loại. `sme-opportunity` chỉ
+ĐỌC kết quả đã lưu, không phân loại lại.
+
+**QUAN TRỌNG — không auto-jump:** dù reply là `interested` + sentiment `positive`, KHÔNG tự chuyển stage
+CRM hay coi là proposal-ready — đó là quyết định của `sme-opportunity` (`QUY TẮC PROPOSAL READINESS`), không
+phải của outreach hay việc log-classification.
+
+## STALE / FOLLOW-UP — ai cần nhắn lại
+
+`sme-cli outreach stale [--days N]` là **derived view** từ `outreach_events` đã có sẵn — KHÔNG tạo bảng
+mới, KHÔNG tạo event mới. Phân 3 nhóm:
+- Đã connect nhưng chưa từng nhắn tin (`connection_request_sent` không kèm `message_sent` sau đó)
+- Đã nhắn tin nhưng chưa có reply (`message_sent` gần nhất, không có `message_reply_received` sau đó)
+- Đã từng có reply nhưng im lặng lại quá N ngày kể từ tin nhắn gần nhất
+
+Dùng khi user hỏi "ai chưa follow-up sau khi connect", "ai gửi tin rồi mà im lặng", "còn ai cần nhắn lại".
 
 ## SYNC LINKEDIN — read-only, chỉ khi user yêu cầu
 

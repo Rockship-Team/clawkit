@@ -44,7 +44,11 @@ type proposalTier struct {
 	BestFor               string   `json:"best_for"`
 }
 
-var proposalTiers = []proposalTier{
+// defaultProposalTiers/defaultProposalAddOns/defaultDiscountRules are the
+// exact current pricing values, used whenever config.go's Connections.Proposal
+// section is empty/missing — a missing or partial config must never change
+// proposal output or make generation fail.
+var defaultProposalTiers = []proposalTier{
 	{
 		Name:                 "Starter",
 		PriceVND:             15_000_000,
@@ -88,27 +92,59 @@ var proposalTiers = []proposalTier{
 	},
 }
 
-var proposalAddOns = []string{
+var defaultProposalAddOns = []string{
 	"Custom Vietnamese NLP model tuning",
 	"Additional fine-tuning modules on customer data",
 	"Extended BI / analytics integration",
 }
 
+var defaultDiscountRules = []string{
+	"Only three tiers exist: Starter, Pro, Enterprise. Never invent new tiers (no 'Enterprise Plus', no 'Premium', no 'Custom').",
+	"If client budget > Enterprise (800M VND/year), recommend Enterprise and flag add-ons for BD to quote separately.",
+	"Never modify or round the listed prices.",
+	"Discount policy: 2-year 10%, 3-year 15%, referral 5%, startup 20%.",
+}
+
+// effectiveProposalTiers/effectiveProposalAddOns/effectiveDiscountRules read
+// config.go's Connections.Proposal section, falling back to the exact
+// current defaults for any field left empty. This is the only place pricing
+// is read from — proposalPricing/findTier/validProposalTier below never
+// touch the default* vars directly, so a config override always takes
+// effect consistently everywhere pricing is used.
+func effectiveProposalTiers() []proposalTier {
+	c := loadConnections()
+	if len(c.Proposal.Tiers) > 0 {
+		return c.Proposal.Tiers
+	}
+	return defaultProposalTiers
+}
+
+func effectiveProposalAddOns() []string {
+	c := loadConnections()
+	if len(c.Proposal.AddOns) > 0 {
+		return c.Proposal.AddOns
+	}
+	return defaultProposalAddOns
+}
+
+func effectiveDiscountRules() []string {
+	c := loadConnections()
+	if len(c.Proposal.DiscountRules) > 0 {
+		return c.Proposal.DiscountRules
+	}
+	return defaultDiscountRules
+}
+
 func proposalPricing() {
 	okOut(map[string]interface{}{
-		"tiers":   proposalTiers,
-		"add_ons": proposalAddOns,
-		"rules": []string{
-			"Only three tiers exist: Starter, Pro, Enterprise. Never invent new tiers (no 'Enterprise Plus', no 'Premium', no 'Custom').",
-			"If client budget > Enterprise (800M VND/year), recommend Enterprise and flag add-ons for BD to quote separately.",
-			"Never modify or round the listed prices.",
-			"Discount policy: 2-year 10%, 3-year 15%, referral 5%, startup 20%.",
-		},
+		"tiers":   effectiveProposalTiers(),
+		"add_ons": effectiveProposalAddOns(),
+		"rules":   effectiveDiscountRules(),
 	})
 }
 
 func validProposalTier(name string) (string, bool) {
-	for _, t := range proposalTiers {
+	for _, t := range effectiveProposalTiers() {
 		if strings.EqualFold(t.Name, name) {
 			return t.Name, true
 		}
@@ -301,7 +337,7 @@ func buildProposalHTML(company, contactID, tier, outlineMD string) string {
 }
 
 func findTier(name string) (proposalTier, bool) {
-	for _, t := range proposalTiers {
+	for _, t := range effectiveProposalTiers() {
 		if strings.EqualFold(t.Name, name) {
 			return t, true
 		}

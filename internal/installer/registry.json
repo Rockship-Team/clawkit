@@ -117,7 +117,7 @@
       "version": "1.0.0"
     },
     "engagement": {
-      "description": "Conversion flow cho SME — daily BD actions, reply handling, meeting prep, pilot plan, customer reply, internal handoff. So huu: reply analysis, intent, sentiment, objection, buying signal trong hoi thoai, suggested response, meeting prep/follow-up. Stage-transition (ENGAGED→QUALIFIED→PROPOSAL→WON) hien dang thuc thi TAM THOI o day cho toi khi sme-opportunity duoc build (Phase 2) — xem RESPONSIBILITY BOUNDARY. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, output structure 4 phan).",
+      "description": "Conversion flow cho SME — daily BD actions, reply handling, meeting prep, pilot plan, customer reply, internal handoff. So huu: reply analysis, intent, sentiment, objection, buying signal trong hoi thoai, suggested response, meeting prep/follow-up. Qualification/opportunity stage/deal risk/next-step/proposal-readiness/WON-LOST la trach nhiem cua `sme-opportunity` (da build, Phase 2A) — xem RESPONSIBILITY BOUNDARY. Engagement van thuc thi update `business_stage` (PATCH qua sme-crm) nhu 1 buoc thao tac trong hoi thoai, nhung KHONG con la noi QUYET DINH readiness/stage — tra cuu `sme-cli opportunity view` truoc khi de xuat chuyen stage. BAT BUOC apply rules trong references/bd-conversation-rules.md (KHONG nhac cost, KHONG hua reminder chua tao, tin nhan khach mem mai, output structure 4 phan).",
       "version": "1.0.0",
       "setup_prompts": [
         {
@@ -243,6 +243,10 @@
       "requires_bins": [
         "sa-cli"
       ],
+      "version": "1.0.0"
+    },
+    "opportunity": {
+      "description": "Deal-level lightweight view: qualification status, opportunity stage, deal risk, next step, proposal readiness, WON/LOST interpretation cho 1 contact/deal cụ thể. Trigger khi user hỏi 'deal này đang ở đâu', 'có nên gửi proposal cho X chưa', 'contact Y rủi ro gì', 'ai đang low priority/stale'. Đây là READ-ONLY AGGREGATION view (KHÔNG có bảng DB riêng, KHÔNG phải nguồn dữ liệu mới) — tổng hợp business_stage/next_step từ COSMO (qua sme-crm) + risk cell từ cosmo_plan.go + classification LinkedIn từ sme-outreach. KHÔNG phải nơi lưu contact/stage (dùng sme-crm), KHÔNG phải nơi phân tích reply (dùng sme-engagement — Opportunity chỉ ĐỌC kết quả của Engagement, không tự phân loại).",
       "version": "1.0.0"
     },
     "ops": {
@@ -390,7 +394,7 @@
   },
   "groups": {
     "self-improving-agent": ["agent-learner","knowledge-vault"],
-    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","ops","orchestrator","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
+    "sme": ["accounting","bi","campaign","crm","engagement","hr","kpi","learn","legal","marketing","opportunity","ops","orchestrator","outreach","proposal","reminder","sales","scheduler","strategy","tax"],
     "study-aboard": ["deadline-tracker","ec-strategy","essay-review","financial-aid","offer-comparison","pre-departure","profile-assessment","school-matching","study-plan","weekly-checkin"]
   }
 }

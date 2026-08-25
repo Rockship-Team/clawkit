@@ -74,15 +74,31 @@ func ensureGoalsTable() {
 	ensureColumn("goals", "baseline_value", "INTEGER")
 }
 
-// goalMetricStage: metric types with a reliable, already-built progress
+// goalMetricStages: metric types with a reliable, already-built progress
 // source (COSMO business_stage via the exact same fetchAllContacts
 // primitive sme-opportunity/sme-analytics already use). Any other
 // metric_type (including "custom") has NO source here and MUST report
 // "unknown" — never a guessed/derived number.
-var goalMetricStage = map[string]string{
-	"qualified_leads": "QUALIFIED",
-	"proposals":       "PROPOSAL",
-	"contracts":       "WON",
+//
+// Phase 3B hardening: business_stage is a single mutable column, and
+// crm/SKILL.md documents its lifecycle as
+// NEW → ENGAGED → QUALIFIED → PROPOSAL → NEGOTIATION → WON/LOST
+// (confirmed against cosmo-backend: this scheme is GTM's own convention —
+// COSMO's original domain enum, PRE_SALES/SALES/POST_SALES, is unused by
+// this pipeline). Counting only the EXACT stage (e.g. == "QUALIFIED") is
+// wrong for a milestone goal like "5 qualified leads this month": once a
+// newly-qualified contact progresses QUALIFIED → PROPOSAL, they leave the
+// exact-match set and progress falls even though they're further along,
+// not less qualified (opportunity.go already treats this the same way —
+// "business_stage đã là PROPOSAL/WON → readiness = ready", i.e. later
+// stages already imply the earlier milestone). So each metric here counts
+// its stage CUMULATIVELY ("at-or-beyond") — the one shared definition used
+// for both the baseline snapshot and the current count, so they can never
+// drift apart.
+var goalMetricStages = map[string][]string{
+	"qualified_leads": {"QUALIFIED", "PROPOSAL", "NEGOTIATION", "WON"},
+	"proposals":       {"PROPOSAL", "NEGOTIATION", "WON"},
+	"contracts":       {"WON"},
 }
 
 const goalMaxPages = 8 // on-demand only, same default as opportunity/analytics — never in a hot/cron path
@@ -125,11 +141,11 @@ func goalSet(args []string) {
 	// was legitimately 0".
 	var baseline interface{}
 	baselineNote := ""
-	if stage, ok := goalMetricStage[metric]; ok {
-		count, err := countContactsByBusinessStage(stage, goalMaxPages)
+	if stages, ok := goalMetricStages[metric]; ok {
+		count, err := countContactsByBusinessStages(stages, goalMaxPages)
 		if err == nil {
 			baseline = count
-			baselineNote = fmt.Sprintf(" (baseline hiện tại: %d %s có sẵn trước khi tạo goal, không tính vào progress)", count, metric)
+			baselineNote = fmt.Sprintf(" (baseline hiện tại: %d %s có sẵn trước khi tạo goal — tính theo business_stage ∈ %v, không tính vào progress)", count, metric, stages)
 		}
 	}
 
@@ -221,7 +237,7 @@ func loadGoal(id string) (*goalRecord, error) {
 // used by both `goal view/check` and `goal next-action` so they can never
 // report different numbers for the same goal. Returns ok=false (progress
 // unmeasurable) whenever metric_type has no reliable source OR no baseline
-// was captured (e.g. a metric added to goalMetricStage after this goal was
+// was captured (e.g. a metric added to goalMetricStages after this goal was
 // created) — never guesses.
 type goalProgressResult struct {
 	OK                bool
@@ -250,7 +266,7 @@ func calculateGoalProgress(current, baseline int, target int64) (progress, remai
 }
 
 func computeGoalProgress(g *goalRecord) goalProgressResult {
-	stage, hasSource := goalMetricStage[g.MetricType]
+	stages, hasSource := goalMetricStages[g.MetricType]
 	if !hasSource || !g.HasBaseline {
 		reason := "chưa có nguồn dữ liệu tin cậy cho metric này"
 		if hasSource && !g.HasBaseline {
@@ -258,7 +274,7 @@ func computeGoalProgress(g *goalRecord) goalProgressResult {
 		}
 		return goalProgressResult{OK: false, MeasurementMethod: "unknown — " + reason}
 	}
-	current, err := countContactsByBusinessStage(stage, goalMaxPages)
+	current, err := countContactsByBusinessStages(stages, goalMaxPages)
 	if err != nil {
 		return goalProgressResult{OK: false, MeasurementMethod: "unknown — không lấy được dữ liệu từ COSMO lúc này (" + err.Error() + ")"}
 	}
@@ -268,9 +284,18 @@ func computeGoalProgress(g *goalRecord) goalProgressResult {
 		CurrentValue: current,
 		Progress:     progress,
 		Remaining:    remaining,
+		// Honest wording (Phase 3B hardening, Part 5): this is cumulative
+		// "at-or-beyond" counting, and COSMO has NO stage-transition history
+		// (audited directly — confirmed in Phase 3B), so a contact that was
+		// QUALIFIED/PROPOSAL and later moved to LOST silently drops out of
+		// this count with no trace it ever counted. The honest claim is
+		// "net new contacts currently at-or-beyond <stage> since goal
+		// creation" — NEVER "total leads ever qualified", which this
+		// mechanism cannot support.
 		MeasurementMethod: fmt.Sprintf(
-			"COSMO business_stage=%s: current=%d, baseline (lúc tạo goal)=%d, progress=current-baseline=%d",
-			stage, current, g.BaselineValue, progress),
+			"COSMO business_stage ∈ %v (cumulative \"at-or-beyond\", không phải chỉ đúng 1 stage): current=%d, baseline (lúc tạo goal, cùng stage-set)=%d, progress=current-baseline=%d. "+
+				"Đây là \"net new hiện đang ở mức %s trở lên kể từ lúc tạo goal\" — KHÔNG phải \"tổng số từng đạt %s\": COSMO không lưu lịch sử chuyển stage, nên 1 contact rớt xuống LOST sau khi đã qua mức này sẽ không còn được tính, không để lại dấu vết.",
+			stages, current, g.BaselineValue, progress, g.MetricType, g.MetricType),
 		ScopeStatus: "unverified — COSMO không có field gán contact vào 1 offering/segment cụ thể (vd \"AI Automation\"), nên progress chỉ đếm theo business_stage tổng, KHÔNG xác nhận được có đúng scope goal_text mô tả hay không",
 	}
 }
@@ -340,17 +365,25 @@ func goalSetStatus(args []string, status string) {
 	okOut(map[string]interface{}{"id": id, "status": status})
 }
 
-// countContactsByBusinessStage reuses the exact same fetchAllContacts scan
+// countContactsByBusinessStages reuses the exact same fetchAllContacts scan
 // sme-analytics/sme-opportunity already rely on — never a second COSMO
 // pagination implementation. On-demand only (not in any hot/cron path).
-func countContactsByBusinessStage(stage string, maxPages int) (int, error) {
+// Takes a stage SET (not a single stage) — this is the one shared
+// definition goalSet (baseline) and computeGoalProgress (current) both
+// call, so baseline and current can never use a different stage-set by
+// accident (Phase 3B hardening, Part 3).
+func countContactsByBusinessStages(stages []string, maxPages int) (int, error) {
 	contacts, _, err := fetchAllContacts(maxPages)
 	if err != nil {
 		return 0, err
 	}
+	match := make(map[string]bool, len(stages))
+	for _, s := range stages {
+		match[s] = true
+	}
 	count := 0
 	for _, c := range contacts {
-		if c.BusinessStage == stage {
+		if match[c.BusinessStage] {
 			count++
 		}
 	}

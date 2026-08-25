@@ -69,6 +69,12 @@ Chọn `--metric`:
 - Không tự tính `--deadline` nếu user chỉ nói "tháng này" mà không rõ ngày cụ thể → dùng ngày cuối tháng
   hiện tại (deterministic, không đoán mơ hồ hơn).
 
+**Baseline (Phase 3B):** `goal set` tự động chụp lại số lượng hiện có (vd 4 QUALIFIED) NGAY LÚC TẠO GOAL làm
+baseline — COSMO không có cách nào biết chính xác "khi nào" 1 contact chuyển sang stage này (đã audit source
+COSMO backend, xác nhận không có), nên đây là cách duy nhất đáng tin cậy để KHÔNG tính nhầm số có sẵn từ
+trước thành progress của goal mới. Vì vậy nếu CRM đã có 4 qualified trước khi tạo goal "5 qualified leads",
+`goal check`/`next-action` sẽ báo progress = 0/5 (KHÔNG phải 4/5) — đây là hành vi ĐÚNG, không phải bug.
+
 **Goal MƠ HỒ** (không có target lẫn deadline, vd "tăng doanh số", "làm marketing tốt hơn") → **KHÔNG tự
 bịa số/deadline**. Hỏi lại 1 câu ngắn ("Cụ thể là bao nhiêu / tới khi nào?"). Nếu user vẫn không cho số cụ
 thể sau khi hỏi → có thể lưu với `--metric custom --target 0` (không target), không được tự chọn 1 con số
@@ -77,9 +83,37 @@ thay user.
 User **không cần biết** `sme-cli goal` tồn tại — đây là internal action, chỉ cần confirm ngắn gọn: "Em ghi
 nhận goal này rồi, sẽ theo dõi cho anh."
 
-**Chưa làm ở Phase 3A** (để Phase 3B): tự động dùng Goal để chọn Next Best Action, tự động chain
-Intelligence/Campaign theo goal delta. `goal check` ở Phase 3A chỉ show lại định nghĩa + progress hiện tại
-(nếu có nguồn tin cậy) — KHÔNG tự đề xuất hành động dựa trên đó.
+### GOAL-AWARE NBA (Phase 3B) — khi user hỏi "giờ nên làm gì" mà đang có goal active
+
+Trigger: user hỏi 1 trong các dạng sau **VÀ** đang có ít nhất 1 goal `status=active`:
+- "giờ nên làm gì?" / "tiếp theo làm gì?"
+- "tình hình goal sao rồi?" / "goal của tôi đang tới đâu?"
+- "hôm nay ưu tiên gì?"
+
+Flow (AUTO — không cần hỏi xin phép để tính toán/đề xuất, chỉ dừng lại khi tới bước gửi/activate thật):
+
+```bash
+sme-cli goal list --status active           # nếu chưa biết goal_id
+sme-cli goal next-action <goal_id>
+```
+
+`goal next-action` đã tự làm: check progress (baseline vs current, KHÔNG bao giờ tính all-time count làm
+progress — xem `goal.go`), phát hiện bottleneck (Case A-E, xem code comment trong `goal_nba.go` để biết thứ
+tự ưu tiên), trả về `recommended_action` + `recommended_skill` + `approval_required`.
+
+Trình bày cho user:
+1. Progress hiện tại (current/target, KHÔNG phải all-time count).
+2. Bottleneck phát hiện được (nếu có).
+3. Recommended action — **nếu `approval_required=true`, KHÔNG tự thực thi phần external send/activate**, chỉ
+   chuẩn bị (research qua Intelligence, draft campaign) rồi dừng lại hỏi. Nếu `approval_required=false`
+   (internal-only, vd đề xuất xem lại proposal risk-list), có thể trình bày luôn không cần hỏi OK trước.
+4. Nếu `detected_bottleneck` là "none — goal đã đạt target" → hỏi user có muốn `goal complete <id>` không,
+   **KHÔNG tự động complete**.
+5. Nếu progress = "unknown" → nói rõ giới hạn (metric này chưa đo được), KHÔNG bịa số.
+
+**Chưa làm ở Phase 3B** (để tương lai): tự động chain thực thi Intelligence→Campaign mà không dừng hỏi;
+dùng action_rate/kết quả NBA trước đó để tự thay đổi recommendation tương lai (đó là learning, thuộc
+Phase 3C/Future — hiện `goal next-action` chỉ log vào ActionLog để có traceability, không tự học từ đó).
 
 ## BƯỚC 2 — PLANNING (chia bước)
 

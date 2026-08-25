@@ -59,6 +59,22 @@ func ensureActionLogTable() {
 	mustDB().Exec(`CREATE INDEX IF NOT EXISTS idx_action_contact ON action_suggestions(contact_name, status)`)
 }
 
+// actionSuggestRecord is the data-returning core of `action-log suggest` —
+// extracted so callers elsewhere in the engine (goal_nba.go's goal-aware
+// NBA, Phase 3B) can log a recommendation through the exact same table
+// instead of a second insert path. Returns the new row's id.
+func actionSuggestRecord(contactID, contactName, action, source string) (string, error) {
+	now := vnNowISO()
+	week := isoWeekLabel(vnNow())
+	id := newID()
+	_, err := mustDB().Exec(`
+		INSERT INTO action_suggestions
+			(id, contact_id, contact_name, action_text, source, suggested_at, week_label, status, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+	`, id, contactID, contactName, action, source, now, week, now)
+	return id, err
+}
+
 func actionSuggest(args []string) {
 	var contactID, contactName, action, source string
 	source = "morning"
@@ -78,13 +94,7 @@ func actionSuggest(args []string) {
 		errOut("--contact-name và --action là bắt buộc")
 		return
 	}
-	now := vnNowISO()
-	week := isoWeekLabel(vnNow())
-	_, err := mustDB().Exec(`
-		INSERT INTO action_suggestions
-			(id, contact_id, contact_name, action_text, source, suggested_at, week_label, status, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`, newID(), contactID, contactName, action, source, now, week, now)
+	_, err := actionSuggestRecord(contactID, contactName, action, source)
 	if err != nil {
 		errOut(err.Error())
 		return
@@ -92,7 +102,7 @@ func actionSuggest(args []string) {
 	okOut(map[string]interface{}{
 		"contact": contactName,
 		"action":  action,
-		"week":    week,
+		"week":    isoWeekLabel(vnNow()),
 		"message": fmt.Sprintf("Logged: %s → %s", contactName, action),
 	})
 }

@@ -845,6 +845,23 @@ func outreachLogClassification(args []string) {
 	})
 }
 
+// outreachClassifiedData is the data-returning core of `outreach
+// classified` — extracted so sme-goal's NBA (goal_nba.go) can reuse the
+// exact same recent-classification query instead of a second copy.
+func outreachClassifiedData(days int) (rows []map[string]interface{}, since string, err error) {
+	orgID := defaultOrgID()
+	since = vnNow().AddDate(0, 0, -days+1).Format("2006-01-02")
+	rows, err = queryRows(`
+		SELECT c.event_id, c.contact_id, c.intent, c.sentiment, c.objection, c.note, c.classified_at,
+		       e.name, e.occurred_at
+		FROM outreach_reply_classifications c
+		JOIN outreach_events e ON e.org_id = c.org_id AND e.id = c.event_id
+		WHERE c.org_id = ? AND substr(c.classified_at, 1, 10) >= ?
+		ORDER BY c.classified_at DESC
+	`, orgID, since)
+	return rows, since, err
+}
+
 func outreachClassified(args []string) {
 	days := 7
 	for i := 0; i < len(args); i++ {
@@ -856,16 +873,7 @@ func outreachClassified(args []string) {
 			}
 		}
 	}
-	orgID := defaultOrgID()
-	since := vnNow().AddDate(0, 0, -days+1).Format("2006-01-02")
-	rows, err := queryRows(`
-		SELECT c.event_id, c.contact_id, c.intent, c.sentiment, c.objection, c.note, c.classified_at,
-		       e.name, e.occurred_at
-		FROM outreach_reply_classifications c
-		JOIN outreach_events e ON e.org_id = c.org_id AND e.id = c.event_id
-		WHERE c.org_id = ? AND substr(c.classified_at, 1, 10) >= ?
-		ORDER BY c.classified_at DESC
-	`, orgID, since)
+	rows, since, err := outreachClassifiedData(days)
 	if err != nil {
 		errOut(err.Error())
 		return

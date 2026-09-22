@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,6 +17,7 @@ import (
 //
 //	sme-cli cosmo api <METHOD> <PATH> [JSON_BODY]
 //	sme-cli cosmo search-contact <query> [page_size]
+//	sme-cli cosmo list-contacts [--filter '{...}'] [--limit N] [--page N] [--all]
 //	sme-cli cosmo get-contact <contact_id>
 //	sme-cli cosmo create-contact              (JSON on stdin)
 //	sme-cli cosmo get-interactions <contact_id> [limit]
@@ -32,7 +34,7 @@ import (
 //	sme-cli cosmo daily-plan [--mode morning|evening|all] [--max-pages N]
 func cmdCosmo(args []string) {
 	if len(args) == 0 {
-		errOut("usage: cosmo api|search-contact|find-by-email|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions|daily-plan")
+		errOut("usage: cosmo api|search-contact|list-contacts|find-by-email|get-contact|create-contact|get-interactions|log-interaction|import-txt|import-csv|enrich|score-icp|score-relationship|meeting-brief|vector-search|hybrid-search|search-interactions|daily-plan")
 		return
 	}
 	switch args[0] {
@@ -40,6 +42,8 @@ func cmdCosmo(args []string) {
 		cosmoAPI(args[1:])
 	case "search-contact":
 		cosmoSearchContact(args[1:])
+	case "list-contacts":
+		cosmoListContacts(args[1:])
 	case "find-by-email":
 		cosmoFindByEmailCmd(args[1:])
 	case "get-contact":
@@ -237,12 +241,40 @@ func cosmoAPI(args []string) {
 	if len(args) > 2 {
 		body = []byte(args[2])
 	}
+
+	// Application-level guardrail, not a prompt rule: a prompt-only "use
+	// list-contacts for this endpoint" instruction was tried and reliably
+	// ignored in practice (the agent kept calling this raw passthrough with
+	// an explicit large ?limit= to display a list, dumping every row back to
+	// the user regardless of how the instruction was worded or how many
+	// times the doc was tightened). Capping only the "no limit given" case
+	// (the first version of this guardrail) didn't close that: the agent
+	// simply always supplied a limit. So this endpoint is refused outright
+	// through the raw passthrough — the only way to GUARANTEE the cap holds
+	// is to remove the alternate path entirely, not to make it less
+	// convenient. `list-contacts` (same underlying endpoint, own pagination
+	// state) is the only way in now; it is not reachable via `cosmo api`.
+	if strings.EqualFold(method, "POST") && isContactsSearchPath(path) {
+		errOut("cosmo api POST /v2/contacts/search khong dung truc tiep duoc nua — dung `sme-cli cosmo list-contacts --filter '{...}' [--limit N|--all] [--page N]` thay the (cung endpoint, tu gioi han + bao ro con bao nhieu).")
+		return
+	}
+
 	raw, code, err := cosmoRequest(method, path, body)
 	if err != nil {
 		errOut(err.Error())
 	}
 	rawJSONPassthrough(raw, code)
 }
+
+// isContactsSearchPath reports whether path (with or without a query string)
+// targets the contacts search endpoint.
+func isContactsSearchPath(path string) bool {
+	if i := strings.Index(path, "?"); i >= 0 {
+		path = path[:i]
+	}
+	return path == "/v2/contacts/search"
+}
+
 
 // cosmoContactsSearch is the ONE place that calls POST /v2/contacts/search
 // with the request shape the backend actually implements: a
@@ -278,6 +310,155 @@ func cosmoContactsSearch(filter map[string]interface{}, limit, pageIndex int) ([
 	}
 	path := fmt.Sprintf("/v2/contacts/search?limit=%d&page_index=%d", limit, pageIndex)
 	return cosmoRequest("POST", path, body)
+}
+
+// cosmoListContactsPageSize is the default page size when the agent doesn't
+// ask for a specific limit or --all. Chosen application-side, not left to the
+// LLM's own judgment per turn — a prompt-only "show at most N" rule proved
+// unenforceable in practice (the model kept showing every row once the list
+// felt "short enough"), so the cap now lives here instead: the CLI simply
+// never hands the agent more rows than this unless told to.
+const cosmoListContactsPageSize = 5
+
+// cosmoListContactsHardCap bounds --all so a huge, unfiltered "toan bo" ask
+// can never balloon into thousands of contacts in one response — still an
+// explicit, visible limit (reported in the output), not a silent truncation.
+const cosmoListContactsHardCap = 500
+
+// cosmoListContacts is the intent-driven, paginated list/filter command.
+// It replaces relying on the LLM to decide how many rows to print: the
+// default page is small, "--all" fetches everything (up to a safety cap),
+// and every response reports exactly how many of how many are included, so
+// the caller (the agent, then the user) always sees real numbers instead of
+// a silently cut list.
+//
+//	sme-cli cosmo list-contacts [--filter '{...}'] [--limit N] [--page N] [--all]
+func cosmoListContacts(args []string) {
+	filterJSON := ""
+	limit := cosmoListContactsPageSize
+	page := 0
+	all := false
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--filter":
+			i++
+			filterJSON = args[i]
+		case "--limit":
+			i++
+			if n, err := strconv.Atoi(args[i]); err == nil && n > 0 {
+				limit = n
+			}
+		case "--page":
+			i++
+			if n, err := strconv.Atoi(args[i]); err == nil && n >= 0 {
+				page = n
+			}
+		case "--all":
+			all = true
+		}
+	}
+
+	var filter map[string]interface{}
+	if filterJSON != "" {
+		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
+			errOut("filter khong phai JSON hop le: " + err.Error())
+			return
+		}
+	}
+
+	type searchResp struct {
+		Data struct {
+			List []struct {
+				Entity map[string]interface{} `json:"entity"`
+			} `json:"list"`
+			Total int `json:"total"`
+		} `json:"data"`
+	}
+
+	var contacts []map[string]interface{}
+	var total int
+
+	if all {
+		const fetchPageSize = 100
+		p := 0
+		for {
+			raw, code, err := cosmoContactsSearch(filter, fetchPageSize, p)
+			if err != nil {
+				errOut(err.Error())
+				return
+			}
+			if code >= 400 {
+				errOut(fmt.Sprintf("HTTP %d: %s", code, string(raw)))
+				return
+			}
+			var resp searchResp
+			if err := json.Unmarshal(raw, &resp); err != nil {
+				errOut(err.Error())
+				return
+			}
+			total = resp.Data.Total
+			if len(resp.Data.List) == 0 {
+				break
+			}
+			for _, item := range resp.Data.List {
+				contacts = append(contacts, item.Entity)
+			}
+			p++
+			if len(contacts) >= total || len(contacts) >= cosmoListContactsHardCap || p*fetchPageSize >= total {
+				break
+			}
+		}
+	} else {
+		raw, code, err := cosmoContactsSearch(filter, limit, page)
+		if err != nil {
+			errOut(err.Error())
+			return
+		}
+		if code >= 400 {
+			errOut(fmt.Sprintf("HTTP %d: %s", code, string(raw)))
+			return
+		}
+		var resp searchResp
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			errOut(err.Error())
+			return
+		}
+		total = resp.Data.Total
+		for _, item := range resp.Data.List {
+			contacts = append(contacts, item.Entity)
+		}
+	}
+
+	returned := len(contacts)
+	shownThroughThisPage := page*limit + returned
+	if all {
+		shownThroughThisPage = returned
+	}
+	remaining := total - shownThroughThisPage
+	hasMore := !all && remaining > 0
+
+	var note string
+	switch {
+	case all && returned < total:
+		note = fmt.Sprintf("Lay duoc %d/%d contact khop filter (dat gioi han an toan %d) — con %d chua lay, thu hep filter neu can toan bo.", returned, total, cosmoListContactsHardCap, total-returned)
+	case all:
+		note = fmt.Sprintf("Da lay TOAN BO %d/%d contact khop filter.", returned, total)
+	case hasMore:
+		note = fmt.Sprintf("Dang hien %d/%d contact (trang %d, %d moi trang). Con %d contact nua — dung --page %d de xem tiep trang sau, hoac --all de lay het cung luc.", returned, total, page, limit, remaining, page+1)
+	default:
+		note = fmt.Sprintf("Dang hien %d/%d contact — da het, khong con trang nao khac.", returned, total)
+	}
+
+	okOut(map[string]interface{}{
+		"contacts": contacts,
+		"returned": returned,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+		"all":      all,
+		"has_more": hasMore,
+		"note":     note,
+	})
 }
 
 // contactTextFilter builds an ILIKE-based OR filter across name/company

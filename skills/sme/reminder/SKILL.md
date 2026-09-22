@@ -360,6 +360,7 @@ KHÔNG tag @Hans_Dang khi: chỉ báo cáo thông tin thuần túy, không cần
    - User hoi "list/huy/pause reminder" → **`sme-scheduler`**.
    - User hoi ve 1 contact cu the → sme-crm.
    - User noi "tao campaign" → sme-campaign direct.
+   - **Cau ghep** (vua co time-expression, vua co BD-data-ask, vd "chieu nay nhac anh ai con im lang") — dat lich qua sme-scheduler cho phan time, NHUNG van fetch + tra loi ngay phan BD-data-ask trong skill nay o cung luot, khong duoc bo qua.
 
 4. **PLAIN LANGUAGE** — KHONG dung thuat ngu tech khi render.
 

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -59,6 +60,7 @@ func cmdOutreach(args []string) {
 		errOut("unknown outreach command: " + args[0])
 	}
 }
+
 
 func ensureOutreachTable() {
 	mustDB().Exec(`CREATE TABLE IF NOT EXISTS outreach_events (
@@ -531,44 +533,95 @@ func parseCard(lines []string) (name, headline string) {
 	return name, headline
 }
 
-// messagingScrapeJS reads the LinkedIn Messaging conversation list (left pane).
-// Rows are virtualized — only ~10 are rendered at a time — so this scrolls the
-// list's own scroll container (.msg-conversations-container__conversations-list)
-// step by step, accumulating cards, until it hits a card whose timestamp is not
-// today's "H:MM AM/PM" format (i.e. an older day) or the list stops growing.
-// Bounded to "today" on purpose — this is a daily activity ledger, not a full
-// inbox export, and unbounded scrolling would be slow and needlessly bot-like.
-const messagingScrapeJS = `(async function(){
-  const scroller = document.querySelector('.msg-conversations-container__conversations-list');
-  const timeRe = /^\d{1,2}:\d{2}\s*(AM|PM)$/;
-  const seen = new Map();
-  let hitOld = false;
-  let stableRounds = 0;
-  let lastSize = -1;
-  for (let round = 0; round < 40 && !hitOld; round++) {
-    document.querySelectorAll('.msg-conversation-listitem').forEach(function(card){
-      const lines = card.innerText.split("\n").map(function(s){return s.trim();}).filter(Boolean);
-      if (lines.length === 0) return;
-      const key = lines.slice(0, 2).join("|");
-      if (seen.has(key)) return;
-      if (!lines.some(function(l){ return timeRe.test(l); })) { hitOld = true; return; }
-      seen.set(key, lines);
-    });
-    if (seen.size === lastSize) {
-      stableRounds++;
-      if (stableRounds >= 3) break;
-    } else {
-      stableRounds = 0;
+// messagingKickoffJS reads the LinkedIn Messaging conversation list (left
+// pane). Rows are virtualized — only ~10-20 are rendered at a time — so this
+// scrolls the list's own scroll container
+// (.msg-conversations-container__conversations-list) step by step,
+// accumulating cards, until it hits a row with no recognizable date/time
+// label at all, or the list stops growing.
+//
+// GOTCHA #1 (found 2026-09-16, root cause of "only 3 outreach counted on a
+// day with dozens sent"): LinkedIn does NOT show the word "Yesterday" in this
+// UI — non-today rows are labeled with an actual date like "Sep 15" (short
+// month + day, no year). An earlier version matched only "H:MM AM/PM" (today)
+// or literally "Yesterday", so on any sync where the very first/most-recent
+// row was already from a prior day, EVERY row failed the check and the scrape
+// stopped after round 1 with zero results. Now accepts both label formats.
+//
+// GOTCHA #2 (found same day): running this as a single blocking
+// `Runtime.evaluate` call with awaitPromise:true reliably HANGS past 60s+
+// once the widened date acceptance means dozens of rounds/cards get
+// processed — root cause not fully isolated, but a non-blocking
+// kickoff-then-poll pattern (this function stores progress on
+// `window.__scrapeState` and returns immediately; the Go caller polls a
+// separate tiny synchronous eval until `done`) reliably completes the same
+// work in ~8s. Do not go back to a single blocking evalString call here.
+const messagingKickoffJS = `(function(){
+  window.__scrapeState = {done: false};
+  (async function(){
+    const scroller = document.querySelector('.msg-conversations-container__conversations-list');
+    const timeRe = /^\d{1,2}:\d{2}\s*(AM|PM)$/;
+    const dateRe = /^([A-Z][a-z]{2})\s+(\d{1,2})$/;
+    const now = new Date();
+    const cutoffMs = now.getTime() - %d * 24 * 60 * 60 * 1000;
+    // "Mon D" carries no year, so a naive Date parse of an old label can
+    // silently roll to the WRONG year in either direction — resolve it the
+    // same "assume this year, roll back one if that lands in the future" way
+    // the Go side does (resolveCardDate), so the two cutoffs agree instead
+    // of one trusting the other blindly.
+    function resolveMs(label){
+      const m = dateRe.exec(label);
+      if (!m) return null;
+      let d = new Date(now.getFullYear(), new Date(m[1] + ' 1, 2000').getMonth(), parseInt(m[2], 10));
+      if (d.getTime() > now.getTime()) d.setFullYear(d.getFullYear() - 1);
+      return d.getTime();
     }
-    lastSize = seen.size;
-    if (scroller) scroller.scrollTop += scroller.clientHeight;
-    await new Promise(function(r){ setTimeout(r, 350); });
-  }
-  return JSON.stringify(Array.from(seen.values()));
+    const seen = new Map();
+    let hitOld = false, stableRounds = 0, lastSize = -1;
+    for (let round = 0; round < 40 && !hitOld; round++) {
+      document.querySelectorAll('.msg-conversation-listitem').forEach(function(card){
+        const lines = card.innerText.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+        if (lines.length === 0) return;
+        const key = lines.slice(0, 2).join("|");
+        if (seen.has(key)) return;
+        const label = lines.find(function(l){ return timeRe.test(l) || dateRe.test(l); });
+        if (!label) { hitOld = true; return; }
+        if (dateRe.test(label)) {
+          const ms = resolveMs(label);
+          if (ms === null || ms < cutoffMs) { hitOld = true; return; }
+        }
+        seen.set(key, lines);
+      });
+      if (seen.size === lastSize) { stableRounds++; if (stableRounds >= 3) break; } else { stableRounds = 0; }
+      lastSize = seen.size;
+      if (scroller) scroller.scrollTop += scroller.clientHeight;
+      await new Promise(function(r){ setTimeout(r, 350); });
+    }
+    window.__scrapeState = {done: true, cards: Array.from(seen.values())};
+  })();
+  return "kicked off";
 })()`
 
+// scrapeMessagingCards kicks off messagingKickoffJS (fire-and-forget — see
+// GOTCHA #2 above for why this must NOT be a single blocking eval) and polls
+// a tiny synchronous expression every 500ms until window.__scrapeState.done,
+// up to ~15s — comfortably above the ~8s this normally takes, while still
+// leaving headroom under the 30s outer `timeout` wrapping the whole sync.
 func (s *cdpSession) scrapeMessagingCards() ([][]string, error) {
-	raw, err := s.evalString(messagingScrapeJS)
+	if _, err := s.evalString(fmt.Sprintf(messagingKickoffJS, maxMessageLookbackDays)); err != nil {
+		return nil, err
+	}
+	for i := 0; i < 30; i++ {
+		time.Sleep(500 * time.Millisecond)
+		status, err := s.evalString(`JSON.stringify(!!(window.__scrapeState && window.__scrapeState.done))`)
+		if err != nil {
+			return nil, err
+		}
+		if status == "true" {
+			break
+		}
+	}
+	raw, err := s.evalString(`JSON.stringify((window.__scrapeState && window.__scrapeState.cards) || [])`)
 	if err != nil {
 		return nil, err
 	}
@@ -580,6 +633,45 @@ func (s *cdpSession) scrapeMessagingCards() ([][]string, error) {
 }
 
 var msgTimePattern = regexp.MustCompile(`^\d{1,2}:\d{2}\s*(AM|PM)$`)
+var msgDateLabelPattern = regexp.MustCompile(`^[A-Z][a-z]{2}\s+\d{1,2}$`)
+
+// maxMessageLookbackDays bounds resolveCardDate — a safety net for stragglers
+// missed by the last sync, NOT a full inbox export. 4 days comfortably covers
+// the worst real gap (Friday evening -> Monday morning over a weekend the
+// Saturday check already narrows) plus a day of slack for a missed sync.
+const maxMessageLookbackDays = 4
+
+// resolveCardDate scans a card's lines for a recognizable LinkedIn label —
+// either "H:MM AM/PM" (today) or "Mon D" (an explicit past date, LinkedIn's
+// real format for anything not today — it does NOT show the word
+// "Yesterday") — and resolves it to a concrete YYYY-MM-DD. "Mon D" has no
+// year, so this assumes the current year and rolls back one year if that
+// would land in the future (handles the Dec->Jan boundary). Returns
+// ok=false if no label matched or the resolved date is further back than
+// maxMessageLookbackDays, so a genuinely stale row still gets dropped rather
+// than silently mis-dated.
+func resolveCardDate(lines []string, now time.Time) (dateStr string, ok bool) {
+	for _, l := range lines {
+		if msgTimePattern.MatchString(l) {
+			return now.Format("2006-01-02"), true
+		}
+		if msgDateLabelPattern.MatchString(l) {
+			parsed, err := time.Parse("Jan 2", l)
+			if err != nil {
+				continue
+			}
+			candidate := time.Date(now.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, now.Location())
+			if candidate.After(now) {
+				candidate = candidate.AddDate(-1, 0, 0)
+			}
+			if now.Sub(candidate) > maxMessageLookbackDays*24*time.Hour {
+				return "", false
+			}
+			return candidate.Format("2006-01-02"), true
+		}
+	}
+	return "", false
+}
 
 // parseMessageCard extracts the participant name and last-message snippet from
 // one conversation-list row. A "You:" prefix on the snippet means the last
@@ -589,7 +681,8 @@ func parseMessageCard(lines []string) (name, snippet string, outbound bool) {
 		return strings.HasPrefix(l, "Status is") ||
 			strings.HasPrefix(l, ". Press return") ||
 			strings.HasPrefix(l, "Open the options list") ||
-			msgTimePattern.MatchString(l)
+			msgTimePattern.MatchString(l) ||
+			msgDateLabelPattern.MatchString(l)
 	}
 	for _, l := range lines {
 		if skip(l) {
@@ -672,23 +765,36 @@ func outreachSync(args []string) {
 	} else if cards, err := sess.scrapeMessagingCards(); err != nil {
 		errs = append(errs, "messaging: "+err.Error())
 	} else {
-		today := vnToday()
+		nowT := vnNow()
 		for _, lines := range cards {
+			eventDate, ok := resolveCardDate(lines, nowT)
+			if !ok {
+				continue // no recognizable/in-bounds date label — skip, don't guess
+			}
 			name, snippet, outbound := parseMessageCard(lines)
 			if name == "" {
 				continue
+			}
+			// Attribute to the REAL calendar date LinkedIn labeled the card
+			// with, not always "now" — a card scraped this morning but
+			// labeled "Sep 15" really happened Sep 15, and must be
+			// fingerprinted/dated as such or it silently vanishes into
+			// "today" and throws off both dedup and day-level totals.
+			occurredAt := now
+			if eventDate != vnToday() {
+				occurredAt = eventDate + "T23:59:59+07:00"
 			}
 			eventType := "message_reply_received"
 			if outbound {
 				eventType = "message_sent"
 			}
-			fp := outreachFingerprint(orgID, "linkedin", eventType, name+"|"+today)
+			fp := outreachFingerprint(orgID, "linkedin", eventType, name+"|"+eventDate)
 			res, err := mustDB().Exec(`
 				INSERT INTO outreach_events
 					(id, org_id, channel, event_type, profile_url, name, headline, note, source, fingerprint, occurred_at, created_at)
 				VALUES (?, ?, 'linkedin', ?, '', ?, '', ?, 'sync', ?, ?, ?)
 				ON CONFLICT(org_id, fingerprint) DO NOTHING
-			`, newID(), orgID, eventType, name, snippet, fp, now, now)
+			`, newID(), orgID, eventType, name, snippet, fp, occurredAt, now)
 			if err != nil {
 				errs = append(errs, err.Error())
 				continue

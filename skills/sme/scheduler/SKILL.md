@@ -42,6 +42,8 @@ Kich hoat NGAY khi message co **THOI GIAN CU THE** + y dinh lap lai / mot lan:
 
 Quy tac vang: **chi dung sme-scheduler khi message co time-expression**. Khong thi la sme-reminder.
 
+**Cau ghep (vua co time-expression, vua co BD-data-ask)** — vd "chieu nay nhac anh ai con im lang chua follow-up", "6h sang mai nhac hom qua outreach duoc bao nhieu": xu ly **CA HAI phan** trong cung 1 luot — dat lich qua sme-scheduler (phan time) VA tra loi truc tiep phan BD-data-ask bang cach goi sang sme-reminder/sme-outreach, khong duoc chi chon 1 phan roi bo qua phan con lai.
+
 ## 5 ACTION
 
 ### 1. ADD (tao job moi)

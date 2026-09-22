@@ -68,6 +68,12 @@ trong hội thoại (conversation-level) — cho **MỌI kênh** (COSMO/email, G
 meeting brief/recap. Suggested stage transition vẫn được đề xuất trong hội thoại, nhưng PHẢI cross-check
 với `sme-cli opportunity view` trước khi đề xuất — không tự quyết định readiness một mình.
 
+**BẮT BUỘC audit trail:** mỗi khi đề xuất đổi stage (hoặc PATCH sau khi user OK), phải hiển thị NGAY TRƯỚC
+dòng đề xuất kết quả tra cứu `opportunity view` vừa chạy (proposal_readiness + risk hiện tại), dạng ngắn gọn
+(vd "Đã tra opportunity view: readiness=not_ready, risk=STUCK → đề xuất ..."). Không được đề xuất đổi stage
+mà không kèm dòng tra cứu này — đây là cách duy nhất để user/reviewer xác minh bước cross-check đã thực sự
+xảy ra, không bị bỏ qua dưới áp lực hội thoại nhanh.
+
 **KHÔNG sở hữu (Does NOT own):**
 - Contact/company identity, `business_stage` field lưu trữ — đó là `sme-crm` (chỉ delegate PATCH qua đây)
 - Account-level scoring/ICP/pain-hypothesis TRƯỚC khi có hội thoại — đó là `sme-intelligence` (Phase 2)
